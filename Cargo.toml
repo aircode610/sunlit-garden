@@ -1,6 +1,10 @@
-[package]
-name = "sunlit-garden"
+# A workspace: several crates that share one Cargo.lock and one target/ folder.
+# This root file has no [package] of its own (a "virtual manifest"); it only lists members.
+[workspace]
+resolver = "3"
+members = ["crates/core", "crates/ui"]
+
+# Settings every member crate can inherit with `edition.workspace = true` etc.
+[workspace.package]
 version = "0.1.0"
 edition = "2024"
-
-[dependencies]

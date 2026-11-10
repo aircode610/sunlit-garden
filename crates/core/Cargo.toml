@@ -1,0 +1,7 @@
+[package]
+# Not plain `core`: that name is taken by Rust's built-in `core` crate.
+name = "sunlit-core"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
