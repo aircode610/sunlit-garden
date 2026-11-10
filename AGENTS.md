@@ -14,7 +14,7 @@
 - **When a feature is done**, push its branch and open a PR:
   - `git push -u origin <type>/<slug>`, then `gh pr create --base main --head <type>/<slug>`.
   - Title = the feature in `type(scope): what` form; body = what changed, why, how to check it, and the commit list (`git log --oneline main..HEAD`).
-  - A branch built on an unmerged branch gets `--base <that-branch>` and says so in the body.
+  - **Don't stack PRs.** Start the next branch from `main` after the previous PR merges. If stacking is truly unavoidable, run `gh pr edit <n> --base main` on the upper PR right after the lower one merges, *before* it gets merged (otherwise it lands in the old branch, not `main` — this happened with PR #2).
   - Put the PR link on the card in `Tasks.md` and in the session note.
 - **Never** push `main`, force-push, or merge PRs. Amirali reviews and merges on GitHub.
 
