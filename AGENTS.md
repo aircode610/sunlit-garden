@@ -11,8 +11,12 @@
 - **Commit after every small step** that builds (`cargo check` passes), so each diff is small enough to read and review.
   - Message: `<type>(<scope>): <what, imperative>`, e.g. `feat(search): add BM25 term-frequency saturation`. Add a body explaining *why* when it isn't obvious.
   - Stage files explicitly (`git add <paths>`), never `git add -A`. Don't commit `target/` or unrelated user changes.
-- **Never push** and never merge into `main`. Amirali reviews the branch, then merges and pushes himself.
-- When a feature is done, say so and summarise the branch's commits (`git log --oneline main..HEAD`).
+- **When a feature is done**, push its branch and open a PR:
+  - `git push -u origin <type>/<slug>`, then `gh pr create --base main --head <type>/<slug>`.
+  - Title = the feature in `type(scope): what` form; body = what changed, why, how to check it, and the commit list (`git log --oneline main..HEAD`).
+  - A branch built on an unmerged branch gets `--base <that-branch>` and says so in the body.
+  - Put the PR link on the card in `Tasks.md` and in the session note.
+- **Never** push `main`, force-push, or merge PRs. Amirali reviews and merges on GitHub.
 
 ## Skills: when to use them
 Only these skills are enabled in this project. Load the skill when its trigger fits; say which one you're using.

@@ -75,11 +75,28 @@
       "baserow": { "type": "remote", "url": "https://disabled.invalid/mcp", "disabled": true }
     }
   },
-  // Allow everything; only pushing is blocked (last matching rule wins)
+  // Allow everything except pushing main or force-pushing; feature branches may be pushed for PRs (last matching rule wins)
   "permissions": [
     { "action": "*", "resource": "*", "effect": "allow" },
     { "action": "shell", "resource": "git push *", "effect": "deny" },
     { "action": "shell", "resource": "git -C * push *", "effect": "deny" },
+    { "action": "shell", "resource": "git push origin feat/*", "effect": "allow" },
+    { "action": "shell", "resource": "git push origin fix/*", "effect": "allow" },
+    { "action": "shell", "resource": "git push origin refactor/*", "effect": "allow" },
+    { "action": "shell", "resource": "git push origin chore/*", "effect": "allow" },
+    { "action": "shell", "resource": "git push origin docs/*", "effect": "allow" },
+    { "action": "shell", "resource": "git push -u origin feat/*", "effect": "allow" },
+    { "action": "shell", "resource": "git push -u origin fix/*", "effect": "allow" },
+    { "action": "shell", "resource": "git push -u origin refactor/*", "effect": "allow" },
+    { "action": "shell", "resource": "git push -u origin chore/*", "effect": "allow" },
+    { "action": "shell", "resource": "git push -u origin docs/*", "effect": "allow" },
+    // ...but never main, and never force
+    { "action": "shell", "resource": "git push * main", "effect": "deny" },
+    { "action": "shell", "resource": "git push * main *", "effect": "deny" },
+    { "action": "shell", "resource": "git push *:main*", "effect": "deny" },
+    { "action": "shell", "resource": "git push *--force*", "effect": "deny" },
+    { "action": "shell", "resource": "git push * -f*", "effect": "deny" },
+    { "action": "shell", "resource": "git push *+*", "effect": "deny" },
     // Skills: only the ones useful for this project (when to use each: AGENTS.md)
     { "action": "skill", "resource": "*", "effect": "deny" },
     { "action": "skill", "resource": "opencode", "effect": "allow" },
