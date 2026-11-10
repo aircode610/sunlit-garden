@@ -48,10 +48,6 @@
       "repository": "unicode-rs/unicode-segmentation",
       "description": "M1 reference only, never a dependency: how a real UAX #29 word/sentence boundary implementation is structured."
     },
-    "rusqlite": {
-      "repository": "rusqlite/rusqlite",
-      "description": "SQLite bindings for storage (allowed as a dependency if we pick SQLite). Read for API usage and examples."
-    },
     "nanogpt": {
       "repository": "karpathy/nanoGPT",
       "description": "M2 reference only: minimal GPT (model.py, train.py) to port and understand, not to call."
