@@ -33,11 +33,64 @@
     "vault": {
       "path": "~/grind/sunlit-garden-vault",
       "description": "Dev Obsidian vault: roadmap, module notes, Kanban tasks, architecture, decisions, open questions and session memory. Single source of truth for plans."
+    },
+    // Learning: point explanations at exact chapters
+    "rust-book": {
+      "repository": "rust-lang/book",
+      "description": "The Rust Programming Language book source (src/chNN-*.md). Cite the relevant chapter when explaining a Rust concept."
+    },
+    // Reference implementations: read and compare, NEVER add as dependencies
+    "tantivy": {
+      "repository": "quickwit-oss/tantivy",
+      "description": "M1 reference only, never a dependency: compare our inverted index and BM25 scorer (src/query/bm25.rs, ARCHITECTURE.md)."
+    },
+    "unicode-segmentation": {
+      "repository": "unicode-rs/unicode-segmentation",
+      "description": "M1 reference only, never a dependency: how a real UAX #29 word/sentence boundary implementation is structured."
+    },
+    "rusqlite": {
+      "repository": "rusqlite/rusqlite",
+      "description": "SQLite bindings for storage (allowed as a dependency if we pick SQLite). Read for API usage and examples."
+    },
+    "nanogpt": {
+      "repository": "karpathy/nanoGPT",
+      "description": "M2 reference only: minimal GPT (model.py, train.py) to port and understand, not to call."
+    },
+    "candle": {
+      "repository": "huggingface/candle",
+      "description": "M2 candidate Rust ML framework (training loops, Metal). Compare with burn before deciding."
+    },
+    "burn": {
+      "repository": "tracel-ai/burn",
+      "description": "M2 candidate Rust ML framework (training loops, Metal). Compare with candle before deciding."
+    },
+    "honcho": {
+      "repository": "plastic-labs/honcho",
+      "description": "M7 inspiration only (AGPL): deriver / dialectic / dreamer memory architecture. Read CLAUDE.md first."
+    }
+  },
+  // Project-only override: this work MCP server isn't used here and fails to connect
+  "mcp": {
+    "servers": {
+      "baserow": { "type": "remote", "url": "https://disabled.invalid/mcp", "disabled": true }
     }
   },
   // Allow everything; only pushing is blocked (last matching rule wins)
   "permissions": [
     { "action": "*", "resource": "*", "effect": "allow" },
+    // Skills: only the ones useful for this project
+    { "action": "skill", "resource": "*", "effect": "deny" },
+    { "action": "skill", "resource": "opencode", "effect": "allow" },
+    { "action": "skill", "resource": "tdd", "effect": "allow" },
+    { "action": "skill", "resource": "diagnose", "effect": "allow" },
+    { "action": "skill", "resource": "teach", "effect": "allow" },
+    { "action": "skill", "resource": "zoom-out", "effect": "allow" },
+    { "action": "skill", "resource": "review", "effect": "allow" },
+    { "action": "skill", "resource": "handoff", "effect": "allow" },
+    { "action": "skill", "resource": "grill-me", "effect": "allow" },
+    { "action": "skill", "resource": "grill-with-docs", "effect": "allow" },
+    { "action": "skill", "resource": "design-an-interface", "effect": "allow" },
+    { "action": "skill", "resource": "obsidian-vault", "effect": "allow" },
     { "action": "shell", "resource": "git push *", "effect": "deny" },
     { "action": "shell", "resource": "git -C * push *", "effect": "deny" }
   ]
