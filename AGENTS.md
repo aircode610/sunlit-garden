@@ -14,6 +14,26 @@
 - **Never push** and never merge into `main`. Amirali reviews the branch, then merges and pushes himself.
 - When a feature is done, say so and summarise the branch's commits (`git log --oneline main..HEAD`).
 
+## Skills: when to use them
+Only these skills are enabled in this project. Load the skill when its trigger fits; say which one you're using.
+- **`tdd`** — any logic with clear right answers: tokenizer, sentence splitter, TF-IDF/BM25, parsers, argumentation semantics. Default for `core` code.
+- **`diagnose`** — a bug or regression whose cause isn't obvious after one look (wrong scores, Rune glitches, flaky behaviour).
+- **`design-an-interface`** — shaping a **Rust API**: the `core` crate's public types and functions, the claim-vs-argument data model, module boundaries. Not for UI.
+- **`grill-me`** — before a decision that goes into `Decisions.md` (storage format, claim vs argument, ML framework). Record the outcome in the vault.
+- **`handoff`** — when a session gets long or ends mid-task; complements, doesn't replace, the session note.
+- **`zoom-out`** — Amirali-invoked (`/zoom-out`) when he's lost in an area of code.
+- **`opencode`** — any change to OpenCode config, agents, commands or permissions.
+
+## UI design: Rune only
+All UI design and prototyping happens **in Rune itself** — no Figma, HTML mockups, generated images or web prototypes. Read the `rune` reference before using an API.
+- **Prototype variants** with Rune's **Playground** (`App::playground`: stories, variants, ⌘⇧D) and **scenes** (`AppSpec::scenes`, named states with fixture data). See `examples/playground`, `examples/hello`.
+- **Tune** spacing, sizes, springs live with **`rune-knobs`** (⌘⇧K panel). See `crates/rune-knobs/README.md`.
+- **Components** come from **`rune-kit`** (themable, semantic tokens only — no raw style literals). Browse them in `examples/kit-gallery`.
+- **Verify your own work headlessly** and show Amirali the result:
+  - `--snap out.png [--scene NAME | --playground STORY --variant N] [--theme dark|light] [--size WxH]` renders a PNG with no window.
+  - `--tree out.json` dumps the element tree; `--script FILE.json` replays scripted input.
+- Put renders in a temp dir, not the repo.
+
 ## Memory: the dev vault (`~/grind/sunlit-garden-vault`)
 The vault is the single source of truth for plans, tasks and decisions, and is your memory between sessions. Plain Markdown with Obsidian `[[wikilinks]]`; edit the files directly. Docs never go in this repo.
 
