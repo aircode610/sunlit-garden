@@ -4,3 +4,7 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+# Our own logic, by path: the UI depends on core, never the other way round.
+sunlit-core = { path = "../core" }
+# Rune is pre-release: pin one `dev` commit and bump it deliberately (see the vault's Architecture note).
+rune = { git = "https://github.com/anomalyco/rune", rev = "b726a4d152512e51821884506776c3bad6b11410" }
