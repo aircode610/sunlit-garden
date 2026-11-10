@@ -1,7 +1,13 @@
+## Mindset: this is a real product
+Sunlit Garden is being built to be **hosted for real users**, and Amirali is investing serious time and effort. Never treat it as a pet project or a toy:
+- Design for production: scale (GB → TB of text, millions of rows, many users), migrations, tests, CI, security of user data.
+- No "good enough for now" shortcuts in storage, APIs or the data model. If a shortcut is unavoidable, name it and record it in the vault's `Open Questions.md`.
+- The from-scratch rule still holds: ambition raises the quality bar, it doesn't license importing search/NLP/ML.
+
 ## Rules for agents
 - I learn by reading. Build in small steps, explain each change before and after.
 - Before writing, give a short plan. After writing, explain the key Rust concepts used.
-- No crates for search/NLP/ML (no tantivy, no embedding libs). Everything from scratch.
+- No crates for search/NLP/ML (no tantivy, no embedding libs). Everything from scratch. The same goes for database features that do our job for us: no Postgres full-text search (`tsvector`/`ts_rank`), no `pgvector`.
 - Keep code simple and commented where it's non-obvious.
 
 ## Git workflow
