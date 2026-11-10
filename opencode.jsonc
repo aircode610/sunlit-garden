@@ -78,20 +78,16 @@
   // Allow everything; only pushing is blocked (last matching rule wins)
   "permissions": [
     { "action": "*", "resource": "*", "effect": "allow" },
-    // Skills: only the ones useful for this project
+    { "action": "shell", "resource": "git push *", "effect": "deny" },
+    { "action": "shell", "resource": "git -C * push *", "effect": "deny" },
+    // Skills: only the ones useful for this project (when to use each: AGENTS.md)
     { "action": "skill", "resource": "*", "effect": "deny" },
     { "action": "skill", "resource": "opencode", "effect": "allow" },
     { "action": "skill", "resource": "tdd", "effect": "allow" },
     { "action": "skill", "resource": "diagnose", "effect": "allow" },
-    { "action": "skill", "resource": "teach", "effect": "allow" },
     { "action": "skill", "resource": "zoom-out", "effect": "allow" },
-    { "action": "skill", "resource": "review", "effect": "allow" },
     { "action": "skill", "resource": "handoff", "effect": "allow" },
     { "action": "skill", "resource": "grill-me", "effect": "allow" },
-    { "action": "skill", "resource": "grill-with-docs", "effect": "allow" },
     { "action": "skill", "resource": "design-an-interface", "effect": "allow" },
-    { "action": "skill", "resource": "obsidian-vault", "effect": "allow" },
-    { "action": "shell", "resource": "git push *", "effect": "deny" },
-    { "action": "shell", "resource": "git -C * push *", "effect": "deny" }
   ]
 }
