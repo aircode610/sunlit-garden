@@ -1,0 +1,80 @@
+# Sunlit Garden — the source list (M0 Library).
+#
+# Hand-curated. Every document's sha256 is pinned: the importer refuses a download that
+# doesn't match, so the corpus can be rebuilt byte-for-byte anywhere. To add a source, list it
+# without `sha256`, run `sunlit import`, review the file it reports, then pin the hash it printed.
+#
+#   [[thinker]]           a person (slug = their URL name; wikidata = identity anchor)
+#   [[work]]              an abstract work, by `thinker = "<slug>"`
+#   [[document]]          one downloadable file (HTTPS), with its pinned sha256
+#   [[document.edition]]  one work inside that file, `work = "<thinker>/<work>"`;
+#                         Gutenberg files default to the text between the START/END markers,
+#                         other providers need `range = { start = …, end = … }` (byte offsets)
+#
+# Wikidata ids verified against wikidata.org on 2026-11-11.
+
+# ---------------------------------------------------------------------------- thinkers
+
+[[thinker]]
+slug = "george-berkeley"
+name = "George Berkeley"
+wikidata = "Q82049"
+born = 1685
+died = 1753
+
+[[thinker]]
+slug = "david-hume"
+name = "David Hume"
+wikidata = "Q37160"
+born = 1711
+died = 1776
+
+# ------------------------------------------------------------------------------- works
+
+[[work]]
+thinker = "george-berkeley"
+slug = "principles-of-human-knowledge"
+title = "A Treatise Concerning the Principles of Human Knowledge"
+wikidata = "Q3267928"
+first_year = 1710
+original_language = "en"
+
+[[work]]
+thinker = "david-hume"
+slug = "dialogues-concerning-natural-religion"
+title = "Dialogues Concerning Natural Religion"
+wikidata = "Q965564"
+first_year = 1779
+original_language = "en"
+
+# --------------------------------------------------------------------------- documents
+
+# Berkeley, Principles — the v0 milestone's spine (§3, esse est percipi).
+[[document]]
+provider = "gutenberg"
+provider_id = "4723"
+url = "https://www.gutenberg.org/cache/epub/4723/pg4723.txt"
+licence = "public-domain-us"
+media_type = "text/plain; charset=utf-8"
+sha256 = "ba577d0e3437d92faeb6fedc01715e4703ee8ae3f94b4ccb0eb5c772508c3f93" # reviewed 2026-11-11
+
+[[document.edition]]
+work = "george-berkeley/principles-of-human-knowledge"
+slug = "gutenberg-4723"
+title = "A Treatise Concerning the Principles of Human Knowledge"
+language = "en"
+
+# Hume, Dialogues — the key critic (design: Parts II–VIII; evil: X–XI).
+[[document]]
+provider = "gutenberg"
+provider_id = "4583"
+url = "https://www.gutenberg.org/cache/epub/4583/pg4583.txt"
+licence = "public-domain-us"
+media_type = "text/plain; charset=utf-8"
+sha256 = "a6e4592ad61467f6e2722207bb07450aca8e81835e67d07401ac47026f36af42" # reviewed 2026-11-11
+
+[[document.edition]]
+work = "david-hume/dialogues-concerning-natural-religion"
+slug = "gutenberg-4583"
+title = "Dialogues Concerning Natural Religion"
+language = "en"
