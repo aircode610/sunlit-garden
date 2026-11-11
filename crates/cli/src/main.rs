@@ -9,6 +9,7 @@
 //! Configuration comes from the environment (`DATABASE_URL`, `S3_*`); a `.env` file in the
 //! current directory is loaded first if present.
 
+mod annotations;
 mod fetch;
 
 use std::path::PathBuf;
@@ -31,6 +32,11 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// The argument-unit (ADU) dataset in corpus/annotations/.
+    Annotations {
+        #[command(subcommand)]
+        action: annotations::Action,
+    },
     /// Import the sources listed in a source list into object storage and Postgres.
     /// Safe to re-run: pinned files already stored are not downloaded again.
     Import {
@@ -63,6 +69,7 @@ async fn main() -> ExitCode {
 // `Box<dyn Error>`: any error type, so `?` works on every step; main prints it.
 async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     match cli.command {
+        Command::Annotations { action } => annotations::run(action).await,
         Command::Import { sources } => {
             let text = std::fs::read_to_string(&sources).map_err(|e| format!("{}: {e}", sources.display()))?;
             let manifest = Manifest::parse(&text)?;
