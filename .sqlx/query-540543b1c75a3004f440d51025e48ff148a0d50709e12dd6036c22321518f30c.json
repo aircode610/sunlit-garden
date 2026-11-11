@@ -1,0 +1,86 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH ins AS (\n                INSERT INTO document (sha256, byte_length, media_type, provider, provider_id,\n                                      source_url, licence, retrieved_at)\n                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)\n                ON CONFLICT DO NOTHING\n                RETURNING id, sha256, byte_length, media_type, provider, provider_id,\n                          source_url, licence, retrieved_at\n            )\n            SELECT id AS \"id!\", sha256 AS \"sha256!\", byte_length AS \"byte_length!\",\n                   media_type AS \"media_type!\", provider AS \"provider!\", provider_id AS \"provider_id!\",\n                   source_url AS \"source_url!\", licence AS \"licence!\", retrieved_at AS \"retrieved_at!\"\n            FROM ins\n            UNION ALL\n            (SELECT id, sha256, byte_length, media_type, provider, provider_id,\n                    source_url, licence, retrieved_at\n             FROM document\n             WHERE NOT EXISTS (SELECT 1 FROM ins)\n               AND (sha256 = $1 OR (provider = $4 AND provider_id = $5))\n             LIMIT 1)\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "sha256!",
+        "type_info": "Bytea",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "byte_length!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "media_type!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "provider!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "provider_id!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "source_url!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "licence!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "retrieved_at!",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bytea",
+        "Int8",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "540543b1c75a3004f440d51025e48ff148a0d50709e12dd6036c22321518f30c"
+}
