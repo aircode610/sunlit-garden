@@ -1,0 +1,124 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, sha256, byte_length, media_type, provider, provider_id, source_url, licence, retrieved_at\n             FROM document WHERE sha256 = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "document",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "sha256",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "document",
+            "name": "sha256"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "byte_length",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "document",
+            "name": "byte_length"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "media_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "document",
+            "name": "media_type"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "provider",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "document",
+            "name": "provider"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "provider_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "document",
+            "name": "provider_id"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "source_url",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "document",
+            "name": "source_url"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "licence",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "document",
+            "name": "licence"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "retrieved_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "document",
+            "name": "retrieved_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bytea"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "aab9d4703ab0ab6f8c1ce87e0f4ab9262264b1ab1fb1d9be28781da16a2ab9f7"
+}

@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, slug, name, wikidata_id, born_year, died_year FROM thinker WHERE slug = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "thinker",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "slug",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "thinker",
+            "name": "slug"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "thinker",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "wikidata_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "thinker",
+            "name": "wikidata_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "born_year",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "thinker",
+            "name": "born_year"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "died_year",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "thinker",
+            "name": "died_year"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "1abb5458ea306bc38e3ca50362169542b7052aa3deb110eb1da3df71028dafeb"
+}
