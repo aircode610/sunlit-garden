@@ -1,0 +1,17 @@
+[package]
+name = "sunlit-cli"
+version.workspace = true
+edition.workspace = true
+
+# The installed command is `sunlit`.
+[[bin]]
+name = "sunlit"
+path = "src/main.rs"
+
+[dependencies]
+sunlit-core = { path = "../core" }
+bytes = "1"
+clap = { version = "4", features = ["derive"] }
+dotenvy = "0.15"
+reqwest = { version = "0.13", default-features = false, features = ["rustls", "http2"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
