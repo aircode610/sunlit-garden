@@ -2,5 +2,7 @@
 //! Knows nothing about the UI, so a Rune breakage can never reach this crate.
 
 mod source;
+mod values;
 
 pub use source::Source;
+pub use values::{InvalidValue, Sha256, Slug, WikidataId};
