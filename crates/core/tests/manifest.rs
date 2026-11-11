@@ -124,3 +124,46 @@ fn unknown_keys_are_refused_so_typos_cannot_be_ignored() {
     let typo = HUME.replace("wikidata = \"Q37160\"", "wikidta = \"Q37160\"");
     assert!(matches!(Manifest::parse(&typo), Err(ManifestError::Toml(msg)) if msg.contains("wikidta")));
 }
+
+#[test]
+fn editions_can_declare_headings_insertions_and_expectations() {
+    use sunlit_core::corpus::compile::structure::Attribution;
+    let declared = HUME.replace(
+        "title = \"Dialogues Concerning Natural Religion\"\nlanguage = \"en\"\n",
+        r#"title = "Dialogues Concerning Natural Religion"
+language = "en"
+
+[[document.edition.heading]]
+text = "PAMPHILUS TO HERMIPPUS"
+kind = "letter"
+label = "Pamphilus to Hermippus"
+slug = "pamphilus-to-hermippus"
+
+[[document.edition.insertion]]
+prefix = "["
+by = "author"
+
+[document.edition.expect]
+divisions = ["pamphilus-to-hermippus", "part-1"]
+text_passages = { "part-1" = 22 }
+"#,
+    );
+
+    let manifest = Manifest::parse(&declared).unwrap();
+    let options = &manifest.documents[0].editions[0].compile;
+
+    assert_eq!(options.headings[0].slug, "pamphilus-to-hermippus");
+    assert_eq!(options.insertions[0].by, Attribution::Author);
+    let expect = options.expect.as_ref().unwrap();
+    assert_eq!(expect.divisions.as_deref(), Some(&["pamphilus-to-hermippus".to_string(), "part-1".to_string()][..]));
+    assert_eq!(expect.text_passages.get("part-1"), Some(&22));
+}
+
+#[test]
+fn insertion_attribution_must_be_editor_or_author() {
+    let bad = HUME.replace(
+        "title = \"Dialogues Concerning Natural Religion\"\nlanguage = \"en\"\n",
+        "title = \"Dialogues Concerning Natural Religion\"\nlanguage = \"en\"\n\n[[document.edition.insertion]]\nprefix = \"[\"\nby = \"transcriber\"\n",
+    );
+    assert!(matches!(Manifest::parse(&bad), Err(ManifestError::Toml(msg)) if msg.contains("transcriber")));
+}

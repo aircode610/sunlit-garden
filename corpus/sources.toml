@@ -64,6 +64,28 @@ slug = "gutenberg-4723"
 title = "A Treatise Concerning the Principles of Human Knowledge"
 language = "en"
 
+# The main part's heading has no "PART" word; scholars cite it as Part I (PHK 1.3 = §3).
+[[document.edition.heading]]
+text = "OF THE PRINCIPLES OF HUMAN KNOWLEDGE"
+kind = "part"
+label = "I"
+slug = "part-1"
+
+# This edition's bracketed notes, note markers and "[Vide sect. …]" cross-references are the
+# editor's (signed "--Ed.", "--Edit 1710"), never Berkeley's words.
+[[document.edition.insertion]]
+prefix = "[Note"
+by = "editor"
+
+[[document.edition.insertion]]
+prefix = "[Vide"
+by = "editor"
+
+# From the printed book: Introduction §§1–25, Part I §§1–156.
+[document.edition.expect]
+divisions = ["dedication", "preface", "introduction", "part-1"]
+text_passages = { "introduction" = 25, "part-1" = 156 }
+
 # Hume, Dialogues — the key critic (design: Parts II–VIII; evil: X–XI).
 [[document]]
 provider = "gutenberg"
@@ -78,3 +100,21 @@ work = "david-hume/dialogues-concerning-natural-religion"
 slug = "gutenberg-4583"
 title = "Dialogues Concerning Natural Religion"
 language = "en"
+
+# The prefatory letter's heading isn't a standard heading word.
+[[document.edition.heading]]
+text = "PAMPHILUS TO HERMIPPUS"
+kind = "letter"
+label = "Pamphilus to Hermippus"
+slug = "pamphilus-to-hermippus"
+
+# Bracketed text in this edition is Hume's own source references (his original footnotes,
+# printed inline), so it stays part of his words.
+[[document.edition.insertion]]
+prefix = "["
+by = "author"
+
+# Prefatory letter + Parts 1–12; paragraphs per Part counted from this edition.
+[document.edition.expect]
+divisions = ["pamphilus-to-hermippus", "part-1", "part-2", "part-3", "part-4", "part-5", "part-6", "part-7", "part-8", "part-9", "part-10", "part-11", "part-12"]
+text_passages = { "pamphilus-to-hermippus" = 6, "part-1" = 22, "part-2" = 28, "part-3" = 13, "part-4" = 14, "part-5" = 17, "part-6" = 13, "part-7" = 18, "part-8" = 12, "part-9" = 11, "part-10" = 41, "part-11" = 21, "part-12" = 35 }

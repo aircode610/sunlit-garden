@@ -3,6 +3,7 @@
 //! ```sh
 //! sunlit import                       # imports corpus/sources.toml
 //! sunlit import path/to/sources.toml
+//! sunlit compile                      # structure report for every edition (stores nothing)
 //! ```
 //!
 //! Configuration comes from the environment (`DATABASE_URL`, `S3_*`); a `.env` file in the
@@ -15,6 +16,8 @@ use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
 use sunlit_core::blobs::{BlobStore, S3Config};
+use sunlit_core::corpus::compile::compile_edition;
+use sunlit_core::corpus::compile::structure::PlannedRole;
 use sunlit_core::corpus::import::import;
 use sunlit_core::corpus::manifest::Manifest;
 use sunlit_core::store::PgStore;
@@ -32,6 +35,13 @@ enum Command {
     /// Safe to re-run: pinned files already stored are not downloaded again.
     Import {
         /// The source list.
+        #[arg(default_value = "corpus/sources.toml")]
+        sources: PathBuf,
+    },
+    /// Compile every edition's structure from its stored file and print a report: divisions,
+    /// passages, problems and warnings. Stores nothing. Exits with an error if any edition has
+    /// problems (it would go to review).
+    Compile {
         #[arg(default_value = "corpus/sources.toml")]
         sources: PathBuf,
     },
@@ -80,7 +90,65 @@ async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
             );
             Ok(())
         }
+        Command::Compile { sources } => {
+            let text = std::fs::read_to_string(&sources).map_err(|e| format!("{}: {e}", sources.display()))?;
+            let manifest = Manifest::parse(&text)?;
+            let blobs = BlobStore::s3(&S3Config::from_env()?)?;
+            let needing_review = compile_report(&manifest, &blobs).await?;
+            if needing_review > 0 {
+                return Err(format!("{needing_review} edition(s) need review").into());
+            }
+            Ok(())
+        }
     }
+}
+
+/// `sunlit compile`: the structure report. Returns how many editions have problems.
+async fn compile_report(manifest: &Manifest, blobs: &BlobStore) -> Result<usize, Box<dyn std::error::Error>> {
+    let mut needing_review = 0;
+    for document in &manifest.documents {
+        let sha = document.sha256.ok_or_else(|| format!("{} is not pinned; run `sunlit import` first", document.url))?;
+        // `get` re-verifies the hash, so we compile exactly the pinned bytes.
+        let file = blobs.get(&sha).await?;
+        for edition in &document.editions {
+            let s = compile_edition(&file, edition)?;
+            let verdict = if s.problems.is_empty() { "OK" } else { "NEEDS REVIEW" };
+            println!("{} ({} #{}): {verdict}", edition.slug.as_str(), document.provider.as_str(), document.provider_id);
+            let role_count = |f: fn(&PlannedRole) -> bool| s.passages.iter().filter(|p| f(&p.role)).count();
+            println!(
+                "  passages: {} text, {} editor headings, {} editor notes, {} editor markers, {} author notes",
+                role_count(|r| matches!(r, PlannedRole::Text)),
+                role_count(|r| matches!(r, PlannedRole::EditorHeading { .. })),
+                role_count(|r| matches!(r, PlannedRole::EditorNote { .. })),
+                role_count(|r| matches!(r, PlannedRole::EditorMarker { .. })),
+                role_count(|r| matches!(r, PlannedRole::AuthorNote { .. })),
+            );
+            let divisions: Vec<String> = s
+                .compiled
+                .divisions
+                .iter()
+                .enumerate()
+                .map(|(i, d)| {
+                    let n = s.passages.iter().filter(|p| p.division == i && p.role == PlannedRole::Text).count();
+                    format!("{} ({n})", d.slug)
+                })
+                .collect();
+            println!("  divisions: {}", divisions.join(", "));
+            if !s.toc.is_empty() {
+                println!("  contents list cross-checked: {} entries", s.toc.len());
+            }
+            for p in &s.problems {
+                println!("  PROBLEM: {p}");
+            }
+            for w in &s.warnings {
+                println!("  warning: {w}");
+            }
+            if !s.problems.is_empty() {
+                needing_review += 1;
+            }
+        }
+    }
+    Ok(needing_review)
 }
 
 fn how_many(editions: usize) -> String {

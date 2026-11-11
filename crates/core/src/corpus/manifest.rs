@@ -11,11 +11,12 @@
 //! typo can't be silently ignored), then `validate` checks every value and reference and
 //! reports **all** problems at once. Nothing is imported from a list that doesn't validate.
 
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 use std::fmt;
 
 use serde::Deserialize;
 
+use super::compile::structure::{Attribution, Expect, HeadingOverride, InsertionRule, Options};
 use crate::values::{Sha256, Slug, WikidataId};
 
 /// A validated source list.
@@ -69,6 +70,9 @@ pub struct EditionEntry {
     pub translator: Option<String>,
     pub published_year: Option<i16>,
     pub range: RangeSpec,
+    /// How the compiler should read this edition: heading overrides, who wrote its bracketed
+    /// insertions, and facts to check.
+    pub compile: Options,
 }
 
 /// Where an edition's text sits inside its document.
@@ -169,6 +173,43 @@ struct RawEdition {
     translator: Option<String>,
     published_year: Option<i16>,
     range: Option<RawRange>,
+    #[serde(default)]
+    heading: Vec<RawHeading>,
+    #[serde(default)]
+    insertion: Vec<RawInsertion>,
+    expect: Option<RawExpect>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawHeading {
+    text: String,
+    kind: String,
+    label: String,
+    slug: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawInsertion {
+    prefix: String,
+    by: RawBy,
+}
+
+/// `by = "editor"` or `by = "author"`; anything else fails to parse.
+#[derive(Deserialize, Clone, Copy)]
+#[serde(rename_all = "lowercase")]
+enum RawBy {
+    Editor,
+    Author,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawExpect {
+    divisions: Option<Vec<String>>,
+    #[serde(default)]
+    text_passages: BTreeMap<String, usize>,
 }
 
 #[derive(Deserialize)]
@@ -289,6 +330,30 @@ fn validate(raw: RawManifest) -> Result<Manifest, ManifestError> {
                     None
                 }
             };
+            let compile = Options {
+                headings: e
+                    .heading
+                    .into_iter()
+                    .map(|h| {
+                        if Slug::parse(&h.slug).is_err() {
+                            problems.push(format!("{ctx}: heading slug {:?} is not a valid slug", h.slug));
+                        }
+                        HeadingOverride { text: h.text, kind: h.kind, label: h.label, slug: h.slug }
+                    })
+                    .collect(),
+                insertions: e
+                    .insertion
+                    .into_iter()
+                    .map(|i| InsertionRule {
+                        prefix: i.prefix,
+                        by: match i.by {
+                            RawBy::Editor => Attribution::Editor,
+                            RawBy::Author => Attribution::Author,
+                        },
+                    })
+                    .collect(),
+                expect: e.expect.map(|x| Expect { divisions: x.divisions, text_passages: x.text_passages }),
+            };
             if let (Some(work), Some(slug), Some(range)) = (work, slug, range) {
                 if !edition_keys.insert((work.clone(), slug.clone())) {
                     problems.push(format!("{ctx}: listed twice"));
@@ -301,6 +366,7 @@ fn validate(raw: RawManifest) -> Result<Manifest, ManifestError> {
                     translator: e.translator,
                     published_year: e.published_year,
                     range,
+                    compile,
                 });
             }
         }
