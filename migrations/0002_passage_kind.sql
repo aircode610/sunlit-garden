@@ -6,9 +6,18 @@
 -- the thinker's words, so each passage records its kind, and editorial passages point at the
 -- author passage they belong to.
 --
---   kind = 'text'            the author's own words      attached_to IS NULL
---   kind = 'editor-heading'  heading added by an editor  attached_to = its section
---   kind = 'editor-note'     an editor's note            attached_to = the passage it annotates
+--   kind = 'text'            the author's own words           attached_to IS NULL
+--   kind = 'editor-heading'  heading added by an editor       attached_to = its section
+--   kind = 'editor-note'     an editor's note or cross-ref    attached_to = the passage it annotates
+--   kind = 'editor-marker'   an editor's bare note marker     attached_to = the passage it sits in
+--                            ("[Note.]", "[Note 1.]")
+--   kind = 'author-note'     the author's own note/reference  attached_to = the passage it annotates
+--
+-- Notes and markers can be **insertions**: bracketed text printed inside an author passage
+-- (Berkeley's "[Note: … --Ed.]", Hume's "[Recherche de la Verite. Liv. 3. Chap.9]"). An
+-- insertion's range lies inside its host's range: the host keeps its contiguous bytes (the
+-- evidence), and the author's words are the host minus its non-author insertions. Who wrote a
+-- bracket style is declared per edition (corpus/sources.toml), never guessed.
 --
 -- The pairing is a CHECK, so the database itself refuses an unattached note or an attached
 -- author passage. Passages are derived data, so deleting a section removes its editorial
@@ -16,7 +25,7 @@
 
 ALTER TABLE passage
     ADD COLUMN kind text NOT NULL DEFAULT 'text'
-        CHECK (kind IN ('text', 'editor-heading', 'editor-note')),
+        CHECK (kind IN ('text', 'editor-heading', 'editor-note', 'editor-marker', 'author-note')),
     ADD COLUMN attached_to bigint REFERENCES passage (id) ON DELETE CASCADE,
     ADD CONSTRAINT passage_attachment_matches_kind
         CHECK ((kind = 'text') = (attached_to IS NULL)),

@@ -161,3 +161,32 @@ async fn clearing_an_editions_structure_removes_it_so_it_can_be_split_again(pool
     // And a new split with different text is accepted now.
     store.ensure_passage(&passage(&edition, 0, "part-1/3", PassageRole::Text, (10, 20), "re-split text")).await.unwrap();
 }
+
+#[sqlx::test(migrations = "../../migrations")]
+async fn insertions_nest_inside_their_host_and_keep_their_attribution(pool: PgPool) {
+    // Berkeley's §22 has an editor's note printed inside his sentence; Hume cites his sources
+    // in brackets. Both are nested passages whose ranges lie inside the host passage.
+    let store = PgStore::from_pool(pool);
+    let edition = berkeley_edition(&store).await;
+    let host = store.ensure_passage(&passage(&edition, 0, "part-1/22", PassageRole::Text, (1000, 2000), SECTION_3)).await.unwrap();
+
+    let marker = store
+        .ensure_passage(&passage(&edition, 1, "part-1/22/marker-1", PassageRole::EditorMarker { in_: host.id }, (1100, 1107), "[Note.]"))
+        .await
+        .unwrap();
+    let inline = store
+        .ensure_passage(&passage(&edition, 2, "part-1/22/note-1", PassageRole::EditorNote { on: host.id }, (1200, 1290), "[Note: i.e. …--Ed.]"))
+        .await
+        .unwrap();
+    let authors = store
+        .ensure_passage(&passage(&edition, 3, "part-1/22/author-note-1", PassageRole::AuthorNote { on: host.id }, (1300, 1340), "[Recherche de la Verite]"))
+        .await
+        .unwrap();
+
+    assert_eq!(marker.role, PassageRole::EditorMarker { in_: host.id });
+    assert_eq!(inline.role, PassageRole::EditorNote { on: host.id });
+    assert_eq!(authors.role, PassageRole::AuthorNote { on: host.id });
+    for nested in [&marker, &inline, &authors] {
+        assert!(host.start_byte <= nested.start_byte && nested.end_byte <= host.end_byte);
+    }
+}

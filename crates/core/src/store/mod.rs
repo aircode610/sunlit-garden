@@ -232,16 +232,21 @@ impl Division {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PassageId(pub(crate) i64);
 
-/// Whose words a passage is. Editorial passages *must* say what they belong to — an
-/// unattached editor note can't even be constructed. (The database enforces the same rule.)
+/// Whose words a passage is. Every non-text passage *must* say what it belongs to — an
+/// unattached note can't even be constructed. (The database enforces the same rule.)
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PassageRole {
     /// The author's own words.
     Text,
     /// A heading an editor added to the section `of`.
     EditorHeading { of: PassageId },
-    /// An editor's note on the passage `on`.
+    /// An editor's note or cross-reference on the passage `on` (a separate paragraph, or an
+    /// insertion printed inside it).
     EditorNote { on: PassageId },
+    /// An editor's bare note marker ("[Note.]") printed inside the passage `in_`.
+    EditorMarker { in_: PassageId },
+    /// The author's own note or reference on the passage `on`.
+    AuthorNote { on: PassageId },
 }
 
 impl PassageRole {
@@ -251,6 +256,8 @@ impl PassageRole {
             PassageRole::Text => ("text", None),
             PassageRole::EditorHeading { of } => ("editor-heading", Some(of.0)),
             PassageRole::EditorNote { on } => ("editor-note", Some(on.0)),
+            PassageRole::EditorMarker { in_ } => ("editor-marker", Some(in_.0)),
+            PassageRole::AuthorNote { on } => ("author-note", Some(on.0)),
         }
     }
 
@@ -259,6 +266,8 @@ impl PassageRole {
             ("text", None) => Ok(PassageRole::Text),
             ("editor-heading", Some(id)) => Ok(PassageRole::EditorHeading { of: PassageId(id) }),
             ("editor-note", Some(id)) => Ok(PassageRole::EditorNote { on: PassageId(id) }),
+            ("editor-marker", Some(id)) => Ok(PassageRole::EditorMarker { in_: PassageId(id) }),
+            ("author-note", Some(id)) => Ok(PassageRole::AuthorNote { on: PassageId(id) }),
             _ => Err(InvalidValue { kind: "passage kind/attachment", value: format!("{kind} / {attached_to:?}") }),
         }
     }
