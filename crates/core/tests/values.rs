@@ -45,3 +45,14 @@ fn sha256_parses_from_hex_as_written_in_the_source_list() {
         assert!(Sha256::from_hex(bad).is_err(), "{bad:?} should be rejected");
     }
 }
+
+#[test]
+fn locator_is_slugs_joined_by_slashes() {
+    use sunlit_core::Locator;
+    for ok in ["part-10/3", "introduction/3", "part-1/3/note-1", "preface"] {
+        assert_eq!(Locator::parse(ok).unwrap().as_str(), ok);
+    }
+    for bad in ["", "/", "part-1/", "/3", "part-1//3", "part 1/3", "Part-1/3", "part-1/3/"] {
+        assert!(Locator::parse(bad).is_err(), "{bad:?} should be rejected");
+    }
+}

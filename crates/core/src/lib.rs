@@ -8,4 +8,4 @@ pub mod store;
 mod values;
 
 pub use source::Source;
-pub use values::{InvalidValue, Sha256, Slug, WikidataId};
+pub use values::{InvalidValue, Locator, Sha256, Slug, WikidataId};
