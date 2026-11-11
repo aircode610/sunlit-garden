@@ -5,6 +5,8 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+bytes = "1"
+object_store = { version = "0.14", default-features = false, features = ["aws"] }
 sha2 = "0.10"
 sqlx = { version = "0.9", default-features = false, features = ["postgres", "runtime-tokio", "tls-rustls-ring-webpki", "macros", "migrate", "time"] }
 time = "0.3"
