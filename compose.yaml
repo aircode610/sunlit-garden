@@ -30,6 +30,8 @@ services:
     # --default-bucket: create GARAGE_DEFAULT_BUCKET and an access key for it from the env.
     command: ["/garage", "server", "--single-node", "--default-bucket"]
     environment:
+      # Read from the mounted folder (see volumes) rather than the default /etc/garage.toml.
+      GARAGE_CONFIG_FILE: /etc/garage/garage.toml
       GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET}
       GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN}
       GARAGE_METRICS_TOKEN: ${GARAGE_METRICS_TOKEN}
@@ -40,7 +42,10 @@ services:
       - "127.0.0.1:${S3_PORT:-3900}:3900" # S3 API
       - "127.0.0.1:${GARAGE_ADMIN_PORT:-3903}:3903" # admin API
     volumes:
-      - ./infra/garage.toml:/etc/garage.toml:ro
+      # Mount the folder, not the single file: a file bind mount is pinned to the file's
+      # inode, so when git replaces the file (switching branches) the container keeps
+      # pointing at the deleted one. A folder mount always sees the current file.
+      - ./infra:/etc/garage:ro
       - garage-meta:/var/lib/garage/meta
       - garage-data:/var/lib/garage/data
     healthcheck:
