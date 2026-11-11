@@ -163,3 +163,28 @@ async fn work_slugs_are_unique_per_thinker_only(pool: PgPool) {
     assert_ne!(a.id, b.id);
     assert_eq!(store.work_by_slug(berkeley.id, &slug("dialogues")).await.unwrap(), Some(b));
 }
+
+#[sqlx::test(migrations = "../../migrations")]
+async fn an_edition_can_be_found_by_its_work_and_slug(pool: PgPool) {
+    let store = PgStore::from_pool(pool);
+    let hume = thinker(&store, "david-hume", "David Hume").await;
+    let work = store.ensure_work(&new_work(&hume, "dialogues", "Dialogues")).await.unwrap();
+    let document = store.ensure_document(&gutenberg_4583(b"text", OffsetDateTime::now_utc())).await.unwrap();
+    let edition = store
+        .ensure_edition(&NewEdition {
+            work: work.id,
+            document: document.id,
+            slug: slug("gutenberg-4583"),
+            title: "Dialogues".into(),
+            language: "en".into(),
+            translator: None,
+            published_year: None,
+            start_byte: 0,
+            end_byte: 4,
+        })
+        .await
+        .unwrap();
+
+    assert_eq!(store.edition_by_slug(work.id, &slug("gutenberg-4583")).await.unwrap(), Some(edition));
+    assert_eq!(store.edition_by_slug(work.id, &slug("other")).await.unwrap(), None);
+}

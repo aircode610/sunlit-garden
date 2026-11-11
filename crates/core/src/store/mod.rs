@@ -394,6 +394,9 @@ pub trait Store {
     /// Create the edition, or return it unchanged. Conflicts like `ensure_thinker`.
     fn ensure_edition(&self, new: &NewEdition) -> impl Future<Output = Result<Edition, StoreError>> + Send;
 
+    fn edition_by_slug(&self, work: WorkId, slug: &Slug)
+    -> impl Future<Output = Result<Option<Edition>, StoreError>> + Send;
+
     /// Create the division, or return it unchanged. Conflicts like `ensure_thinker`.
     fn ensure_division(&self, new: &NewDivision) -> impl Future<Output = Result<Division, StoreError>> + Send;
 

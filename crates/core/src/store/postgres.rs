@@ -408,6 +408,19 @@ impl Store for PgStore {
         let edition = Edition::try_from(row)?;
         if edition.matches(new) { Ok(edition) } else { Err(conflict("edition", &edition, new)) }
     }
+    async fn edition_by_slug(&self, work: WorkId, slug: &Slug) -> Result<Option<Edition>, StoreError> {
+        let row = sqlx::query_as!(
+            EditionRow,
+            "SELECT id, work_id, document_id, slug, title, language, translator, published_year, start_byte, end_byte
+             FROM edition WHERE work_id = $1 AND slug = $2",
+            work.0,
+            slug.as_str(),
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+        row.map(Edition::try_from).transpose()
+    }
+
     async fn ensure_division(&self, new: &NewDivision) -> Result<Division, StoreError> {
         // Unique key: (edition_id, parent_id, ordinal) with NULLS NOT DISTINCT, so the fallback
         // compares parent_id with IS NOT DISTINCT FROM (plain `=` is never true for NULL).
