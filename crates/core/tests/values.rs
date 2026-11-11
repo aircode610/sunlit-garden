@@ -35,3 +35,13 @@ fn slug_rejects_anything_the_database_would_reject() {
         assert!(Slug::parse(bad).is_err(), "{bad:?} should be rejected");
     }
 }
+
+#[test]
+fn sha256_parses_from_hex_as_written_in_the_source_list() {
+    let hex = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
+    assert_eq!(Sha256::from_hex(hex).unwrap(), Sha256::of(b"abc"));
+    assert_eq!(Sha256::from_hex(&hex.to_uppercase()).unwrap(), Sha256::of(b"abc"), "case-insensitive");
+    for bad in ["", "ba78", &hex[1..], &format!("{hex}00"), &hex.replace('b', "g"), &format!("+a{}", &hex[2..])] {
+        assert!(Sha256::from_hex(bad).is_err(), "{bad:?} should be rejected");
+    }
+}
