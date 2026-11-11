@@ -8,6 +8,8 @@
 //! untouched original file**. Validation then proves the structure is complete and consistent
 //! before anything is stored.
 
+pub mod paragraphs;
+
 use std::fmt;
 use std::ops::Range;
 
