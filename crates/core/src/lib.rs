@@ -2,6 +2,7 @@
 //! Knows nothing about the UI, so a Rune breakage can never reach this crate.
 
 pub mod blobs;
+pub mod corpus;
 mod source;
 pub mod store;
 mod values;

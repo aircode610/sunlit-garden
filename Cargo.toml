@@ -2,7 +2,7 @@
 # This root file has no [package] of its own (a "virtual manifest"); it only lists members.
 [workspace]
 resolver = "3"
-members = ["crates/core", "crates/ui"]
+members = ["crates/core", "crates/ui", "crates/cli"]
 
 # Settings every member crate can inherit with `edition.workspace = true` etc.
 [workspace.package]

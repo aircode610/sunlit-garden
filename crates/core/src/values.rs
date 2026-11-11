@@ -91,6 +91,22 @@ impl Sha256 {
         })
     }
 
+    /// Parse 64 hex characters (either case), as written in `corpus/sources.toml`.
+    pub fn from_hex(hex: &str) -> Result<Self, InvalidValue> {
+        let invalid = || InvalidValue { kind: "SHA-256 hex (need 64 hex characters)", value: hex.to_owned() };
+        // Check every character first: `from_str_radix` alone would accept a leading '+'.
+        if hex.len() != 64 || !hex.bytes().all(|b| b.is_ascii_hexdigit()) {
+            return Err(invalid());
+        }
+        let mut out = [0u8; 32];
+        // Two hex characters per byte: "ba" → 0xba.
+        for (i, pair) in hex.as_bytes().chunks(2).enumerate() {
+            let pair = std::str::from_utf8(pair).map_err(|_| invalid())?;
+            out[i] = u8::from_str_radix(pair, 16).map_err(|_| invalid())?;
+        }
+        Ok(Sha256(out))
+    }
+
     pub fn as_bytes(&self) -> &[u8; 32] {
         &self.0
     }
