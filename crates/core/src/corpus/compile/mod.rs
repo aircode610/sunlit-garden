@@ -14,6 +14,9 @@ pub mod structure;
 use std::fmt;
 use std::ops::Range;
 
+use super::gutenberg;
+use super::manifest::{EditionEntry, RangeSpec};
+
 /// What a unit of text is. Every non-whitespace byte of the body is in exactly one unit.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UnitKind {
@@ -138,4 +141,17 @@ fn report_gap(file: &[u8], gap: Range<usize>, problems: &mut Vec<Problem>) {
         let snippet: String = String::from_utf8_lossy(bytes).trim().chars().take(80).collect();
         problems.push(Problem::Uncovered { range: gap, text: snippet });
     }
+}
+
+/// Compile one edition of a stored file exactly as the source list describes it: its byte range
+/// (Gutenberg markers or explicit offsets) and its compile options.
+pub fn compile_edition(file: &[u8], edition: &EditionEntry) -> Result<structure::Structure, String> {
+    let body = match edition.range {
+        RangeSpec::GutenbergBody => gutenberg::body_range(file).map_err(|e| e.to_string())?,
+        RangeSpec::Bytes { start, end } if end as usize <= file.len() => start as usize..end as usize,
+        RangeSpec::Bytes { start, end } => {
+            return Err(format!("range {start}..{end} doesn't fit a {}-byte file", file.len()));
+        }
+    };
+    Ok(structure::compile_plain_text(file, body, &edition.compile))
 }

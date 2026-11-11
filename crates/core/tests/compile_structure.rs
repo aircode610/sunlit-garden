@@ -24,6 +24,7 @@ fn berkeley_options() -> Options {
             InsertionRule { prefix: "[Note".into(), by: Attribution::Editor },
             InsertionRule { prefix: "[Vide".into(), by: Attribution::Editor },
         ],
+        expect: None,
     }
 }
 
@@ -37,6 +38,7 @@ fn hume_options() -> Options {
         }],
         // Declared for edition #4583: bracketed text is Hume's own source references.
         insertions: vec![InsertionRule { prefix: "[".into(), by: Attribution::Author }],
+        expect: None,
     }
 }
 
@@ -256,4 +258,19 @@ fn undeclared_bracket_styles_send_the_edition_to_review() {
     let s = compile(BERKELEY, &options);
 
     assert!(s.problems.iter().any(|p| p.contains("not declared") && p.contains("[Vide sect.")), "{:?}", s.problems);
+}
+
+#[test]
+fn declared_expectations_are_hard_checks() {
+    use sunlit_core::corpus::compile::structure::Expect;
+    let mut options = berkeley_options();
+    options.expect = Some(Expect {
+        divisions: Some(vec!["dedication".into(), "preface".into(), "introduction".into(), "part-1".into()]),
+        text_passages: [("introduction".to_string(), 25), ("part-1".to_string(), 156)].into(),
+    });
+    assert_eq!(compile(BERKELEY, &options).problems, Vec::<String>::new());
+
+    options.expect.as_mut().unwrap().text_passages.insert("part-1".into(), 157);
+    let problems = compile(BERKELEY, &options).problems;
+    assert!(problems.iter().any(|p| p.contains("part-1") && p.contains("156") && p.contains("157")), "{problems:?}");
 }

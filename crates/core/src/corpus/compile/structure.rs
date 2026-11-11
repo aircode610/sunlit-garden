@@ -10,6 +10,7 @@
 //! **warning** for review, never a silent division. Structural doubts are **problems**: the
 //! edition goes to review instead of being stored.
 
+use std::collections::BTreeMap;
 use std::ops::Range;
 
 use super::paragraphs::{paragraphs, trimmed};
@@ -41,11 +42,22 @@ pub struct InsertionRule {
     pub by: Attribution,
 }
 
+/// Facts about the edition known in advance (e.g. from the printed book); any mismatch is a
+/// problem.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Expect {
+    /// Division locator segments, in order.
+    pub divisions: Option<Vec<String>>,
+    /// Number of author-text passages per division (e.g. `part-1` → 156 sections).
+    pub text_passages: BTreeMap<String, usize>,
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Options {
     pub headings: Vec<HeadingOverride>,
     /// Who wrote each bracket style. A bracket in author text matching no rule is a problem.
     pub insertions: Vec<InsertionRule>,
+    pub expect: Option<Expect>,
 }
 
 /// Whose words a planned passage is.
@@ -272,6 +284,26 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
         let words = text(&p.range).split_whitespace().count();
         if words > LONG_PASSAGE_WORDS {
             warnings.push(format!("passage {} has {words} words (missed boundary?)", p.locator));
+        }
+    }
+
+    // ---- 7. Declared expectations.
+    if let Some(expect) = &options.expect {
+        let found: Vec<String> = divisions.iter().map(|d| d.slug.clone()).collect();
+        if let Some(want) = &expect.divisions
+            && *want != found
+        {
+            problems.push(format!("expected divisions {want:?}, found {found:?}"));
+        }
+        for (slug, &want) in &expect.text_passages {
+            let Some(d) = divisions.iter().position(|d| &d.slug == slug) else {
+                problems.push(format!("expected division {slug:?} not found"));
+                continue;
+            };
+            let have = passages.iter().filter(|p| p.division == d && p.role == PlannedRole::Text).count();
+            if have != want {
+                problems.push(format!("division {slug}: expected {want} text passages, found {have}"));
+            }
         }
     }
 
