@@ -9,6 +9,7 @@
 //! before anything is stored.
 
 pub mod paragraphs;
+pub mod structure;
 
 use std::fmt;
 use std::ops::Range;
@@ -20,10 +21,15 @@ pub enum UnitKind {
     Text,
     /// A division's own heading line ("PART 1", "INTRODUCTION").
     DivisionHeading,
+    /// A section's printed number ("35."): a label, not part of the passage text.
+    SectionNumber,
     /// A heading an editor added to a section ("HOW FAR THE ASSENT OF THE VULGAR CONCEDED.--").
     EditorHeading,
-    /// An editor's note ("[Note: …]").
+    /// An editor's note paragraph ("[Note: …]").
     EditorNote,
+    /// Bracketed text printed inside an author paragraph (a note, marker or reference); who
+    /// wrote it is declared per edition.
+    Insertion,
     /// Deliberately not part of the work's text, with the reason ("table of contents").
     Skipped(&'static str),
 }
