@@ -8,7 +8,7 @@ use std::future::Future;
 
 use time::OffsetDateTime;
 
-use crate::values::{InvalidValue, Sha256, Slug, WikidataId};
+use crate::values::{InvalidValue, Locator, Sha256, Slug, WikidataId};
 
 pub use postgres::PgStore;
 
@@ -184,6 +184,144 @@ impl Edition {
     }
 }
 
+/// A division's internal id (typed; never public).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct DivisionId(pub(crate) i64);
+
+/// One node of an edition's own structure: "Part 10", "Introduction", "Question 2".
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NewDivision {
+    pub edition: EditionId,
+    /// `None` = top level.
+    pub parent: Option<DivisionId>,
+    /// `part`, `introduction`, `letter`, … (lowercase words joined by '-'; checked by the database).
+    pub kind: String,
+    /// As printed: "10", "Introduction".
+    pub label: String,
+    /// Position among its siblings.
+    pub ordinal: i32,
+    pub start_byte: i64,
+    pub end_byte: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Division {
+    pub id: DivisionId,
+    pub edition: EditionId,
+    pub parent: Option<DivisionId>,
+    pub kind: String,
+    pub label: String,
+    pub ordinal: i32,
+    pub start_byte: i64,
+    pub end_byte: i64,
+}
+
+impl Division {
+    fn matches(&self, new: &NewDivision) -> bool {
+        self.edition == new.edition
+            && self.parent == new.parent
+            && self.kind == new.kind
+            && self.label == new.label
+            && self.ordinal == new.ordinal
+            && self.start_byte == new.start_byte
+            && self.end_byte == new.end_byte
+    }
+}
+
+/// A passage's internal id (typed; never public).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct PassageId(pub(crate) i64);
+
+/// Whose words a passage is. Every non-text passage *must* say what it belongs to — an
+/// unattached note can't even be constructed. (The database enforces the same rule.)
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PassageRole {
+    /// The author's own words.
+    Text,
+    /// A heading an editor added to the section `of`.
+    EditorHeading { of: PassageId },
+    /// An editor's note or cross-reference on the passage `on` (a separate paragraph, or an
+    /// insertion printed inside it).
+    EditorNote { on: PassageId },
+    /// An editor's bare note marker ("[Note.]") printed inside the passage `in_`.
+    EditorMarker { in_: PassageId },
+    /// The author's own note or reference on the passage `on`.
+    AuthorNote { on: PassageId },
+}
+
+impl PassageRole {
+    /// The `passage.kind` value and the `attached_to` id.
+    pub(crate) fn to_columns(self) -> (&'static str, Option<i64>) {
+        match self {
+            PassageRole::Text => ("text", None),
+            PassageRole::EditorHeading { of } => ("editor-heading", Some(of.0)),
+            PassageRole::EditorNote { on } => ("editor-note", Some(on.0)),
+            PassageRole::EditorMarker { in_ } => ("editor-marker", Some(in_.0)),
+            PassageRole::AuthorNote { on } => ("author-note", Some(on.0)),
+        }
+    }
+
+    pub(crate) fn from_columns(kind: &str, attached_to: Option<i64>) -> Result<Self, InvalidValue> {
+        match (kind, attached_to) {
+            ("text", None) => Ok(PassageRole::Text),
+            ("editor-heading", Some(id)) => Ok(PassageRole::EditorHeading { of: PassageId(id) }),
+            ("editor-note", Some(id)) => Ok(PassageRole::EditorNote { on: PassageId(id) }),
+            ("editor-marker", Some(id)) => Ok(PassageRole::EditorMarker { in_: PassageId(id) }),
+            ("author-note", Some(id)) => Ok(PassageRole::AuthorNote { on: PassageId(id) }),
+            _ => Err(InvalidValue { kind: "passage kind/attachment", value: format!("{kind} / {attached_to:?}") }),
+        }
+    }
+}
+
+/// The smallest citable unit. Its bytes in the document are the ground truth; `text` is a copy
+/// of exactly those bytes (the store hashes it into `content_sha256`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NewPassage {
+    pub edition: EditionId,
+    pub division: Option<DivisionId>,
+    /// Reading order within the edition.
+    pub ordinal: i32,
+    /// Work-level address shared across editions: `part-1/3`.
+    pub locator: Locator,
+    pub role: PassageRole,
+    /// Offsets into the document.
+    pub start_byte: i64,
+    pub end_byte: i64,
+    pub text: String,
+    /// Hash of the normalised text, for finding the same passage elsewhere.
+    pub normalized_sha256: Sha256,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Passage {
+    pub id: PassageId,
+    pub edition: EditionId,
+    pub division: Option<DivisionId>,
+    pub ordinal: i32,
+    pub locator: Locator,
+    pub role: PassageRole,
+    pub start_byte: i64,
+    pub end_byte: i64,
+    pub text: String,
+    /// SHA-256 of `text`'s bytes, computed by the store.
+    pub content_sha256: Sha256,
+    pub normalized_sha256: Sha256,
+}
+
+impl Passage {
+    fn matches(&self, new: &NewPassage) -> bool {
+        self.edition == new.edition
+            && self.division == new.division
+            && self.ordinal == new.ordinal
+            && self.locator == new.locator
+            && self.role == new.role
+            && self.start_byte == new.start_byte
+            && self.end_byte == new.end_byte
+            && self.text == new.text
+            && self.normalized_sha256 == new.normalized_sha256
+    }
+}
+
 /// Everything that can go wrong in the store.
 #[derive(Debug)]
 pub enum StoreError {
@@ -255,4 +393,18 @@ pub trait Store {
 
     /// Create the edition, or return it unchanged. Conflicts like `ensure_thinker`.
     fn ensure_edition(&self, new: &NewEdition) -> impl Future<Output = Result<Edition, StoreError>> + Send;
+
+    /// Create the division, or return it unchanged. Conflicts like `ensure_thinker`.
+    fn ensure_division(&self, new: &NewDivision) -> impl Future<Output = Result<Division, StoreError>> + Send;
+
+    /// Create the passage, or return it unchanged. Conflicts like `ensure_thinker`.
+    fn ensure_passage(&self, new: &NewPassage) -> impl Future<Output = Result<Passage, StoreError>> + Send;
+
+    fn passage_by_locator(&self, edition: EditionId, locator: &Locator)
+    -> impl Future<Output = Result<Option<Passage>, StoreError>> + Send;
+
+    /// Delete an edition's divisions and passages (derived data) so it can be split again with
+    /// changed rules. Deliberate and explicit: `ensure_*` never replaces anything on its own.
+    /// Returns how many passages were removed.
+    fn clear_edition_structure(&self, edition: EditionId) -> impl Future<Output = Result<u64, StoreError>> + Send;
 }

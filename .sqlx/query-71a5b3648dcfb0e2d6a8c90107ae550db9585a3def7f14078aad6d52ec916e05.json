@@ -1,0 +1,78 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH ins AS (\n                INSERT INTO division (edition_id, parent_id, kind, label, ordinal, start_byte, end_byte)\n                VALUES ($1, $2, $3, $4, $5, $6, $7)\n                ON CONFLICT DO NOTHING\n                RETURNING id, edition_id, parent_id, kind, label, ordinal, start_byte, end_byte\n            )\n            SELECT id AS \"id!\", edition_id AS \"edition_id!\", parent_id, kind AS \"kind!\", label AS \"label!\",\n                   ordinal AS \"ordinal!\", start_byte AS \"start_byte!\", end_byte AS \"end_byte!\"\n            FROM ins\n            UNION ALL\n            (SELECT id, edition_id, parent_id, kind, label, ordinal, start_byte, end_byte\n             FROM division\n             WHERE NOT EXISTS (SELECT 1 FROM ins)\n               AND edition_id = $1 AND parent_id IS NOT DISTINCT FROM $2 AND ordinal = $5\n             LIMIT 1)\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "edition_id!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "parent_id",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "kind!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "label!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "ordinal!",
+        "type_info": "Int4",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "start_byte!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "end_byte!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Text",
+        "Text",
+        "Int4",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "71a5b3648dcfb0e2d6a8c90107ae550db9585a3def7f14078aad6d52ec916e05"
+}

@@ -44,6 +44,28 @@ impl Slug {
     }
 }
 
+/// Where a passage sits inside a work: slugs joined by '/', e.g. `part-10/3`,
+/// `introduction/3`, `part-1/3/note-1`. Shared by every edition of the work, so it's also the
+/// tail of the public URL (`/david-hume/dialogues-concerning-natural-religion/part-10/3`).
+/// Mirrors the SQL check on `passage.locator`.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Locator(String);
+
+impl Locator {
+    pub fn parse(s: &str) -> Result<Self, InvalidValue> {
+        // Every segment must itself be a valid slug (which also rules out empty segments).
+        if s.split('/').all(|segment| Slug::parse(segment).is_ok()) {
+            Ok(Locator(s.to_owned()))
+        } else {
+            Err(InvalidValue { kind: "locator", value: s.to_owned() })
+        }
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
 /// A Wikidata item id ("Q37160" = David Hume): the identity anchor that stops the same
 /// thinker or work being created twice under different spellings.
 /// Mirrors the SQL check `wikidata_id ~ '^Q[1-9][0-9]*$'`.

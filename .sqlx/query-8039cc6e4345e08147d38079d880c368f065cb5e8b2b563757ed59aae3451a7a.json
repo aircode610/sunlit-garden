@@ -1,0 +1,161 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, edition_id, division_id, ordinal, locator, kind, attached_to,\n                    start_byte, end_byte, text, content_sha256, normalized_sha256\n             FROM passage WHERE edition_id = $1 AND locator = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "passage",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "edition_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "passage",
+            "name": "edition_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "division_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "passage",
+            "name": "division_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "ordinal",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "passage",
+            "name": "ordinal"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "locator",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "passage",
+            "name": "locator"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "passage",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "attached_to",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "passage",
+            "name": "attached_to"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "start_byte",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "passage",
+            "name": "start_byte"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "end_byte",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "passage",
+            "name": "end_byte"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "text",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "passage",
+            "name": "text"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "content_sha256",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "passage",
+            "name": "content_sha256"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "normalized_sha256",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "passage",
+            "name": "normalized_sha256"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "8039cc6e4345e08147d38079d880c368f065cb5e8b2b563757ed59aae3451a7a"
+}

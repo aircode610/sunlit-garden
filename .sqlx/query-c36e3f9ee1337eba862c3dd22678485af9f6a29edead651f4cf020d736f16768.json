@@ -1,0 +1,110 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH ins AS (\n                INSERT INTO passage (edition_id, division_id, ordinal, locator, kind, attached_to,\n                                     start_byte, end_byte, text, content_sha256, normalized_sha256)\n                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)\n                ON CONFLICT DO NOTHING\n                RETURNING id, edition_id, division_id, ordinal, locator, kind, attached_to,\n                          start_byte, end_byte, text, content_sha256, normalized_sha256\n            )\n            SELECT id AS \"id!\", edition_id AS \"edition_id!\", division_id, ordinal AS \"ordinal!\",\n                   locator AS \"locator!\", kind AS \"kind!\", attached_to,\n                   start_byte AS \"start_byte!\", end_byte AS \"end_byte!\", text AS \"text!\",\n                   content_sha256 AS \"content_sha256!\", normalized_sha256 AS \"normalized_sha256!\"\n            FROM ins\n            UNION ALL\n            (SELECT id, edition_id, division_id, ordinal, locator, kind, attached_to,\n                    start_byte, end_byte, text, content_sha256, normalized_sha256\n             FROM passage\n             WHERE NOT EXISTS (SELECT 1 FROM ins)\n               AND edition_id = $1\n               AND (ordinal = $3 OR locator = $4 OR (start_byte = $7 AND end_byte = $8))\n             LIMIT 1)\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "edition_id!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "division_id",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "ordinal!",
+        "type_info": "Int4",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "locator!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "kind!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "attached_to",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "start_byte!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "end_byte!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
+        "name": "text!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 10,
+        "name": "content_sha256!",
+        "type_info": "Bytea",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 11,
+        "name": "normalized_sha256!",
+        "type_info": "Bytea",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int4",
+        "Text",
+        "Text",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Text",
+        "Bytea",
+        "Bytea"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "c36e3f9ee1337eba862c3dd22678485af9f6a29edead651f4cf020d736f16768"
+}
