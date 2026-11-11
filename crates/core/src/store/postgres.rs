@@ -5,10 +5,10 @@ use sqlx::PgPool;
 use time::OffsetDateTime;
 
 use super::{
-    Document, DocumentId, Edition, EditionId, NewDocument, NewEdition, NewThinker, NewWork, Store, StoreError,
-    Thinker, ThinkerId, Work, WorkId,
+    Division, DivisionId, Document, DocumentId, Edition, EditionId, NewDivision, NewDocument, NewEdition, NewPassage,
+    NewThinker, NewWork, Passage, PassageId, PassageRole, Store, StoreError, Thinker, ThinkerId, Work, WorkId,
 };
-use crate::values::{Sha256, Slug, WikidataId};
+use crate::values::{Locator, Sha256, Slug, WikidataId};
 
 /// The error for "a row with this key exists but says something else".
 fn conflict(what: &str, stored: &impl std::fmt::Debug, given: &impl std::fmt::Debug) -> StoreError {
@@ -151,6 +151,67 @@ impl TryFrom<EditionRow> for Edition {
             published_year: row.published_year,
             start_byte: row.start_byte,
             end_byte: row.end_byte,
+        })
+    }
+}
+
+struct DivisionRow {
+    id: i64,
+    edition_id: i64,
+    parent_id: Option<i64>,
+    kind: String,
+    label: String,
+    ordinal: i32,
+    start_byte: i64,
+    end_byte: i64,
+}
+
+impl From<DivisionRow> for Division {
+    fn from(row: DivisionRow) -> Self {
+        Division {
+            id: DivisionId(row.id),
+            edition: EditionId(row.edition_id),
+            parent: row.parent_id.map(DivisionId),
+            kind: row.kind,
+            label: row.label,
+            ordinal: row.ordinal,
+            start_byte: row.start_byte,
+            end_byte: row.end_byte,
+        }
+    }
+}
+
+struct PassageRow {
+    id: i64,
+    edition_id: i64,
+    division_id: Option<i64>,
+    ordinal: i32,
+    locator: String,
+    kind: String,
+    attached_to: Option<i64>,
+    start_byte: i64,
+    end_byte: i64,
+    text: String,
+    content_sha256: Vec<u8>,
+    normalized_sha256: Vec<u8>,
+}
+
+impl TryFrom<PassageRow> for Passage {
+    type Error = StoreError;
+
+    fn try_from(row: PassageRow) -> Result<Self, Self::Error> {
+        Ok(Passage {
+            id: PassageId(row.id),
+            edition: EditionId(row.edition_id),
+            division: row.division_id.map(DivisionId),
+            ordinal: row.ordinal,
+            locator: Locator::parse(&row.locator)?,
+            role: PassageRole::from_columns(&row.kind, row.attached_to)?,
+            start_byte: row.start_byte,
+            end_byte: row.end_byte,
+            text: row.text,
+            content_sha256: Sha256::from_slice(&row.content_sha256)?,
+            normalized_sha256: Sha256::from_slice(&row.normalized_sha256)?,
         })
     }
 }
@@ -346,5 +407,116 @@ impl Store for PgStore {
 
         let edition = Edition::try_from(row)?;
         if edition.matches(new) { Ok(edition) } else { Err(conflict("edition", &edition, new)) }
+    }
+    async fn ensure_division(&self, new: &NewDivision) -> Result<Division, StoreError> {
+        // Unique key: (edition_id, parent_id, ordinal) with NULLS NOT DISTINCT, so the fallback
+        // compares parent_id with IS NOT DISTINCT FROM (plain `=` is never true for NULL).
+        let row = sqlx::query_as!(
+            DivisionRow,
+            r#"
+            WITH ins AS (
+                INSERT INTO division (edition_id, parent_id, kind, label, ordinal, start_byte, end_byte)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                ON CONFLICT DO NOTHING
+                RETURNING id, edition_id, parent_id, kind, label, ordinal, start_byte, end_byte
+            )
+            SELECT id AS "id!", edition_id AS "edition_id!", parent_id, kind AS "kind!", label AS "label!",
+                   ordinal AS "ordinal!", start_byte AS "start_byte!", end_byte AS "end_byte!"
+            FROM ins
+            UNION ALL
+            (SELECT id, edition_id, parent_id, kind, label, ordinal, start_byte, end_byte
+             FROM division
+             WHERE NOT EXISTS (SELECT 1 FROM ins)
+               AND edition_id = $1 AND parent_id IS NOT DISTINCT FROM $2 AND ordinal = $5
+             LIMIT 1)
+            "#,
+            new.edition.0,
+            new.parent.map(|p| p.0),
+            new.kind,
+            new.label,
+            new.ordinal,
+            new.start_byte,
+            new.end_byte,
+        )
+        .fetch_one(&self.pool)
+        .await?;
+
+        let division = Division::from(row);
+        if division.matches(new) { Ok(division) } else { Err(conflict("division", &division, new)) }
+    }
+
+    async fn ensure_passage(&self, new: &NewPassage) -> Result<Passage, StoreError> {
+        let (kind, attached_to) = new.role.to_columns();
+        // Computed here, not passed in, so `text` and its hash can never disagree.
+        let content_sha256 = Sha256::of(new.text.as_bytes());
+        // Unique keys: (edition_id, start_byte, end_byte), (edition_id, ordinal), (edition_id, locator).
+        let row = sqlx::query_as!(
+            PassageRow,
+            r#"
+            WITH ins AS (
+                INSERT INTO passage (edition_id, division_id, ordinal, locator, kind, attached_to,
+                                     start_byte, end_byte, text, content_sha256, normalized_sha256)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                ON CONFLICT DO NOTHING
+                RETURNING id, edition_id, division_id, ordinal, locator, kind, attached_to,
+                          start_byte, end_byte, text, content_sha256, normalized_sha256
+            )
+            SELECT id AS "id!", edition_id AS "edition_id!", division_id, ordinal AS "ordinal!",
+                   locator AS "locator!", kind AS "kind!", attached_to,
+                   start_byte AS "start_byte!", end_byte AS "end_byte!", text AS "text!",
+                   content_sha256 AS "content_sha256!", normalized_sha256 AS "normalized_sha256!"
+            FROM ins
+            UNION ALL
+            (SELECT id, edition_id, division_id, ordinal, locator, kind, attached_to,
+                    start_byte, end_byte, text, content_sha256, normalized_sha256
+             FROM passage
+             WHERE NOT EXISTS (SELECT 1 FROM ins)
+               AND edition_id = $1
+               AND (ordinal = $3 OR locator = $4 OR (start_byte = $7 AND end_byte = $8))
+             LIMIT 1)
+            "#,
+            new.edition.0,
+            new.division.map(|d| d.0),
+            new.ordinal,
+            new.locator.as_str(),
+            kind,
+            attached_to,
+            new.start_byte,
+            new.end_byte,
+            new.text,
+            content_sha256.as_bytes().as_slice(),
+            new.normalized_sha256.as_bytes().as_slice(),
+        )
+        .fetch_one(&self.pool)
+        .await?;
+
+        let passage = Passage::try_from(row)?;
+        if passage.matches(new) { Ok(passage) } else { Err(conflict("passage", &passage, new)) }
+    }
+
+    async fn passage_by_locator(&self, edition: EditionId, locator: &Locator) -> Result<Option<Passage>, StoreError> {
+        let row = sqlx::query_as!(
+            PassageRow,
+            "SELECT id, edition_id, division_id, ordinal, locator, kind, attached_to,
+                    start_byte, end_byte, text, content_sha256, normalized_sha256
+             FROM passage WHERE edition_id = $1 AND locator = $2",
+            edition.0,
+            locator.as_str(),
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+        row.map(Passage::try_from).transpose()
+    }
+
+    async fn clear_edition_structure(&self, edition: EditionId) -> Result<u64, StoreError> {
+        // One transaction: either the whole structure goes, or none of it does.
+        let mut tx = self.pool.begin().await?;
+        let removed = sqlx::query!("DELETE FROM passage WHERE edition_id = $1", edition.0)
+            .execute(&mut *tx)
+            .await?
+            .rows_affected();
+        sqlx::query!("DELETE FROM division WHERE edition_id = $1", edition.0).execute(&mut *tx).await?;
+        tx.commit().await?;
+        Ok(removed)
     }
 }
