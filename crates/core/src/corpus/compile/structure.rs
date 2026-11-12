@@ -65,14 +65,22 @@ pub struct Options {
 pub enum PlannedRole {
     Text,
     /// Heading added by an editor to the passage at this index in `passages`.
-    EditorHeading { of: usize },
+    EditorHeading {
+        of: usize,
+    },
     /// Editor's note or cross-reference on the passage at this index (a paragraph, or an
     /// insertion inside it).
-    EditorNote { on: usize },
+    EditorNote {
+        on: usize,
+    },
     /// Editor's (or transcriber's) bare marker printed inside the passage at this index.
-    EditorMarker { in_: usize },
+    EditorMarker {
+        in_: usize,
+    },
     /// The author's own note or reference on the passage at this index.
-    AuthorNote { on: usize },
+    AuthorNote {
+        on: usize,
+    },
 }
 
 /// A passage the store should create.
@@ -109,7 +117,9 @@ impl Structure {
             .passages
             .iter()
             .filter(|p| match p.role {
-                PlannedRole::EditorNote { on } | PlannedRole::EditorMarker { in_: on } => on == index,
+                PlannedRole::EditorNote { on } | PlannedRole::EditorMarker { in_: on } => {
+                    on == index
+                }
                 _ => false,
             })
             .map(|p| p.range.clone())
@@ -182,7 +192,10 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
             Para::Heading(division("division", &title_case(&n), &slug, r.clone()))
         } else {
             if looks_like_heading(&t) {
-                warnings.push(format!("all-caps line not recognised as a heading (kept as text): {:?}", t.trim()));
+                warnings.push(format!(
+                    "all-caps line not recognised as a heading (kept as text): {:?}",
+                    t.trim()
+                ));
             }
             Para::Content
         };
@@ -191,8 +204,14 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
 
     // Every override must have matched something, or it's a typo in sources.toml.
     for o in &options.headings {
-        if !paras.iter().any(|r| normalise(&text(r)) == normalise(&o.text)) {
-            problems.push(format!("heading override {:?} matches no line in the text", o.text));
+        if !paras
+            .iter()
+            .any(|r| normalise(&text(r)) == normalise(&o.text))
+        {
+            problems.push(format!(
+                "heading override {:?} matches no line in the text",
+                o.text
+            ));
         }
     }
 
@@ -209,17 +228,27 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
         ));
     }
     for r in &paras[..title_end] {
-        units.push(Unit { kind: UnitKind::Skipped("title page"), range: r.clone() });
+        units.push(Unit {
+            kind: UnitKind::Skipped("title page"),
+            range: r.clone(),
+        });
     }
 
     // ---- 4. Divisions: from each heading to the next. Contents is skipped, not a division.
     let mut divisions: Vec<DivisionNode> = Vec::new();
     let mut passages: Vec<PlannedPassage> = Vec::new();
-    let heading_indices: Vec<usize> = (0..paras.len()).filter(|&i| matches!(kinds[i], Para::Heading(_))).collect();
+    let heading_indices: Vec<usize> = (0..paras.len())
+        .filter(|&i| matches!(kinds[i], Para::Heading(_)))
+        .collect();
     for (h, &start) in heading_indices.iter().enumerate() {
         let end = heading_indices.get(h + 1).copied().unwrap_or(paras.len());
-        let Para::Heading(mut node) = kinds[start].clone() else { unreachable!() };
-        units.push(Unit { kind: UnitKind::DivisionHeading, range: paras[start].clone() });
+        let Para::Heading(mut node) = kinds[start].clone() else {
+            unreachable!()
+        };
+        units.push(Unit {
+            kind: UnitKind::DivisionHeading,
+            range: paras[start].clone(),
+        });
         let content: Vec<usize> = (start + 1..end)
             .filter(|&i| {
                 let unit_kind = match kinds[i] {
@@ -228,7 +257,10 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
                     _ => None,
                 };
                 if let Some(kind) = unit_kind {
-                    units.push(Unit { kind, range: paras[i].clone() });
+                    units.push(Unit {
+                        kind,
+                        range: paras[i].clone(),
+                    });
                     false
                 } else {
                     true
@@ -275,7 +307,9 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
             .map(|&i| normalise(&text(&paras[i])))
             .collect();
         if after_contents != toc {
-            problems.push(format!("contents list {toc:?} doesn't match the headings found {after_contents:?}"));
+            problems.push(format!(
+                "contents list {toc:?} doesn't match the headings found {after_contents:?}"
+            ));
         }
     }
 
@@ -283,7 +317,10 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
     for p in &passages {
         let words = text(&p.range).split_whitespace().count();
         if words > LONG_PASSAGE_WORDS {
-            warnings.push(format!("passage {} has {words} words (missed boundary?)", p.locator));
+            warnings.push(format!(
+                "passage {} has {words} words (missed boundary?)",
+                p.locator
+            ));
         }
     }
 
@@ -300,17 +337,36 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
                 problems.push(format!("expected division {slug:?} not found"));
                 continue;
             };
-            let have = passages.iter().filter(|p| p.division == d && p.role == PlannedRole::Text).count();
+            let have = passages
+                .iter()
+                .filter(|p| p.division == d && p.role == PlannedRole::Text)
+                .count();
             if have != want {
-                problems.push(format!("division {slug}: expected {want} text passages, found {have}"));
+                problems.push(format!(
+                    "division {slug}: expected {want} text passages, found {have}"
+                ));
             }
         }
     }
 
     units.sort_by_key(|u| u.range.start);
-    let compiled = Compiled { body, divisions, units };
-    problems.extend(check_coverage(file, &compiled).iter().map(|p| p.to_string()));
-    Structure { compiled, passages, toc, problems, warnings }
+    let compiled = Compiled {
+        body,
+        divisions,
+        units,
+    };
+    problems.extend(
+        check_coverage(file, &compiled)
+            .iter()
+            .map(|p| p.to_string()),
+    );
+    Structure {
+        compiled,
+        passages,
+        toc,
+        problems,
+        warnings,
+    }
 }
 
 /// Where the content of one division goes: units for coverage, passages for the store.
@@ -338,7 +394,12 @@ struct HostCounters {
 
 impl Sink<'_> {
     fn push_passage(&mut self, locator: String, role: PlannedRole, range: Range<usize>) -> usize {
-        self.passages.push(PlannedPassage { locator, role, range, division: self.division });
+        self.passages.push(PlannedPassage {
+            locator,
+            role,
+            range,
+            division: self.division,
+        });
         self.passages.len() - 1
     }
 
@@ -349,29 +410,51 @@ impl Sink<'_> {
         let mut cursor = range.start;
         for bracket in brackets(self.file, range.clone()) {
             if let Some(piece) = trimmed(self.file, cursor..bracket.start) {
-                self.units.push(Unit { kind: UnitKind::Text, range: piece });
+                self.units.push(Unit {
+                    kind: UnitKind::Text,
+                    range: piece,
+                });
             }
             cursor = bracket.end;
-            self.units.push(Unit { kind: UnitKind::Insertion, range: bracket.clone() });
+            self.units.push(Unit {
+                kind: UnitKind::Insertion,
+                range: bracket.clone(),
+            });
             let bytes = &self.file[bracket.clone()];
             let shown = String::from_utf8_lossy(bytes).replace("\r\n", " ");
             if bytes == b"[]" {
                 // No words: a transcription artefact (e.g. a lost footnote marker), not the author's.
-                self.warnings.push(format!("{host_locator}: empty brackets [] (transcription artefact?)"));
+                self.warnings.push(format!(
+                    "{host_locator}: empty brackets [] (transcription artefact?)"
+                ));
                 counters.markers += 1;
-                self.push_passage(format!("{host_locator}/marker-{}", counters.markers), PlannedRole::EditorMarker { in_: host }, bracket);
+                self.push_passage(
+                    format!("{host_locator}/marker-{}", counters.markers),
+                    PlannedRole::EditorMarker { in_: host },
+                    bracket,
+                );
                 continue;
             }
             match attribution(self.options, bytes) {
-                None => self.problems.push(format!("{host_locator}: bracket style not declared for this edition: {shown:?}")),
+                None => self.problems.push(format!(
+                    "{host_locator}: bracket style not declared for this edition: {shown:?}"
+                )),
                 Some(Attribution::Editor) if is_bare_marker(bytes) => {
                     counters.markers += 1;
                     counters.bare_markers += 1;
-                    self.push_passage(format!("{host_locator}/marker-{}", counters.markers), PlannedRole::EditorMarker { in_: host }, bracket);
+                    self.push_passage(
+                        format!("{host_locator}/marker-{}", counters.markers),
+                        PlannedRole::EditorMarker { in_: host },
+                        bracket,
+                    );
                 }
                 Some(Attribution::Editor) => {
                     counters.notes += 1;
-                    self.push_passage(format!("{host_locator}/note-{}", counters.notes), PlannedRole::EditorNote { on: host }, bracket);
+                    self.push_passage(
+                        format!("{host_locator}/note-{}", counters.notes),
+                        PlannedRole::EditorNote { on: host },
+                        bracket,
+                    );
                 }
                 Some(Attribution::Author) => {
                     counters.author_notes += 1;
@@ -384,7 +467,10 @@ impl Sink<'_> {
             }
         }
         if let Some(piece) = trimmed(self.file, cursor..range.end) {
-            self.units.push(Unit { kind: UnitKind::Text, range: piece });
+            self.units.push(Unit {
+                kind: UnitKind::Text,
+                range: piece,
+            });
         }
     }
 
@@ -395,18 +481,33 @@ impl Sink<'_> {
         match attribution(self.options, bytes) {
             None => {
                 let shown: String = String::from_utf8_lossy(bytes).chars().take(60).collect();
-                self.problems.push(format!("{host_locator}: note style not declared for this edition: {shown:?}"));
-                self.units.push(Unit { kind: UnitKind::EditorNote, range });
+                self.problems.push(format!(
+                    "{host_locator}: note style not declared for this edition: {shown:?}"
+                ));
+                self.units.push(Unit {
+                    kind: UnitKind::EditorNote,
+                    range,
+                });
             }
             Some(Attribution::Editor) => {
                 counters.notes += 1;
                 counters.note_paragraphs += 1;
-                self.units.push(Unit { kind: UnitKind::EditorNote, range: range.clone() });
-                self.push_passage(format!("{host_locator}/note-{}", counters.notes), PlannedRole::EditorNote { on: host }, range);
+                self.units.push(Unit {
+                    kind: UnitKind::EditorNote,
+                    range: range.clone(),
+                });
+                self.push_passage(
+                    format!("{host_locator}/note-{}", counters.notes),
+                    PlannedRole::EditorNote { on: host },
+                    range,
+                );
             }
             Some(Attribution::Author) => {
                 counters.author_notes += 1;
-                self.units.push(Unit { kind: UnitKind::Insertion, range: range.clone() });
+                self.units.push(Unit {
+                    kind: UnitKind::Insertion,
+                    range: range.clone(),
+                });
                 self.push_passage(
                     format!("{host_locator}/author-note-{}", counters.author_notes),
                     PlannedRole::AuthorNote { on: host },
@@ -444,8 +545,12 @@ fn numbered_sections(sink: &mut Sink, paras: &[Range<usize>]) {
         let bytes = &file[r.clone()];
         if is_whole_bracket(bytes) {
             let Some(host) = current else {
-                sink.problems.push(format!("{div_slug}: note before the first section"));
-                sink.units.push(Unit { kind: UnitKind::EditorNote, range: r.clone() });
+                sink.problems
+                    .push(format!("{div_slug}: note before the first section"));
+                sink.units.push(Unit {
+                    kind: UnitKind::EditorNote,
+                    range: r.clone(),
+                });
                 continue;
             };
             sink.note_paragraph(r.clone(), host, &mut counters);
@@ -453,30 +558,46 @@ fn numbered_sections(sink: &mut Sink, paras: &[Range<usize>]) {
             sink.close_host(current, &counters);
             counters = HostCounters::default();
             if n != expected {
-                sink.problems.push(format!("{div_slug}: section {n} where {expected} was expected"));
+                sink.problems.push(format!(
+                    "{div_slug}: section {n} where {expected} was expected"
+                ));
             }
             expected = n + 1;
             number = n;
 
             let number_range = r.start..r.start + number_end;
-            sink.units.push(Unit { kind: UnitKind::SectionNumber, range: number_range.clone() });
+            sink.units.push(Unit {
+                kind: UnitKind::SectionNumber,
+                range: number_range.clone(),
+            });
             let Some(rest) = trimmed(file, number_range.end..r.end) else {
-                sink.problems.push(format!("{div_slug}/{n}: section has a number but no text"));
+                sink.problems
+                    .push(format!("{div_slug}/{n}: section has a number but no text"));
                 current = None;
                 continue;
             };
-            let heading = editor_heading_len(&file[rest.clone()])
-                .and_then(|len| trimmed(file, rest.start..rest.start + len).zip(trimmed(file, rest.start + len..rest.end)));
+            let heading = editor_heading_len(&file[rest.clone()]).and_then(|len| {
+                trimmed(file, rest.start..rest.start + len)
+                    .zip(trimmed(file, rest.start + len..rest.end))
+            });
             let (heading, text) = match heading {
                 Some((h, t)) => (Some(h), t),
                 None => (None, rest),
             };
             // The text passage first, so the heading can point at it.
-            let host = sink.push_passage(format!("{div_slug}/{n}"), PlannedRole::Text, text.clone());
+            let host =
+                sink.push_passage(format!("{div_slug}/{n}"), PlannedRole::Text, text.clone());
             if let Some(h) = heading {
                 counters.bare_markers += count_bare_markers(&file[h.clone()]);
-                sink.units.push(Unit { kind: UnitKind::EditorHeading, range: h.clone() });
-                sink.push_passage(format!("{div_slug}/{n}/heading"), PlannedRole::EditorHeading { of: host }, h);
+                sink.units.push(Unit {
+                    kind: UnitKind::EditorHeading,
+                    range: h.clone(),
+                });
+                sink.push_passage(
+                    format!("{div_slug}/{n}/heading"),
+                    PlannedRole::EditorHeading { of: host },
+                    h,
+                );
             }
             sink.author_text(text, host, &mut counters);
             current = Some(host);
@@ -484,12 +605,18 @@ fn numbered_sections(sink: &mut Sink, paras: &[Range<usize>]) {
             // An unnumbered paragraph continues the current section.
             let Some(host) = current else {
                 let shown: String = String::from_utf8_lossy(bytes).chars().take(60).collect();
-                sink.problems.push(format!("{div_slug}: text before the first numbered section: {shown:?}"));
-                sink.units.push(Unit { kind: UnitKind::Text, range: r.clone() });
+                sink.problems.push(format!(
+                    "{div_slug}: text before the first numbered section: {shown:?}"
+                ));
+                sink.units.push(Unit {
+                    kind: UnitKind::Text,
+                    range: r.clone(),
+                });
                 continue;
             };
             if counters.note_paragraphs > 0 {
-                sink.problems.push(format!("{div_slug}/{number}: text continues after a note"));
+                sink.problems
+                    .push(format!("{div_slug}/{number}: text continues after a note"));
             }
             sink.passages[host].range.end = r.end;
             sink.author_text(r.clone(), host, &mut counters);
@@ -507,8 +634,12 @@ fn plain_paragraphs(sink: &mut Sink, paras: &[Range<usize>]) {
     for r in paras {
         if is_whole_bracket(&sink.file[r.clone()]) {
             let Some(host) = current else {
-                sink.problems.push(format!("{div_slug}: note before any text"));
-                sink.units.push(Unit { kind: UnitKind::EditorNote, range: r.clone() });
+                sink.problems
+                    .push(format!("{div_slug}: note before any text"));
+                sink.units.push(Unit {
+                    kind: UnitKind::EditorNote,
+                    range: r.clone(),
+                });
                 continue;
             };
             sink.note_paragraph(r.clone(), host, &mut counters);
@@ -555,29 +686,47 @@ fn brackets(file: &[u8], range: Range<usize>) -> Vec<Range<usize>> {
 
 /// A paragraph that is entirely one bracket group: "[Note: …]".
 fn is_whole_bracket(bytes: &[u8]) -> bool {
-    bytes.first() == Some(&b'[') && bytes.last() == Some(&b']') && bytes[1..bytes.len() - 1].iter().all(|&b| b != b'[' && b != b']')
+    bytes.first() == Some(&b'[')
+        && bytes.last() == Some(&b']')
+        && bytes[1..bytes.len() - 1]
+            .iter()
+            .all(|&b| b != b'[' && b != b']')
 }
 
 /// "[Note]", "[Note.]", "[Note 1.]", "[Note. 2]": a marker with no content.
 fn is_bare_marker(bytes: &[u8]) -> bool {
-    bytes.starts_with(b"[Note") && bytes.ends_with(b"]") && bytes[5..bytes.len() - 1].iter().all(|b| b.is_ascii_digit() || *b == b'.' || *b == b' ')
+    bytes.starts_with(b"[Note")
+        && bytes.ends_with(b"]")
+        && bytes[5..bytes.len() - 1]
+            .iter()
+            .all(|b| b.is_ascii_digit() || *b == b'.' || *b == b' ')
 }
 
 fn count_bare_markers(bytes: &[u8]) -> usize {
-    brackets(bytes, 0..bytes.len()).into_iter().filter(|r| is_bare_marker(&bytes[r.clone()])).count()
+    brackets(bytes, 0..bytes.len())
+        .into_iter()
+        .filter(|r| is_bare_marker(&bytes[r.clone()]))
+        .count()
 }
 
 /// A division uses numbered sections if its first paragraph starts "1." and at least two
 /// paragraphs are numbered.
 fn is_numbered(file: &[u8], paras: &[Range<usize>]) -> bool {
-    let numbers: Vec<u32> = paras.iter().filter_map(|r| section_number(&file[r.clone()]).map(|(n, _)| n)).collect();
+    let numbers: Vec<u32> = paras
+        .iter()
+        .filter_map(|r| section_number(&file[r.clone()]).map(|(n, _)| n))
+        .collect();
     numbers.len() >= 2 && numbers[0] == 1 && section_number(&file[paras[0].clone()]).is_some()
 }
 
 /// "35. THE…" → (35, length of "35."). Up to 4 digits, then '.', then whitespace.
 fn section_number(bytes: &[u8]) -> Option<(u32, usize)> {
     let digits = bytes.iter().take_while(|b| b.is_ascii_digit()).count();
-    if digits == 0 || digits > 4 || bytes.get(digits) != Some(&b'.') || !bytes.get(digits + 1).is_some_and(u8::is_ascii_whitespace) {
+    if digits == 0
+        || digits > 4
+        || bytes.get(digits) != Some(&b'.')
+        || !bytes.get(digits + 1).is_some_and(u8::is_ascii_whitespace)
+    {
         return None;
     }
     let n = std::str::from_utf8(&bytes[..digits]).ok()?.parse().ok()?;
@@ -592,7 +741,9 @@ fn editor_heading_len(text: &[u8]) -> Option<usize> {
     let mut end = 0;
     loop {
         let rest = &text[end..];
-        let Some(dash) = rest.windows(2).position(|w| w == b"--") else { break };
+        let Some(dash) = rest.windows(2).position(|w| w == b"--") else {
+            break;
+        };
         if end + dash > MAX {
             break;
         }
@@ -637,7 +788,16 @@ fn known_heading(text: &str) -> Option<(String, String, String)> {
             return Some((lower.clone(), number.to_owned(), format!("{lower}-{value}")));
         }
     }
-    let words = ["INTRODUCTION", "PREFACE", "DEDICATION", "APPENDIX", "CONCLUSION", "ADVERTISEMENT", "PROLOGUE", "EPILOGUE"];
+    let words = [
+        "INTRODUCTION",
+        "PREFACE",
+        "DEDICATION",
+        "APPENDIX",
+        "CONCLUSION",
+        "ADVERTISEMENT",
+        "PROLOGUE",
+        "EPILOGUE",
+    ];
     words.iter().find(|w| n == **w).map(|w| {
         let lower = w.to_lowercase();
         (lower.clone(), title_case(w), lower)
@@ -662,14 +822,32 @@ fn roman(s: &str) -> Option<u32> {
     }
     let mut total = 0;
     for (i, &d) in digits.iter().enumerate() {
-        if digits.get(i + 1).is_some_and(|&next| next > d) { total -= d as i64 } else { total += d as i64 }
+        if digits.get(i + 1).is_some_and(|&next| next > d) {
+            total -= d as i64
+        } else {
+            total += d as i64
+        }
     }
     let total = u32::try_from(total).ok().filter(|&t| t > 0)?;
     (to_roman(total) == s).then_some(total)
 }
 
 fn to_roman(mut n: u32) -> String {
-    let table = [(1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"), (50, "L"), (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I")];
+    let table = [
+        (1000, "M"),
+        (900, "CM"),
+        (500, "D"),
+        (400, "CD"),
+        (100, "C"),
+        (90, "XC"),
+        (50, "L"),
+        (40, "XL"),
+        (10, "X"),
+        (9, "IX"),
+        (5, "V"),
+        (4, "IV"),
+        (1, "I"),
+    ];
     let mut out = String::new();
     for (v, s) in table {
         while n >= v {
@@ -683,7 +861,10 @@ fn to_roman(mut n: u32) -> String {
 /// A short single-line paragraph with capitals and no lowercase letters.
 fn looks_like_heading(text: &str) -> bool {
     let t = text.trim();
-    t.lines().count() == 1 && t.len() <= 80 && t.chars().any(|c| c.is_ascii_uppercase()) && !t.chars().any(|c| c.is_ascii_lowercase())
+    t.lines().count() == 1
+        && t.len() <= 80
+        && t.chars().any(|c| c.is_ascii_uppercase())
+        && !t.chars().any(|c| c.is_ascii_lowercase())
 }
 
 /// "* * * * *"
@@ -694,13 +875,19 @@ fn is_separator(text: &str) -> bool {
 
 /// Uppercase, whitespace collapsed: for comparing heading lines.
 fn normalise(text: &str) -> String {
-    text.split_whitespace().collect::<Vec<_>>().join(" ").to_uppercase()
+    text.split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .to_uppercase()
 }
 
 /// "OF THE PRINCIPLES OF HUMAN KNOWLEDGE" → "of-the-principles-of-human-knowledge" (ASCII only).
 fn slugify(text: &str) -> String {
     let mut slug = String::new();
-    for word in text.split(|c: char| !c.is_ascii_alphanumeric()).filter(|w| !w.is_empty()) {
+    for word in text
+        .split(|c: char| !c.is_ascii_alphanumeric())
+        .filter(|w| !w.is_empty())
+    {
         if !slug.is_empty() {
             slug.push('-');
         }
@@ -713,13 +900,20 @@ fn title_case(text: &str) -> String {
     text.split(' ')
         .map(|w| {
             let mut c = w.chars();
-            c.next().map_or(String::new(), |f| f.to_string() + &c.as_str().to_lowercase())
+            c.next().map_or(String::new(), |f| {
+                f.to_string() + &c.as_str().to_lowercase()
+            })
         })
         .collect::<Vec<_>>()
         .join(" ")
 }
 
 fn division(kind: &str, label: &str, slug: &str, range: Range<usize>) -> DivisionNode {
-    DivisionNode { kind: kind.into(), label: label.into(), slug: slug.into(), range, children: vec![] }
+    DivisionNode {
+        kind: kind.into(),
+        label: label.into(),
+        slug: slug.into(),
+        range,
+        children: vec![],
+    }
 }
-

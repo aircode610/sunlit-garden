@@ -29,13 +29,19 @@ impl Slug {
     pub fn parse(s: &str) -> Result<Self, InvalidValue> {
         // Splitting on '-' gives the groups; every group must be non-empty and made of
         // [a-z0-9]. An empty group means a leading, trailing or doubled hyphen (or "").
-        let valid = s
-            .split('-')
-            .all(|group| !group.is_empty() && group.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit()));
+        let valid = s.split('-').all(|group| {
+            !group.is_empty()
+                && group
+                    .bytes()
+                    .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit())
+        });
         if valid {
             Ok(Slug(s.to_owned()))
         } else {
-            Err(InvalidValue { kind: "slug", value: s.to_owned() })
+            Err(InvalidValue {
+                kind: "slug",
+                value: s.to_owned(),
+            })
         }
     }
 
@@ -57,7 +63,10 @@ impl Locator {
         if s.split('/').all(|segment| Slug::parse(segment).is_ok()) {
             Ok(Locator(s.to_owned()))
         } else {
-            Err(InvalidValue { kind: "locator", value: s.to_owned() })
+            Err(InvalidValue {
+                kind: "locator",
+                value: s.to_owned(),
+            })
         }
     }
 
@@ -77,14 +86,19 @@ impl WikidataId {
         // `strip_prefix` returns the rest after "Q", or None if it doesn't start with "Q".
         let valid = match s.strip_prefix('Q') {
             Some(digits) => {
-                !digits.is_empty() && !digits.starts_with('0') && digits.bytes().all(|b| b.is_ascii_digit())
+                !digits.is_empty()
+                    && !digits.starts_with('0')
+                    && digits.bytes().all(|b| b.is_ascii_digit())
             }
             None => false,
         };
         if valid {
             Ok(WikidataId(s.to_owned()))
         } else {
-            Err(InvalidValue { kind: "Wikidata id", value: s.to_owned() })
+            Err(InvalidValue {
+                kind: "Wikidata id",
+                value: s.to_owned(),
+            })
         }
     }
 
@@ -115,7 +129,10 @@ impl Sha256 {
 
     /// Parse 64 hex characters (either case), as written in `corpus/sources.toml`.
     pub fn from_hex(hex: &str) -> Result<Self, InvalidValue> {
-        let invalid = || InvalidValue { kind: "SHA-256 hex (need 64 hex characters)", value: hex.to_owned() };
+        let invalid = || InvalidValue {
+            kind: "SHA-256 hex (need 64 hex characters)",
+            value: hex.to_owned(),
+        };
         // Check every character first: `from_str_radix` alone would accept a leading '+'.
         if hex.len() != 64 || !hex.bytes().all(|b| b.is_ascii_hexdigit()) {
             return Err(invalid());

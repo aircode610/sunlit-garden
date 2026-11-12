@@ -5,14 +5,17 @@ use sqlx::PgPool;
 use time::OffsetDateTime;
 
 use super::{
-    Division, DivisionId, Document, DocumentId, Edition, EditionId, NewDivision, NewDocument, NewEdition, NewPassage,
-    NewThinker, NewWork, Passage, PassageId, PassageRole, Store, StoreError, Thinker, ThinkerId, Work, WorkId,
+    Division, DivisionId, Document, DocumentId, Edition, EditionId, NewDivision, NewDocument,
+    NewEdition, NewPassage, NewThinker, NewWork, Passage, PassageId, PassageRole, Store,
+    StoreError, Thinker, ThinkerId, Work, WorkId,
 };
 use crate::values::{Locator, Sha256, Slug, WikidataId};
 
 /// The error for "a row with this key exists but says something else".
 fn conflict(what: &str, stored: &impl std::fmt::Debug, given: &impl std::fmt::Debug) -> StoreError {
-    StoreError::Conflict(format!("{what} already exists with different data: stored {stored:?}, given {given:?}"))
+    StoreError::Conflict(format!(
+        "{what} already exists with different data: stored {stored:?}, given {given:?}"
+    ))
 }
 
 /// Postgres-backed store. Cheap to clone: `PgPool` is a handle to a shared connection pool.
@@ -24,7 +27,9 @@ pub struct PgStore {
 impl PgStore {
     /// Connect to `database_url` (e.g. the `DATABASE_URL` from `.env`).
     pub async fn connect(database_url: &str) -> Result<Self, StoreError> {
-        Ok(PgStore { pool: PgPool::connect(database_url).await? })
+        Ok(PgStore {
+            pool: PgPool::connect(database_url).await?,
+        })
     }
 
     pub fn from_pool(pool: PgPool) -> Self {
@@ -60,7 +65,11 @@ impl TryFrom<ThinkerRow> for Thinker {
             slug: Slug::parse(&row.slug)?,
             name: row.name,
             // `transpose` turns Option<Result<T, E>> into Result<Option<T>, E>, so `?` works.
-            wikidata_id: row.wikidata_id.as_deref().map(WikidataId::parse).transpose()?,
+            wikidata_id: row
+                .wikidata_id
+                .as_deref()
+                .map(WikidataId::parse)
+                .transpose()?,
             born_year: row.born_year,
             died_year: row.died_year,
         })
@@ -88,7 +97,11 @@ impl TryFrom<WorkRow> for Work {
             title: row.title,
             original_language: row.original_language,
             first_year: row.first_year,
-            wikidata_id: row.wikidata_id.as_deref().map(WikidataId::parse).transpose()?,
+            wikidata_id: row
+                .wikidata_id
+                .as_deref()
+                .map(WikidataId::parse)
+                .transpose()?,
         })
     }
 }
@@ -249,7 +262,11 @@ impl Store for PgStore {
         .await?;
 
         let thinker = Thinker::try_from(row)?;
-        if thinker.matches(new) { Ok(thinker) } else { Err(conflict("thinker", &thinker, new)) }
+        if thinker.matches(new) {
+            Ok(thinker)
+        } else {
+            Err(conflict("thinker", &thinker, new))
+        }
     }
 
     async fn thinker_by_slug(&self, slug: &Slug) -> Result<Option<Thinker>, StoreError> {
@@ -296,10 +313,18 @@ impl Store for PgStore {
         .await?;
 
         let work = Work::try_from(row)?;
-        if work.matches(new) { Ok(work) } else { Err(conflict("work", &work, new)) }
+        if work.matches(new) {
+            Ok(work)
+        } else {
+            Err(conflict("work", &work, new))
+        }
     }
 
-    async fn work_by_slug(&self, thinker: ThinkerId, slug: &Slug) -> Result<Option<Work>, StoreError> {
+    async fn work_by_slug(
+        &self,
+        thinker: ThinkerId,
+        slug: &Slug,
+    ) -> Result<Option<Work>, StoreError> {
         let row = sqlx::query_as!(
             WorkRow,
             "SELECT id, thinker_id, slug, title, original_language, first_year, wikidata_id
@@ -352,7 +377,11 @@ impl Store for PgStore {
         .await?;
 
         let document = Document::try_from(row)?;
-        if document.matches(new) { Ok(document) } else { Err(conflict("document", &document, new)) }
+        if document.matches(new) {
+            Ok(document)
+        } else {
+            Err(conflict("document", &document, new))
+        }
     }
 
     async fn document_by_sha256(&self, sha256: &Sha256) -> Result<Option<Document>, StoreError> {
@@ -406,9 +435,17 @@ impl Store for PgStore {
         .await?;
 
         let edition = Edition::try_from(row)?;
-        if edition.matches(new) { Ok(edition) } else { Err(conflict("edition", &edition, new)) }
+        if edition.matches(new) {
+            Ok(edition)
+        } else {
+            Err(conflict("edition", &edition, new))
+        }
     }
-    async fn edition_by_slug(&self, work: WorkId, slug: &Slug) -> Result<Option<Edition>, StoreError> {
+    async fn edition_by_slug(
+        &self,
+        work: WorkId,
+        slug: &Slug,
+    ) -> Result<Option<Edition>, StoreError> {
         let row = sqlx::query_as!(
             EditionRow,
             "SELECT id, work_id, document_id, slug, title, language, translator, published_year, start_byte, end_byte
@@ -455,7 +492,11 @@ impl Store for PgStore {
         .await?;
 
         let division = Division::from(row);
-        if division.matches(new) { Ok(division) } else { Err(conflict("division", &division, new)) }
+        if division.matches(new) {
+            Ok(division)
+        } else {
+            Err(conflict("division", &division, new))
+        }
     }
 
     async fn ensure_passage(&self, new: &NewPassage) -> Result<Passage, StoreError> {
@@ -504,10 +545,18 @@ impl Store for PgStore {
         .await?;
 
         let passage = Passage::try_from(row)?;
-        if passage.matches(new) { Ok(passage) } else { Err(conflict("passage", &passage, new)) }
+        if passage.matches(new) {
+            Ok(passage)
+        } else {
+            Err(conflict("passage", &passage, new))
+        }
     }
 
-    async fn passage_by_locator(&self, edition: EditionId, locator: &Locator) -> Result<Option<Passage>, StoreError> {
+    async fn passage_by_locator(
+        &self,
+        edition: EditionId,
+        locator: &Locator,
+    ) -> Result<Option<Passage>, StoreError> {
         let row = sqlx::query_as!(
             PassageRow,
             "SELECT id, edition_id, division_id, ordinal, locator, kind, attached_to,
@@ -528,7 +577,9 @@ impl Store for PgStore {
             .execute(&mut *tx)
             .await?
             .rows_affected();
-        sqlx::query!("DELETE FROM division WHERE edition_id = $1", edition.0).execute(&mut *tx).await?;
+        sqlx::query!("DELETE FROM division WHERE edition_id = $1", edition.0)
+            .execute(&mut *tx)
+            .await?;
         tx.commit().await?;
         Ok(removed)
     }

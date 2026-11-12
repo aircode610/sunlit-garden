@@ -18,7 +18,10 @@ fn sha256_from_database_bytes_must_be_exactly_32_bytes() {
 fn wikidata_id_is_q_followed_by_a_number_without_leading_zero() {
     assert_eq!(WikidataId::parse("Q37160").unwrap().as_str(), "Q37160"); // David Hume
     for bad in ["", "Q", "Q0", "Q012", "q37160", "37160", "Q37160x", "P31"] {
-        assert!(WikidataId::parse(bad).is_err(), "{bad:?} should be rejected");
+        assert!(
+            WikidataId::parse(bad).is_err(),
+            "{bad:?} should be rejected"
+        );
     }
 }
 
@@ -31,7 +34,16 @@ fn slug_accepts_lowercase_words_joined_by_single_hyphens() {
 
 #[test]
 fn slug_rejects_anything_the_database_would_reject() {
-    for bad in ["", "David-Hume", "david hume", "david--hume", "-hume", "hume-", "d'holbach", "gödel"] {
+    for bad in [
+        "",
+        "David-Hume",
+        "david hume",
+        "david--hume",
+        "-hume",
+        "hume-",
+        "d'holbach",
+        "gödel",
+    ] {
         assert!(Slug::parse(bad).is_err(), "{bad:?} should be rejected");
     }
 }
@@ -40,8 +52,19 @@ fn slug_rejects_anything_the_database_would_reject() {
 fn sha256_parses_from_hex_as_written_in_the_source_list() {
     let hex = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
     assert_eq!(Sha256::from_hex(hex).unwrap(), Sha256::of(b"abc"));
-    assert_eq!(Sha256::from_hex(&hex.to_uppercase()).unwrap(), Sha256::of(b"abc"), "case-insensitive");
-    for bad in ["", "ba78", &hex[1..], &format!("{hex}00"), &hex.replace('b', "g"), &format!("+a{}", &hex[2..])] {
+    assert_eq!(
+        Sha256::from_hex(&hex.to_uppercase()).unwrap(),
+        Sha256::of(b"abc"),
+        "case-insensitive"
+    );
+    for bad in [
+        "",
+        "ba78",
+        &hex[1..],
+        &format!("{hex}00"),
+        &hex.replace('b', "g"),
+        &format!("+a{}", &hex[2..]),
+    ] {
         assert!(Sha256::from_hex(bad).is_err(), "{bad:?} should be rejected");
     }
 }
@@ -52,7 +75,16 @@ fn locator_is_slugs_joined_by_slashes() {
     for ok in ["part-10/3", "introduction/3", "part-1/3/note-1", "preface"] {
         assert_eq!(Locator::parse(ok).unwrap().as_str(), ok);
     }
-    for bad in ["", "/", "part-1/", "/3", "part-1//3", "part 1/3", "Part-1/3", "part-1/3/"] {
+    for bad in [
+        "",
+        "/",
+        "part-1/",
+        "/3",
+        "part-1//3",
+        "part 1/3",
+        "Part-1/3",
+        "part-1/3/",
+    ] {
         assert!(Locator::parse(bad).is_err(), "{bad:?} should be rejected");
     }
 }

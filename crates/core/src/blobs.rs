@@ -33,7 +33,9 @@ pub struct S3Config {
 impl S3Config {
     /// Read `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`.
     pub fn from_env() -> Result<Self, BlobError> {
-        let var = |name: &str| std::env::var(name).map_err(|_| BlobError::Config(format!("{name} is not set")));
+        let var = |name: &str| {
+            std::env::var(name).map_err(|_| BlobError::Config(format!("{name} is not set")))
+        };
         Ok(S3Config {
             endpoint: var("S3_ENDPOINT")?,
             region: var("S3_REGION")?,
@@ -74,7 +76,12 @@ impl fmt::Display for BlobError {
         match self {
             BlobError::NotFound(sha) => write!(f, "no blob with sha256 {}", sha.to_hex()),
             BlobError::Corrupt { expected, actual } => {
-                write!(f, "blob {} is corrupt: its bytes hash to {}", expected.to_hex(), actual.to_hex())
+                write!(
+                    f,
+                    "blob {} is corrupt: its bytes hash to {}",
+                    expected.to_hex(),
+                    actual.to_hex()
+                )
             }
             BlobError::Config(msg) => write!(f, "object storage config: {msg}"),
             BlobError::Storage(e) => write!(f, "object storage: {e}"),
@@ -112,12 +119,16 @@ impl BlobStore {
             .with_virtual_hosted_style_request(false)
             .build()
             .map_err(|e| BlobError::Config(e.to_string()))?;
-        Ok(BlobStore { inner: Arc::new(store) })
+        Ok(BlobStore {
+            inner: Arc::new(store),
+        })
     }
 
     /// Everything kept in memory; for tests.
     pub fn in_memory() -> Self {
-        BlobStore { inner: Arc::new(InMemory::new()) }
+        BlobStore {
+            inner: Arc::new(InMemory::new()),
+        }
     }
 
     /// Wrap any `object_store` backend.
@@ -151,7 +162,14 @@ impl BlobStore {
             Err(e) => return Err(e.into()),
         };
         let actual = Sha256::of(&bytes);
-        if actual == *sha { Ok(bytes) } else { Err(BlobError::Corrupt { expected: *sha, actual }) }
+        if actual == *sha {
+            Ok(bytes)
+        } else {
+            Err(BlobError::Corrupt {
+                expected: *sha,
+                actual,
+            })
+        }
     }
 
     /// Whether `sha` is stored (a cheap HEAD request; no download).

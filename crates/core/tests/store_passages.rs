@@ -2,8 +2,8 @@
 
 use sqlx::PgPool;
 use sunlit_core::store::{
-    Edition, NewDivision, NewDocument, NewEdition, NewPassage, NewThinker, NewWork, PassageRole, PgStore, Store,
-    StoreError,
+    Edition, NewDivision, NewDocument, NewEdition, NewPassage, NewThinker, NewWork, PassageRole,
+    PgStore, Store, StoreError,
 };
 use sunlit_core::{Locator, Sha256, Slug};
 use time::OffsetDateTime;
@@ -16,11 +16,24 @@ const NOTE_3: &str = "[Note: First argument in support of the author's theory.]"
 async fn berkeley_edition(store: &PgStore) -> Edition {
     let slug = |s: &str| Slug::parse(s).unwrap();
     let thinker = store
-        .ensure_thinker(&NewThinker { slug: slug("george-berkeley"), name: "George Berkeley".into(), wikidata_id: None, born_year: None, died_year: None })
+        .ensure_thinker(&NewThinker {
+            slug: slug("george-berkeley"),
+            name: "George Berkeley".into(),
+            wikidata_id: None,
+            born_year: None,
+            died_year: None,
+        })
         .await
         .unwrap();
     let work = store
-        .ensure_work(&NewWork { thinker: thinker.id, slug: slug("principles-of-human-knowledge"), title: "Principles".into(), original_language: None, first_year: None, wikidata_id: None })
+        .ensure_work(&NewWork {
+            thinker: thinker.id,
+            slug: slug("principles-of-human-knowledge"),
+            title: "Principles".into(),
+            original_language: None,
+            first_year: None,
+            wikidata_id: None,
+        })
         .await
         .unwrap();
     let document = store
@@ -53,10 +66,25 @@ async fn berkeley_edition(store: &PgStore) -> Edition {
 }
 
 fn part_1(edition: &Edition) -> NewDivision {
-    NewDivision { edition: edition.id, parent: None, kind: "part".into(), label: "I".into(), ordinal: 1, start_byte: 40000, end_byte: 217292 }
+    NewDivision {
+        edition: edition.id,
+        parent: None,
+        kind: "part".into(),
+        label: "I".into(),
+        ordinal: 1,
+        start_byte: 40000,
+        end_byte: 217292,
+    }
 }
 
-fn passage(edition: &Edition, ordinal: i32, locator: &str, role: PassageRole, range: (i64, i64), text: &str) -> NewPassage {
+fn passage(
+    edition: &Edition,
+    ordinal: i32,
+    locator: &str,
+    role: PassageRole,
+    range: (i64, i64),
+    text: &str,
+) -> NewPassage {
     NewPassage {
         edition: edition.id,
         division: None,
@@ -82,24 +110,55 @@ async fn a_section_with_its_editor_heading_and_note_round_trips(pool: PgPool) {
     let part = store.ensure_division(&part_1(&edition)).await.unwrap();
 
     let section = store
-        .ensure_passage(&NewPassage { division: Some(part.id), ..passage(&edition, 2, "part-1/3", PassageRole::Text, (47044, 48309), SECTION_3) })
+        .ensure_passage(&NewPassage {
+            division: Some(part.id),
+            ..passage(
+                &edition,
+                2,
+                "part-1/3",
+                PassageRole::Text,
+                (47044, 48309),
+                SECTION_3,
+            )
+        })
         .await
         .unwrap();
     let heading = store
-        .ensure_passage(&passage(&edition, 1, "part-1/3/heading", PassageRole::EditorHeading { of: section.id }, (46997, 47044), HEADING_3))
+        .ensure_passage(&passage(
+            &edition,
+            1,
+            "part-1/3/heading",
+            PassageRole::EditorHeading { of: section.id },
+            (46997, 47044),
+            HEADING_3,
+        ))
         .await
         .unwrap();
     let note = store
-        .ensure_passage(&passage(&edition, 3, "part-1/3/note-1", PassageRole::EditorNote { on: section.id }, (48313, 48370), NOTE_3))
+        .ensure_passage(&passage(
+            &edition,
+            3,
+            "part-1/3/note-1",
+            PassageRole::EditorNote { on: section.id },
+            (48313, 48370),
+            NOTE_3,
+        ))
         .await
         .unwrap();
 
-    let found = store.passage_by_locator(edition.id, &Locator::parse("part-1/3").unwrap()).await.unwrap();
+    let found = store
+        .passage_by_locator(edition.id, &Locator::parse("part-1/3").unwrap())
+        .await
+        .unwrap();
     assert_eq!(found.as_ref(), Some(&section));
     assert_eq!(section.role, PassageRole::Text, "the author's words");
     assert_eq!(heading.role, PassageRole::EditorHeading { of: section.id });
     assert_eq!(note.role, PassageRole::EditorNote { on: section.id });
-    assert_eq!(section.content_sha256, Sha256::of(SECTION_3.as_bytes()), "hash computed from the text");
+    assert_eq!(
+        section.content_sha256,
+        Sha256::of(SECTION_3.as_bytes()),
+        "hash computed from the text"
+    );
 }
 
 #[sqlx::test(migrations = "../../migrations")]
@@ -110,8 +169,28 @@ async fn ensuring_the_same_structure_twice_is_a_no_op(pool: PgPool) {
     // Top-level division: parent is NULL, and in SQL `NULL = NULL` is not true.
     let first = store.ensure_division(&part_1(&edition)).await.unwrap();
     let again = store.ensure_division(&part_1(&edition)).await.unwrap();
-    let p1 = store.ensure_passage(&passage(&edition, 0, "part-1/3", PassageRole::Text, (10, 20), SECTION_3)).await.unwrap();
-    let p2 = store.ensure_passage(&passage(&edition, 0, "part-1/3", PassageRole::Text, (10, 20), SECTION_3)).await.unwrap();
+    let p1 = store
+        .ensure_passage(&passage(
+            &edition,
+            0,
+            "part-1/3",
+            PassageRole::Text,
+            (10, 20),
+            SECTION_3,
+        ))
+        .await
+        .unwrap();
+    let p2 = store
+        .ensure_passage(&passage(
+            &edition,
+            0,
+            "part-1/3",
+            PassageRole::Text,
+            (10, 20),
+            SECTION_3,
+        ))
+        .await
+        .unwrap();
 
     assert_eq!(first.id, again.id);
     assert_eq!(p1.id, p2.id);
@@ -125,20 +204,50 @@ async fn a_different_division_in_the_same_slot_is_a_conflict(pool: PgPool) {
     let edition = berkeley_edition(&store).await;
     store.ensure_division(&part_1(&edition)).await.unwrap();
 
-    let result = store.ensure_division(&NewDivision { label: "Introduction".into(), ..part_1(&edition) }).await;
+    let result = store
+        .ensure_division(&NewDivision {
+            label: "Introduction".into(),
+            ..part_1(&edition)
+        })
+        .await;
 
-    assert!(matches!(result, Err(StoreError::Conflict(_))), "got {result:?}");
+    assert!(
+        matches!(result, Err(StoreError::Conflict(_))),
+        "got {result:?}"
+    );
 }
 
 #[sqlx::test(migrations = "../../migrations")]
 async fn different_text_at_the_same_locator_is_a_conflict(pool: PgPool) {
     let store = PgStore::from_pool(pool);
     let edition = berkeley_edition(&store).await;
-    store.ensure_passage(&passage(&edition, 0, "part-1/3", PassageRole::Text, (10, 20), SECTION_3)).await.unwrap();
+    store
+        .ensure_passage(&passage(
+            &edition,
+            0,
+            "part-1/3",
+            PassageRole::Text,
+            (10, 20),
+            SECTION_3,
+        ))
+        .await
+        .unwrap();
 
-    let result = store.ensure_passage(&passage(&edition, 0, "part-1/3", PassageRole::Text, (10, 20), "something else")).await;
+    let result = store
+        .ensure_passage(&passage(
+            &edition,
+            0,
+            "part-1/3",
+            PassageRole::Text,
+            (10, 20),
+            "something else",
+        ))
+        .await;
 
-    assert!(matches!(result, Err(StoreError::Conflict(_))), "got {result:?}");
+    assert!(
+        matches!(result, Err(StoreError::Conflict(_))),
+        "got {result:?}"
+    );
 }
 
 #[sqlx::test(migrations = "../../migrations")]
@@ -147,19 +256,53 @@ async fn clearing_an_editions_structure_removes_it_so_it_can_be_split_again(pool
     let edition = berkeley_edition(&store).await;
     let part = store.ensure_division(&part_1(&edition)).await.unwrap();
     let section = store
-        .ensure_passage(&NewPassage { division: Some(part.id), ..passage(&edition, 0, "part-1/3", PassageRole::Text, (10, 20), SECTION_3) })
+        .ensure_passage(&NewPassage {
+            division: Some(part.id),
+            ..passage(
+                &edition,
+                0,
+                "part-1/3",
+                PassageRole::Text,
+                (10, 20),
+                SECTION_3,
+            )
+        })
         .await
         .unwrap();
-    store.ensure_passage(&passage(&edition, 1, "part-1/3/note-1", PassageRole::EditorNote { on: section.id }, (20, 30), NOTE_3)).await.unwrap();
+    store
+        .ensure_passage(&passage(
+            &edition,
+            1,
+            "part-1/3/note-1",
+            PassageRole::EditorNote { on: section.id },
+            (20, 30),
+            NOTE_3,
+        ))
+        .await
+        .unwrap();
 
     let removed = store.clear_edition_structure(edition.id).await.unwrap();
 
     assert_eq!(removed, 2);
     assert_eq!(count(&pool, "division").await, 0);
     assert_eq!(count(&pool, "passage").await, 0);
-    assert_eq!(count(&pool, "edition").await, 1, "the edition itself is source of truth and stays");
+    assert_eq!(
+        count(&pool, "edition").await,
+        1,
+        "the edition itself is source of truth and stays"
+    );
     // And a new split with different text is accepted now.
-    store.ensure_passage(&passage(&edition, 0, "part-1/3", PassageRole::Text, (10, 20), "re-split text")).await.unwrap();
+    store
+        .ensure_passage(&passage(
+            &edition,
+            0,
+            "part-1/3",
+            PassageRole::Text,
+            (10, 20),
+            "re-split text",
+        ))
+        .await
+        .unwrap();
 }
 
 #[sqlx::test(migrations = "../../migrations")]
@@ -168,18 +311,49 @@ async fn insertions_nest_inside_their_host_and_keep_their_attribution(pool: PgPo
     // in brackets. Both are nested passages whose ranges lie inside the host passage.
     let store = PgStore::from_pool(pool);
     let edition = berkeley_edition(&store).await;
-    let host = store.ensure_passage(&passage(&edition, 0, "part-1/22", PassageRole::Text, (1000, 2000), SECTION_3)).await.unwrap();
+    let host = store
+        .ensure_passage(&passage(
+            &edition,
+            0,
+            "part-1/22",
+            PassageRole::Text,
+            (1000, 2000),
+            SECTION_3,
+        ))
+        .await
+        .unwrap();
 
     let marker = store
-        .ensure_passage(&passage(&edition, 1, "part-1/22/marker-1", PassageRole::EditorMarker { in_: host.id }, (1100, 1107), "[Note.]"))
+        .ensure_passage(&passage(
+            &edition,
+            1,
+            "part-1/22/marker-1",
+            PassageRole::EditorMarker { in_: host.id },
+            (1100, 1107),
+            "[Note.]",
+        ))
         .await
         .unwrap();
     let inline = store
-        .ensure_passage(&passage(&edition, 2, "part-1/22/note-1", PassageRole::EditorNote { on: host.id }, (1200, 1290), "[Note: i.e. …--Ed.]"))
+        .ensure_passage(&passage(
+            &edition,
+            2,
+            "part-1/22/note-1",
+            PassageRole::EditorNote { on: host.id },
+            (1200, 1290),
+            "[Note: i.e. …--Ed.]",
+        ))
         .await
         .unwrap();
     let authors = store
-        .ensure_passage(&passage(&edition, 3, "part-1/22/author-note-1", PassageRole::AuthorNote { on: host.id }, (1300, 1340), "[Recherche de la Verite]"))
+        .ensure_passage(&passage(
+            &edition,
+            3,
+            "part-1/22/author-note-1",
+            PassageRole::AuthorNote { on: host.id },
+            (1300, 1340),
+            "[Recherche de la Verite]",
+        ))
         .await
         .unwrap();
 

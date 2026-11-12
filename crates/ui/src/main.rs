@@ -28,8 +28,20 @@ fn view(s: &State, _: &mut Cx<State>) -> El {
     let t = tok::theme(true); // `true` = dark theme
     let title = text("Sunlit Garden").font(type_::TITLE).color(t.text);
     // `w_full().wrap()`: take the column's width and break long lines instead of overflowing.
-    let citation = text(s.source.citation()).w_full().wrap().font(type_::BODY).color(t.text_secondary);
-    col().w_full().h_full().center().padding(40.0).gap(12.0).fill(t.bg).child(title).child(citation)
+    let citation = text(s.source.citation())
+        .w_full()
+        .wrap()
+        .font(type_::BODY)
+        .color(t.text_secondary);
+    col()
+        .w_full()
+        .h_full()
+        .center()
+        .padding(40.0)
+        .gap(12.0)
+        .fill(t.bg)
+        .child(title)
+        .child(citation)
 }
 
 /// Scene "hume": same window, a different source. Scenes are named states for headless renders.

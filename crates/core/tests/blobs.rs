@@ -4,13 +4,14 @@
 use std::sync::Arc;
 
 use bytes::Bytes;
+use object_store::ObjectStoreExt;
 use object_store::memory::InMemory;
 use object_store::path::Path;
-use object_store::ObjectStoreExt;
 use sunlit_core::Sha256;
 use sunlit_core::blobs::{BlobError, BlobStore, S3Config};
 
-const BERKELEY: &[u8] = b"It is evident to any one who takes a survey of the objects of human knowledge...";
+const BERKELEY: &[u8] =
+    b"It is evident to any one who takes a survey of the objects of human knowledge...";
 
 #[tokio::test]
 async fn put_returns_the_content_hash_and_get_returns_the_bytes() {
@@ -40,7 +41,10 @@ async fn getting_an_unknown_hash_is_not_found() {
 
     let result = blobs.get(&missing).await;
 
-    assert!(matches!(result, Err(BlobError::NotFound(sha)) if sha == missing), "got {result:?}");
+    assert!(
+        matches!(result, Err(BlobError::NotFound(sha)) if sha == missing),
+        "got {result:?}"
+    );
     assert!(!blobs.contains(&missing).await.unwrap());
 }
 
@@ -50,11 +54,20 @@ async fn bytes_that_no_longer_match_their_key_are_reported_as_corrupt() {
     let backend = Arc::new(InMemory::new());
     let blobs = BlobStore::from_object_store(backend.clone());
     let sha = Sha256::of(BERKELEY);
-    backend.put(&Path::from(BlobStore::key(&sha)), b"tampered".to_vec().into()).await.unwrap();
+    backend
+        .put(
+            &Path::from(BlobStore::key(&sha)),
+            b"tampered".to_vec().into(),
+        )
+        .await
+        .unwrap();
 
     let result = blobs.get(&sha).await;
 
-    assert!(matches!(result, Err(BlobError::Corrupt { expected, .. }) if expected == sha), "got {result:?}");
+    assert!(
+        matches!(result, Err(BlobError::Corrupt { expected, .. }) if expected == sha),
+        "got {result:?}"
+    );
 }
 
 #[test]
@@ -76,7 +89,8 @@ fn blob_store_futures_can_move_between_threads() {
 
 #[tokio::test]
 async fn round_trip_through_garage() {
-    let config = S3Config::from_env().expect("S3_* variables missing: run `set -a; source .env; set +a`");
+    let config =
+        S3Config::from_env().expect("S3_* variables missing: run `set -a; source .env; set +a`");
     let blobs = BlobStore::s3(&config).unwrap();
     // Unique per run so the test never depends on earlier runs.
     let body = format!("round trip {:?}", std::time::SystemTime::now());

@@ -9,7 +9,9 @@
 use std::fmt;
 
 use super::structure::{PlannedRole, Structure};
-use crate::store::{DivisionId, Edition, NewDivision, NewPassage, PassageId, PassageRole, Store, StoreError};
+use crate::store::{
+    DivisionId, Edition, NewDivision, NewPassage, PassageId, PassageRole, Store, StoreError,
+};
 use crate::values::{InvalidValue, Locator, Sha256};
 
 /// What was stored.
@@ -24,7 +26,9 @@ pub enum StoreStructureError {
     /// The structure has this many problems; nothing was stored.
     NeedsReview(usize),
     /// A passage's bytes aren't valid UTF-8 (never silently "fixed").
-    NotUtf8 { locator: String },
+    NotUtf8 {
+        locator: String,
+    },
     Invalid(InvalidValue),
     Store(StoreError),
 }
@@ -32,8 +36,12 @@ pub enum StoreStructureError {
 impl fmt::Display for StoreStructureError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            StoreStructureError::NeedsReview(n) => write!(f, "{n} problem(s): edition needs review, nothing stored"),
-            StoreStructureError::NotUtf8 { locator } => write!(f, "passage {locator} is not valid UTF-8"),
+            StoreStructureError::NeedsReview(n) => {
+                write!(f, "{n} problem(s): edition needs review, nothing stored")
+            }
+            StoreStructureError::NotUtf8 { locator } => {
+                write!(f, "passage {locator} is not valid UTF-8")
+            }
             StoreStructureError::Invalid(e) => write!(f, "{e}"),
             StoreStructureError::Store(e) => write!(f, "{e}"),
         }
@@ -57,7 +65,10 @@ impl From<InvalidValue> for StoreStructureError {
 /// Normalisation v1 for `normalized_sha256`: whitespace runs collapsed to one space, trimmed,
 /// lowercased (Rust std). Provisional; see the vault decision "Passage normalisation v1".
 pub fn normalize_v1(text: &str) -> String {
-    text.split_whitespace().collect::<Vec<_>>().join(" ").to_lowercase()
+    text.split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .to_lowercase()
 }
 
 pub async fn store_structure<S: Store>(
@@ -101,11 +112,17 @@ pub async fn store_structure<S: Store>(
             PlannedRole::AuthorNote { on } => PassageRole::AuthorNote { on: target(on)? },
         };
         let text = std::str::from_utf8(&file[p.range.clone()])
-            .map_err(|_| StoreStructureError::NotUtf8 { locator: p.locator.clone() })?
+            .map_err(|_| StoreStructureError::NotUtf8 {
+                locator: p.locator.clone(),
+            })?
             .to_owned();
         // Author text hashes its author words (editor insertions removed); editorial passages
         // hash their own text.
-        let for_hash = if p.role == PlannedRole::Text { structure.author_words(file, i) } else { text.clone() };
+        let for_hash = if p.role == PlannedRole::Text {
+            structure.author_words(file, i)
+        } else {
+            text.clone()
+        };
         let new = NewPassage {
             edition: edition.id,
             division: Some(division_ids[p.division]),
@@ -120,5 +137,8 @@ pub async fn store_structure<S: Store>(
         ids.push(store.ensure_passage(&new).await?.id);
     }
 
-    Ok(Stored { divisions: division_ids.len(), passages: ids.len() })
+    Ok(Stored {
+        divisions: division_ids.len(),
+        passages: ids.len(),
+    })
 }
