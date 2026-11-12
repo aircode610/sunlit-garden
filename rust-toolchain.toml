@@ -1,0 +1,6 @@
+# The Rust version for this repo, locally and in CI. rustup installs it automatically.
+# Bump it deliberately, in its own PR.
+[toolchain]
+channel = "1.99.1"
+components = ["clippy", "rustfmt"]
+profile = "minimal"
