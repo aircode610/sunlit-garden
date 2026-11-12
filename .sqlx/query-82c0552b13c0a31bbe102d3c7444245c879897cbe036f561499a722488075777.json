@@ -1,0 +1,137 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, work_id, document_id, slug, title, language, translator, published_year, start_byte, end_byte\n             FROM edition WHERE work_id = $1 AND slug = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "edition",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "work_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "edition",
+            "name": "work_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "document_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "edition",
+            "name": "document_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "slug",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "edition",
+            "name": "slug"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "title",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "edition",
+            "name": "title"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "language",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "edition",
+            "name": "language"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "translator",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "edition",
+            "name": "translator"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "published_year",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "edition",
+            "name": "published_year"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "start_byte",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "edition",
+            "name": "start_byte"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "end_byte",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "edition",
+            "name": "end_byte"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "82c0552b13c0a31bbe102d3c7444245c879897cbe036f561499a722488075777"
+}

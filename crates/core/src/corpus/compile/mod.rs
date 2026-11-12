@@ -9,6 +9,7 @@
 //! before anything is stored.
 
 pub mod paragraphs;
+pub mod store;
 pub mod structure;
 
 use std::fmt;

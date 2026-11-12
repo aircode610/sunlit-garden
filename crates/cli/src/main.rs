@@ -4,6 +4,8 @@
 //! sunlit import                       # imports corpus/sources.toml
 //! sunlit import path/to/sources.toml
 //! sunlit compile                      # structure report for every edition (stores nothing)
+//! sunlit compile --store              # …and store editions that compiled without problems
+//! sunlit compile --store --replace    # re-split: clear each edition's old structure first
 //! ```
 //!
 //! Configuration comes from the environment (`DATABASE_URL`, `S3_*`); a `.env` file in the
@@ -17,10 +19,11 @@ use std::process::ExitCode;
 use clap::{Parser, Subcommand};
 use sunlit_core::blobs::{BlobStore, S3Config};
 use sunlit_core::corpus::compile::compile_edition;
+use sunlit_core::corpus::compile::store::store_structure;
 use sunlit_core::corpus::compile::structure::PlannedRole;
 use sunlit_core::corpus::import::import;
 use sunlit_core::corpus::manifest::Manifest;
-use sunlit_core::store::PgStore;
+use sunlit_core::store::{PgStore, Store};
 
 #[derive(Parser)]
 #[command(name = "sunlit", about = "Sunlit Garden data tools", version)]
@@ -44,6 +47,13 @@ enum Command {
     Compile {
         #[arg(default_value = "corpus/sources.toml")]
         sources: PathBuf,
+        /// Store the structure of every edition that has no problems (idempotent).
+        #[arg(long)]
+        store: bool,
+        /// With --store: delete each edition's existing divisions and passages first. Use after
+        /// changing compile rules; otherwise a different structure is refused as a conflict.
+        #[arg(long, requires = "store")]
+        replace: bool,
     },
 }
 
@@ -90,11 +100,20 @@ async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
             );
             Ok(())
         }
-        Command::Compile { sources } => {
+        Command::Compile { sources, store, replace } => {
             let text = std::fs::read_to_string(&sources).map_err(|e| format!("{}: {e}", sources.display()))?;
             let manifest = Manifest::parse(&text)?;
             let blobs = BlobStore::s3(&S3Config::from_env()?)?;
-            let needing_review = compile_report(&manifest, &blobs).await?;
+            let pg = if store {
+                let database_url = std::env::var("DATABASE_URL").map_err(|_| "DATABASE_URL is not set")?;
+                let pg = PgStore::connect(&database_url).await?;
+                pg.migrate().await?;
+                Some(pg)
+            } else {
+                None
+            };
+            let target = pg.as_ref().map(|store| StoreTarget { store, replace });
+            let needing_review = compile_report(&manifest, &blobs, target).await?;
             if needing_review > 0 {
                 return Err(format!("{needing_review} edition(s) need review").into());
             }
@@ -103,8 +122,19 @@ async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
-/// `sunlit compile`: the structure report. Returns how many editions have problems.
-async fn compile_report(manifest: &Manifest, blobs: &BlobStore) -> Result<usize, Box<dyn std::error::Error>> {
+/// Where to store compiled structures, and whether to clear old ones first.
+struct StoreTarget<'a> {
+    store: &'a PgStore,
+    replace: bool,
+}
+
+/// `sunlit compile`: the structure report (and optionally store it). Returns how many editions
+/// have problems.
+async fn compile_report(
+    manifest: &Manifest,
+    blobs: &BlobStore,
+    target: Option<StoreTarget<'_>>,
+) -> Result<usize, Box<dyn std::error::Error>> {
     let mut needing_review = 0;
     for document in &manifest.documents {
         let sha = document.sha256.ok_or_else(|| format!("{} is not pinned; run `sunlit import` first", document.url))?;
@@ -145,6 +175,17 @@ async fn compile_report(manifest: &Manifest, blobs: &BlobStore) -> Result<usize,
             }
             if !s.problems.is_empty() {
                 needing_review += 1;
+            } else if let Some(target) = &target {
+                let missing = || format!("edition {} is not imported; run `sunlit import` first", edition.slug.as_str());
+                let thinker = target.store.thinker_by_slug(&edition.work.0).await?.ok_or_else(missing)?;
+                let work = target.store.work_by_slug(thinker.id, &edition.work.1).await?.ok_or_else(missing)?;
+                let stored_edition = target.store.edition_by_slug(work.id, &edition.slug).await?.ok_or_else(missing)?;
+                if target.replace {
+                    let removed = target.store.clear_edition_structure(stored_edition.id).await?;
+                    println!("  cleared {removed} old passage(s)");
+                }
+                let stored = store_structure(target.store, &stored_edition, &file, &s).await?;
+                println!("  stored: {} divisions, {} passages", stored.divisions, stored.passages);
             }
         }
     }
