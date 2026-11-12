@@ -1,0 +1,72 @@
+# Every PR and every push to main: format, migrations + offline query cache, clippy, tests,
+# against the same pinned Postgres and Garage as local development (compose.yaml).
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Read-only token: CI never writes to the repo.
+permissions:
+  contents: read
+
+# A newer push to the same branch cancels the older run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      # Third-party actions are pinned to a commit, not a movable tag.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Rust (version from rust-toolchain.toml)
+        run: rustup install && rustc --version
+
+      - name: Format
+        run: cargo fmt --all --check
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+
+      # Rune (sunlit-ui) links the system's fontconfig, Wayland and xkbcommon on Linux.
+      - name: Install system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends pkg-config libfontconfig1-dev libwayland-dev libxkbcommon-dev
+
+      - name: Start Postgres and Garage
+        run: |
+          scripts/dev-env.sh
+          docker compose up -d --wait
+          # Throwaway secrets generated for this run only. Mask them in the logs, then make every
+          # setting visible to later steps.
+          grep -E '^[A-Z0-9_]*(PASSWORD|SECRET|TOKEN|KEY)[A-Z0-9_]*=' .env | cut -d= -f2- | sed 's/^/::add-mask::/'
+          grep -E '^[A-Z0-9_]+=' .env >> "$GITHUB_ENV"
+
+      - name: Install sqlx-cli
+        run: cargo install sqlx-cli --version 0.9.0 --no-default-features --features rustls,postgres --locked
+
+      - name: Migrations
+        run: sqlx migrate run
+
+      # The committed .sqlx/ cache lets the code build without a database; it must match the
+      # queries and the schema. Fails if someone forgot `cargo sqlx prepare --workspace`.
+      - name: Offline query cache is up to date
+        run: cargo sqlx prepare --workspace --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: Tests
+        run: cargo test --workspace --locked
+
+      - name: Service logs (on failure)
+        if: failure()
+        run: docker compose logs --no-color --tail 200
