@@ -3,6 +3,7 @@
 
 pub mod blobs;
 pub mod corpus;
+pub mod dataset;
 mod source;
 pub mod store;
 mod values;
