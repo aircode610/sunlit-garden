@@ -45,7 +45,9 @@ jobs:
         run: |
           scripts/dev-env.sh
           docker compose up -d --wait
-          # Throwaway secrets generated for this run only; make them visible to later steps.
+          # Throwaway secrets generated for this run only. Mask them in the logs, then make every
+          # setting visible to later steps.
+          grep -E '^[A-Z0-9_]*(PASSWORD|SECRET|TOKEN|KEY)[A-Z0-9_]*=' .env | cut -d= -f2- | sed 's/^/::add-mask::/'
           grep -E '^[A-Z0-9_]+=' .env >> "$GITHUB_ENV"
 
       - name: Install sqlx-cli
