@@ -19,7 +19,10 @@ const FILE: &str = "The Project Gutenberg eBook of Dialogues\r\n\
 fn body_is_the_text_between_the_markers_without_surrounding_blank_lines() {
     let range = body_range(FILE.as_bytes()).unwrap();
 
-    assert_eq!(&FILE[range], "PAMPHILUS TO HERMIPPUS\r\nIt has been remarked, my Hermippus...");
+    assert_eq!(
+        &FILE[range],
+        "PAMPHILUS TO HERMIPPUS\r\nIt has been remarked, my Hermippus..."
+    );
 }
 
 #[test]
@@ -34,19 +37,28 @@ fn older_this_project_markers_are_accepted() {
 #[test]
 fn a_missing_marker_is_refused() {
     let no_end = FILE.replace("*** END OF", "*** FIN DE");
-    assert!(matches!(body_range(no_end.as_bytes()), Err(GutenbergError::Markers { start: 1, end: 0 })));
+    assert!(matches!(
+        body_range(no_end.as_bytes()),
+        Err(GutenbergError::Markers { start: 1, end: 0 })
+    ));
 }
 
 #[test]
 fn a_duplicated_marker_is_refused() {
     let twice = format!("{FILE}*** START OF THE PROJECT GUTENBERG EBOOK AGAIN ***\r\n");
-    assert!(matches!(body_range(twice.as_bytes()), Err(GutenbergError::Markers { start: 2, end: 1 })));
+    assert!(matches!(
+        body_range(twice.as_bytes()),
+        Err(GutenbergError::Markers { start: 2, end: 1 })
+    ));
 }
 
 #[test]
 fn end_before_start_is_refused() {
     let swapped = "*** END OF THE PROJECT GUTENBERG EBOOK X ***\r\ntext\r\n*** START OF THE PROJECT GUTENBERG EBOOK X ***\r\n";
-    assert!(matches!(body_range(swapped.as_bytes()), Err(GutenbergError::EndBeforeStart)));
+    assert!(matches!(
+        body_range(swapped.as_bytes()),
+        Err(GutenbergError::EndBeforeStart)
+    ));
 }
 
 #[test]
@@ -59,7 +71,10 @@ fn a_leading_transcriber_credit_paragraph_is_not_part_of_the_book() {
 
     let range = body_range(credited.as_bytes()).unwrap();
 
-    assert!(credited[range].starts_with("PAMPHILUS TO HERMIPPUS"), "credit must be skipped");
+    assert!(
+        credited[range].starts_with("PAMPHILUS TO HERMIPPUS"),
+        "credit must be skipped"
+    );
 }
 
 #[test]
@@ -72,5 +87,9 @@ fn credit_skipping_stops_at_the_first_blank_line_even_with_mixed_line_endings() 
 
     let range = body_range(mixed.as_bytes()).unwrap();
 
-    assert!(mixed[range].starts_with("BOOK ONE"), "got {:?}", &mixed[body_range(mixed.as_bytes()).unwrap()]);
+    assert!(
+        mixed[range].starts_with("BOOK ONE"),
+        "got {:?}",
+        &mixed[body_range(mixed.as_bytes()).unwrap()]
+    );
 }

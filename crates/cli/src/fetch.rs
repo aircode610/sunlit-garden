@@ -17,7 +17,11 @@ impl HttpFetcher {
     pub fn new() -> Result<Self, reqwest::Error> {
         let client = reqwest::Client::builder()
             // Identify ourselves honestly: providers like Gutenberg ask bots to.
-            .user_agent(concat!("sunlit-garden/", env!("CARGO_PKG_VERSION"), " (+https://github.com/aircode610/sunlit-garden)"))
+            .user_agent(concat!(
+                "sunlit-garden/",
+                env!("CARGO_PKG_VERSION"),
+                " (+https://github.com/aircode610/sunlit-garden)"
+            ))
             .timeout(Duration::from_secs(120))
             .https_only(true)
             .build()?;
@@ -28,7 +32,14 @@ impl HttpFetcher {
 impl Fetcher for HttpFetcher {
     async fn fetch(&self, url: &str) -> Result<Bytes, FetchError> {
         let err = |e: reqwest::Error| FetchError(e.to_string());
-        let response = self.client.get(url).send().await.map_err(err)?.error_for_status().map_err(err)?;
+        let response = self
+            .client
+            .get(url)
+            .send()
+            .await
+            .map_err(err)?
+            .error_for_status()
+            .map_err(err)?;
         if response.content_length().is_some_and(|n| n > MAX_BYTES) {
             return Err(FetchError(format!("file is larger than {MAX_BYTES} bytes")));
         }

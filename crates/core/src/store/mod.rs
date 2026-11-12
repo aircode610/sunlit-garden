@@ -268,7 +268,10 @@ impl PassageRole {
             ("editor-note", Some(id)) => Ok(PassageRole::EditorNote { on: PassageId(id) }),
             ("editor-marker", Some(id)) => Ok(PassageRole::EditorMarker { in_: PassageId(id) }),
             ("author-note", Some(id)) => Ok(PassageRole::AuthorNote { on: PassageId(id) }),
-            _ => Err(InvalidValue { kind: "passage kind/attachment", value: format!("{kind} / {attached_to:?}") }),
+            _ => Err(InvalidValue {
+                kind: "passage kind/attachment",
+                value: format!("{kind} / {attached_to:?}"),
+            }),
         }
     }
 }
@@ -374,40 +377,72 @@ impl From<InvalidValue> for StoreError {
 pub trait Store {
     /// Create the thinker, or return it unchanged if an identical row exists.
     /// A different row under the same slug (or the same Wikidata id) is a `Conflict`.
-    fn ensure_thinker(&self, new: &NewThinker) -> impl Future<Output = Result<Thinker, StoreError>> + Send;
+    fn ensure_thinker(
+        &self,
+        new: &NewThinker,
+    ) -> impl Future<Output = Result<Thinker, StoreError>> + Send;
 
-    fn thinker_by_slug(&self, slug: &Slug) -> impl Future<Output = Result<Option<Thinker>, StoreError>> + Send;
+    fn thinker_by_slug(
+        &self,
+        slug: &Slug,
+    ) -> impl Future<Output = Result<Option<Thinker>, StoreError>> + Send;
 
     /// Create the work, or return it unchanged. Conflicts like `ensure_thinker`.
     fn ensure_work(&self, new: &NewWork) -> impl Future<Output = Result<Work, StoreError>> + Send;
 
-    fn work_by_slug(&self, thinker: ThinkerId, slug: &Slug)
-    -> impl Future<Output = Result<Option<Work>, StoreError>> + Send;
+    fn work_by_slug(
+        &self,
+        thinker: ThinkerId,
+        slug: &Slug,
+    ) -> impl Future<Output = Result<Option<Work>, StoreError>> + Send;
 
     /// Record a downloaded file, or return the existing record. The same provider id with
     /// different bytes (the provider changed the file) is a `Conflict`, never a second copy.
-    fn ensure_document(&self, new: &NewDocument) -> impl Future<Output = Result<Document, StoreError>> + Send;
+    fn ensure_document(
+        &self,
+        new: &NewDocument,
+    ) -> impl Future<Output = Result<Document, StoreError>> + Send;
 
-    fn document_by_sha256(&self, sha256: &Sha256)
-    -> impl Future<Output = Result<Option<Document>, StoreError>> + Send;
+    fn document_by_sha256(
+        &self,
+        sha256: &Sha256,
+    ) -> impl Future<Output = Result<Option<Document>, StoreError>> + Send;
 
     /// Create the edition, or return it unchanged. Conflicts like `ensure_thinker`.
-    fn ensure_edition(&self, new: &NewEdition) -> impl Future<Output = Result<Edition, StoreError>> + Send;
+    fn ensure_edition(
+        &self,
+        new: &NewEdition,
+    ) -> impl Future<Output = Result<Edition, StoreError>> + Send;
 
-    fn edition_by_slug(&self, work: WorkId, slug: &Slug)
-    -> impl Future<Output = Result<Option<Edition>, StoreError>> + Send;
+    fn edition_by_slug(
+        &self,
+        work: WorkId,
+        slug: &Slug,
+    ) -> impl Future<Output = Result<Option<Edition>, StoreError>> + Send;
 
     /// Create the division, or return it unchanged. Conflicts like `ensure_thinker`.
-    fn ensure_division(&self, new: &NewDivision) -> impl Future<Output = Result<Division, StoreError>> + Send;
+    fn ensure_division(
+        &self,
+        new: &NewDivision,
+    ) -> impl Future<Output = Result<Division, StoreError>> + Send;
 
     /// Create the passage, or return it unchanged. Conflicts like `ensure_thinker`.
-    fn ensure_passage(&self, new: &NewPassage) -> impl Future<Output = Result<Passage, StoreError>> + Send;
+    fn ensure_passage(
+        &self,
+        new: &NewPassage,
+    ) -> impl Future<Output = Result<Passage, StoreError>> + Send;
 
-    fn passage_by_locator(&self, edition: EditionId, locator: &Locator)
-    -> impl Future<Output = Result<Option<Passage>, StoreError>> + Send;
+    fn passage_by_locator(
+        &self,
+        edition: EditionId,
+        locator: &Locator,
+    ) -> impl Future<Output = Result<Option<Passage>, StoreError>> + Send;
 
     /// Delete an edition's divisions and passages (derived data) so it can be split again with
     /// changed rules. Deliberate and explicit: `ensure_*` never replaces anything on its own.
     /// Returns how many passages were removed.
-    fn clear_edition_structure(&self, edition: EditionId) -> impl Future<Output = Result<u64, StoreError>> + Send;
+    fn clear_edition_structure(
+        &self,
+        edition: EditionId,
+    ) -> impl Future<Output = Result<u64, StoreError>> + Send;
 }

@@ -33,12 +33,19 @@ pub async fn run(action: Action) -> Result<()> {
             let (mut records, bytes, structure) = load(&file, &sources).await?;
             let problems = dataset::resolve(&mut records, &bytes, &structure);
             std::fs::write(&file, dataset::to_jsonl(&records))?;
-            let resolved = records.iter().filter(|r| matches!(r, Record::Unit(u) if u.start.is_some())).count();
+            let resolved = records
+                .iter()
+                .filter(|r| matches!(r, Record::Unit(u) if u.start.is_some()))
+                .count();
             println!("{}: {resolved} unit(s) resolved", file.display());
             for p in &problems {
                 println!("  PROBLEM: {p}");
             }
-            if problems.is_empty() { Ok(()) } else { Err(format!("{} quote(s) could not be resolved", problems.len()).into()) }
+            if problems.is_empty() {
+                Ok(())
+            } else {
+                Err(format!("{} quote(s) could not be resolved", problems.len()).into())
+            }
         }
         Action::Check { file, sources } => {
             let (records, bytes, structure) = load(&file, &sources).await?;
@@ -55,7 +62,11 @@ pub async fn run(action: Action) -> Result<()> {
             for p in &report.problems {
                 println!("  PROBLEM: {p}");
             }
-            if report.problems.is_empty() { Ok(()) } else { Err(format!("{} problem(s)", report.problems.len()).into()) }
+            if report.problems.is_empty() {
+                Ok(())
+            } else {
+                Err(format!("{} problem(s)", report.problems.len()).into())
+            }
         }
     }
 }
@@ -72,13 +83,22 @@ async fn load(file: &Path, sources: &Path) -> Result<(Vec<Record>, bytes::Bytes,
     let (document, edition) = manifest
         .documents
         .iter()
-        .find_map(|d| d.editions.iter().find(|e| e.slug.as_str() == header.slug).map(|e| (d, e)))
+        .find_map(|d| {
+            d.editions
+                .iter()
+                .find(|e| e.slug.as_str() == header.slug)
+                .map(|e| (d, e))
+        })
         .ok_or_else(|| format!("edition {:?} is not in {}", header.slug, sources.display()))?;
     let sha = document.sha256.ok_or("document not pinned")?;
     let bytes = BlobStore::s3(&S3Config::from_env()?)?.get(&sha).await?;
     let structure = compile_edition(&bytes, edition)?;
     if !structure.problems.is_empty() {
-        return Err(format!("edition {} has compile problems; fix those first", header.slug).into());
+        return Err(format!(
+            "edition {} has compile problems; fix those first",
+            header.slug
+        )
+        .into());
     }
     Ok((records, bytes, structure))
 }

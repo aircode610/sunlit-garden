@@ -9,7 +9,10 @@ const FILE: &str = "HEADER\n\nPART 1\n\nFirst paragraph.\n\nSecond paragraph.\n\
 
 fn unit(kind: UnitKind, text: &str) -> Unit {
     let start = FILE.find(text).unwrap();
-    Unit { kind, range: start..start + text.len() }
+    Unit {
+        kind,
+        range: start..start + text.len(),
+    }
 }
 
 fn body() -> std::ops::Range<usize> {
@@ -19,7 +22,11 @@ fn body() -> std::ops::Range<usize> {
 }
 
 fn compiled(units: Vec<Unit>) -> Compiled {
-    Compiled { body: body(), divisions: vec![], units }
+    Compiled {
+        body: body(),
+        divisions: vec![],
+        units,
+    }
 }
 
 #[test]
@@ -35,7 +42,10 @@ fn units_that_tile_the_body_pass() {
 
 #[test]
 fn text_not_covered_by_any_unit_is_reported() {
-    let c = compiled(vec![unit(UnitKind::DivisionHeading, "PART 1"), unit(UnitKind::Text, "Second paragraph.")]);
+    let c = compiled(vec![
+        unit(UnitKind::DivisionHeading, "PART 1"),
+        unit(UnitKind::Text, "Second paragraph."),
+    ]);
 
     let problems = check_coverage(FILE.as_bytes(), &c);
 
@@ -48,7 +58,10 @@ fn text_not_covered_by_any_unit_is_reported() {
 #[test]
 fn overlapping_units_are_reported() {
     let first = unit(UnitKind::Text, "First paragraph.");
-    let overlapping = Unit { kind: UnitKind::Text, range: first.range.start + 6..first.range.end };
+    let overlapping = Unit {
+        kind: UnitKind::Text,
+        range: first.range.start + 6..first.range.end,
+    };
     let c = compiled(vec![
         unit(UnitKind::DivisionHeading, "PART 1"),
         first,
@@ -58,7 +71,12 @@ fn overlapping_units_are_reported() {
 
     let problems = check_coverage(FILE.as_bytes(), &c);
 
-    assert!(problems.iter().any(|p| matches!(p, Problem::Overlap { .. })), "{problems:?}");
+    assert!(
+        problems
+            .iter()
+            .any(|p| matches!(p, Problem::Overlap { .. })),
+        "{problems:?}"
+    );
 }
 
 #[test]
@@ -72,7 +90,12 @@ fn units_outside_the_body_are_reported() {
 
     let problems = check_coverage(FILE.as_bytes(), &c);
 
-    assert!(problems.iter().any(|p| matches!(p, Problem::OutsideBody { .. })), "{problems:?}");
+    assert!(
+        problems
+            .iter()
+            .any(|p| matches!(p, Problem::OutsideBody { .. })),
+        "{problems:?}"
+    );
 }
 
 #[test]
@@ -81,13 +104,21 @@ fn units_with_leading_or_trailing_whitespace_are_reported() {
     let start = FILE.find("First paragraph.").unwrap();
     let c = compiled(vec![
         unit(UnitKind::DivisionHeading, "PART 1"),
-        Unit { kind: UnitKind::Text, range: start..start + "First paragraph.\n".len() },
+        Unit {
+            kind: UnitKind::Text,
+            range: start..start + "First paragraph.\n".len(),
+        },
         unit(UnitKind::Text, "Second paragraph."),
     ]);
 
     let problems = check_coverage(FILE.as_bytes(), &c);
 
-    assert!(problems.iter().any(|p| matches!(p, Problem::Untrimmed { .. })), "{problems:?}");
+    assert!(
+        problems
+            .iter()
+            .any(|p| matches!(p, Problem::Untrimmed { .. })),
+        "{problems:?}"
+    );
 }
 
 #[test]

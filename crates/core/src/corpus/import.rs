@@ -15,7 +15,9 @@ use time::OffsetDateTime;
 use super::gutenberg::{self, GutenbergError};
 use super::manifest::{DocumentEntry, Manifest, RangeSpec};
 use crate::blobs::{BlobError, BlobStore};
-use crate::store::{NewDocument, NewEdition, NewThinker, NewWork, Store, StoreError, ThinkerId, WorkId};
+use crate::store::{
+    NewDocument, NewEdition, NewThinker, NewWork, Store, StoreError, ThinkerId, WorkId,
+};
 use crate::values::{Sha256, Slug};
 
 /// Downloads a URL. The CLI implements it over HTTPS; tests use a fake.
@@ -50,14 +52,30 @@ pub struct DocumentReport {
 
 #[derive(Debug)]
 pub enum ImportError {
-    Fetch { url: String, error: FetchError },
+    Fetch {
+        url: String,
+        error: FetchError,
+    },
     /// Documents without a pinned hash. Nothing was written; review and pin these.
     Unpinned(Vec<(String, Sha256)>),
     /// The download isn't the file we pinned: the provider changed it, or something tampered.
-    HashMismatch { url: String, pinned: Sha256, observed: Sha256 },
-    Gutenberg { url: String, error: GutenbergError },
+    HashMismatch {
+        url: String,
+        pinned: Sha256,
+        observed: Sha256,
+    },
+    Gutenberg {
+        url: String,
+        error: GutenbergError,
+    },
     /// An explicit edition range doesn't fit inside the file.
-    Range { url: String, edition: Slug, start: i64, end: i64, file_length: usize },
+    Range {
+        url: String,
+        edition: Slug,
+        start: i64,
+        end: i64,
+        file_length: usize,
+    },
     Store(StoreError),
     Blob(BlobError),
 }
@@ -67,14 +85,25 @@ impl fmt::Display for ImportError {
         match self {
             ImportError::Fetch { url, error } => write!(f, "download failed for {url}: {error}"),
             ImportError::Unpinned(observed) => {
-                writeln!(f, "{} document(s) have no pinned sha256; nothing was imported.", observed.len())?;
-                writeln!(f, "Review each file, then add these lines to corpus/sources.toml:")?;
+                writeln!(
+                    f,
+                    "{} document(s) have no pinned sha256; nothing was imported.",
+                    observed.len()
+                )?;
+                writeln!(
+                    f,
+                    "Review each file, then add these lines to corpus/sources.toml:"
+                )?;
                 for (url, sha) in observed {
                     writeln!(f, "  {url}\n    sha256 = \"{}\"", sha.to_hex())?;
                 }
                 Ok(())
             }
-            ImportError::HashMismatch { url, pinned, observed } => write!(
+            ImportError::HashMismatch {
+                url,
+                pinned,
+                observed,
+            } => write!(
                 f,
                 "{url} is not the pinned file: pinned {}, downloaded {}. \
                  The provider may have changed it; review before re-pinning.",
@@ -82,7 +111,13 @@ impl fmt::Display for ImportError {
                 observed.to_hex()
             ),
             ImportError::Gutenberg { url, error } => write!(f, "{url}: {error}"),
-            ImportError::Range { url, edition, start, end, file_length } => write!(
+            ImportError::Range {
+                url,
+                edition,
+                start,
+                end,
+                file_length,
+            } => write!(
                 f,
                 "{url}, edition {}: range {start}..{end} doesn't fit a {file_length}-byte file",
                 edition.as_str()
@@ -165,7 +200,9 @@ async fn import_document<S: Store, F: Fetcher>(
     blobs: &BlobStore,
     fetcher: &F,
 ) -> Result<DocumentReport, ImportError> {
-    let pinned = document.sha256.expect("unpinned documents were refused in step 1");
+    let pinned = document
+        .sha256
+        .expect("unpinned documents were refused in step 1");
 
     // Reuse the stored file if we have it (`get` re-verifies the hash); otherwise download,
     // check against the pin, and only then store it.
@@ -175,7 +212,11 @@ async fn import_document<S: Store, F: Fetcher>(
         let bytes = fetch(fetcher, &document.url).await?;
         let observed = Sha256::of(&bytes);
         if observed != pinned {
-            return Err(ImportError::HashMismatch { url: document.url.clone(), pinned, observed });
+            return Err(ImportError::HashMismatch {
+                url: document.url.clone(),
+                pinned,
+                observed,
+            });
         }
         blobs.put(bytes.clone()).await?;
         (bytes, true)
@@ -214,19 +255,40 @@ async fn import_document<S: Store, F: Fetcher>(
         editions.push((edition.slug.clone(), range));
     }
 
-    Ok(DocumentReport { provider_id: document.provider_id.clone(), sha256: pinned, downloaded, editions })
+    Ok(DocumentReport {
+        provider_id: document.provider_id.clone(),
+        sha256: pinned,
+        downloaded,
+        editions,
+    })
 }
 
 async fn fetch<F: Fetcher>(fetcher: &F, url: &str) -> Result<Bytes, ImportError> {
-    fetcher.fetch(url).await.map_err(|error| ImportError::Fetch { url: url.to_owned(), error })
+    fetcher
+        .fetch(url)
+        .await
+        .map_err(|error| ImportError::Fetch {
+            url: url.to_owned(),
+            error,
+        })
 }
 
-fn edition_range(spec: RangeSpec, bytes: &[u8], url: &str, edition: &Slug) -> Result<Range<usize>, ImportError> {
+fn edition_range(
+    spec: RangeSpec,
+    bytes: &[u8],
+    url: &str,
+    edition: &Slug,
+) -> Result<Range<usize>, ImportError> {
     match spec {
         RangeSpec::GutenbergBody => {
-            gutenberg::body_range(bytes).map_err(|error| ImportError::Gutenberg { url: url.to_owned(), error })
+            gutenberg::body_range(bytes).map_err(|error| ImportError::Gutenberg {
+                url: url.to_owned(),
+                error,
+            })
         }
-        RangeSpec::Bytes { start, end } if end as usize <= bytes.len() => Ok(start as usize..end as usize),
+        RangeSpec::Bytes { start, end } if end as usize <= bytes.len() => {
+            Ok(start as usize..end as usize)
+        }
         RangeSpec::Bytes { start, end } => Err(ImportError::Range {
             url: url.to_owned(),
             edition: edition.clone(),

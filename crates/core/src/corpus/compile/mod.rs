@@ -74,7 +74,10 @@ pub enum Problem {
     /// Non-whitespace text that no unit covers (shown with its range and a snippet).
     Uncovered { range: Range<usize>, text: String },
     /// Two units claim the same bytes.
-    Overlap { first: Range<usize>, second: Range<usize> },
+    Overlap {
+        first: Range<usize>,
+        second: Range<usize>,
+    },
     /// A unit lies (partly) outside the body.
     OutsideBody { range: Range<usize> },
     /// A unit starts or ends with whitespace, or is empty.
@@ -84,10 +87,16 @@ pub enum Problem {
 impl fmt::Display for Problem {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Problem::Uncovered { range, text } => write!(f, "bytes {range:?} are in no unit: {text:?}"),
-            Problem::Overlap { first, second } => write!(f, "units {first:?} and {second:?} overlap"),
+            Problem::Uncovered { range, text } => {
+                write!(f, "bytes {range:?} are in no unit: {text:?}")
+            }
+            Problem::Overlap { first, second } => {
+                write!(f, "units {first:?} and {second:?} overlap")
+            }
             Problem::OutsideBody { range } => write!(f, "unit {range:?} lies outside the body"),
-            Problem::Untrimmed { range } => write!(f, "unit {range:?} is empty or has surrounding whitespace"),
+            Problem::Untrimmed { range } => {
+                write!(f, "unit {range:?} is empty or has surrounding whitespace")
+            }
         }
     }
 }
@@ -119,7 +128,10 @@ pub fn check_coverage(file: &[u8], compiled: &Compiled) -> Vec<Problem> {
     let mut cursor = body.start;
     for pair in units.windows(2) {
         if pair[1].range.start < pair[0].range.end {
-            problems.push(Problem::Overlap { first: pair[0].range.clone(), second: pair[1].range.clone() });
+            problems.push(Problem::Overlap {
+                first: pair[0].range.clone(),
+                second: pair[1].range.clone(),
+            });
         }
     }
     for unit in &units {
@@ -139,19 +151,34 @@ pub fn check_coverage(file: &[u8], compiled: &Compiled) -> Vec<Problem> {
 fn report_gap(file: &[u8], gap: Range<usize>, problems: &mut Vec<Problem>) {
     let bytes = &file[gap.clone()];
     if bytes.iter().any(|b| !b.is_ascii_whitespace()) {
-        let snippet: String = String::from_utf8_lossy(bytes).trim().chars().take(80).collect();
-        problems.push(Problem::Uncovered { range: gap, text: snippet });
+        let snippet: String = String::from_utf8_lossy(bytes)
+            .trim()
+            .chars()
+            .take(80)
+            .collect();
+        problems.push(Problem::Uncovered {
+            range: gap,
+            text: snippet,
+        });
     }
 }
 
 /// Compile one edition of a stored file exactly as the source list describes it: its byte range
 /// (Gutenberg markers or explicit offsets) and its compile options.
-pub fn compile_edition(file: &[u8], edition: &EditionEntry) -> Result<structure::Structure, String> {
+pub fn compile_edition(
+    file: &[u8],
+    edition: &EditionEntry,
+) -> Result<structure::Structure, String> {
     let body = match edition.range {
         RangeSpec::GutenbergBody => gutenberg::body_range(file).map_err(|e| e.to_string())?,
-        RangeSpec::Bytes { start, end } if end as usize <= file.len() => start as usize..end as usize,
+        RangeSpec::Bytes { start, end } if end as usize <= file.len() => {
+            start as usize..end as usize
+        }
         RangeSpec::Bytes { start, end } => {
-            return Err(format!("range {start}..{end} doesn't fit a {}-byte file", file.len()));
+            return Err(format!(
+                "range {start}..{end} doesn't fit a {}-byte file",
+                file.len()
+            ));
         }
     };
     Ok(structure::compile_plain_text(file, body, &edition.compile))

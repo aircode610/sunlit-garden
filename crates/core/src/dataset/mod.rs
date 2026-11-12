@@ -159,7 +159,11 @@ pub fn parse_jsonl(text: &str) -> Result<Vec<Record>, Vec<String>> {
             Err(e) => errors.push(format!("line {}: {e}", n + 1)),
         }
     }
-    if errors.is_empty() { Ok(records) } else { Err(errors) }
+    if errors.is_empty() {
+        Ok(records)
+    } else {
+        Err(errors)
+    }
 }
 
 /// Serialise records back to `.jsonl` (one per line, stable field order).
@@ -193,7 +197,9 @@ fn hosts(structure: &Structure) -> Hosts {
             .passages
             .iter()
             .filter(|q| match q.role {
-                PlannedRole::EditorNote { on } | PlannedRole::EditorMarker { in_: on } | PlannedRole::AuthorNote { on } => on == i,
+                PlannedRole::EditorNote { on }
+                | PlannedRole::EditorMarker { in_: on }
+                | PlannedRole::AuthorNote { on } => on == i,
                 _ => false,
             })
             .map(|q| q.range.clone())
@@ -225,7 +231,11 @@ fn find_quote(file: &[u8], range: Range<usize>, quote: &str) -> Vec<Range<usize>
             in_space = false;
         }
     }
-    let needle: Vec<u8> = quote.split_whitespace().collect::<Vec<_>>().join(" ").into_bytes();
+    let needle: Vec<u8> = quote
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .into_bytes();
     if needle.is_empty() || needle.len() > hay.len() {
         return Vec::new();
     }
@@ -252,17 +262,31 @@ pub fn resolve(records: &mut [Record], file: &[u8], structure: &Structure) -> Ve
         };
         let found = find_quote(file, range.clone(), &u.quote);
         match found.as_slice() {
-            [] => problems.push(format!("{}: quote not found in {}: {:?}", u.id, u.locator, u.quote)),
+            [] => problems.push(format!(
+                "{}: quote not found in {}: {:?}",
+                u.id, u.locator, u.quote
+            )),
             [one] => {
-                if let Some(x) = excluded.iter().find(|x| x.start < one.end && one.start < x.end) {
+                if let Some(x) = excluded
+                    .iter()
+                    .find(|x| x.start < one.end && one.start < x.end)
+                {
                     let shown = String::from_utf8_lossy(&file[x.clone()]);
-                    problems.push(format!("{}: quote overlaps material that isn't the author's words: {shown:?}", u.id));
+                    problems.push(format!(
+                        "{}: quote overlaps material that isn't the author's words: {shown:?}",
+                        u.id
+                    ));
                 } else {
                     u.start = Some(one.start);
                     u.end = Some(one.end);
                 }
             }
-            many => problems.push(format!("{}: quote occurs {} times in {} (make it longer)", u.id, many.len(), u.locator)),
+            many => problems.push(format!(
+                "{}: quote occurs {} times in {} (make it longer)",
+                u.id,
+                many.len(),
+                u.locator
+            )),
         }
     }
     problems
@@ -284,7 +308,10 @@ pub struct Report {
 /// Every mechanical check from the guidelines (§7). Empty `problems` = valid.
 pub fn check(records: &[Record], file: &[u8], structure: &Structure) -> Report {
     let hosts = hosts(structure);
-    let mut report = Report { author_passages: hosts.order.len(), ..Report::default() };
+    let mut report = Report {
+        author_passages: hosts.order.len(),
+        ..Report::default()
+    };
     let p = &mut report.problems;
 
     // Header.
@@ -295,7 +322,11 @@ pub fn check(records: &[Record], file: &[u8], structure: &Structure) -> Report {
             None
         }
     };
-    if records.iter().skip(1).any(|r| matches!(r, Record::Edition(_))) {
+    if records
+        .iter()
+        .skip(1)
+        .any(|r| matches!(r, Record::Edition(_)))
+    {
         p.push("more than one edition header".into());
     }
 
@@ -304,12 +335,17 @@ pub fn check(records: &[Record], file: &[u8], structure: &Structure) -> Report {
     for r in records {
         if let Record::Passage(v) = r {
             if !hosts.by_locator.contains_key(&v.locator) {
-                p.push(format!("verdict for unknown author passage {:?}", v.locator));
+                p.push(format!(
+                    "verdict for unknown author passage {:?}",
+                    v.locator
+                ));
             }
             if verdicts.insert(&v.locator, v.verdict).is_some() {
                 p.push(format!("two verdicts for {}", v.locator));
             }
-            if v.verdict == Verdict::NonArgumentative && v.reason.as_deref().is_none_or(|r| r.trim().is_empty()) {
+            if v.verdict == Verdict::NonArgumentative
+                && v.reason.as_deref().is_none_or(|r| r.trim().is_empty())
+            {
                 p.push(format!("{}: non-argumentative needs a reason", v.locator));
             }
         }
@@ -330,16 +366,25 @@ pub fn check(records: &[Record], file: &[u8], structure: &Structure) -> Report {
     for r in records {
         let Record::Unit(u) = r else { continue };
         report.units += 1;
-        *report.units_by_type.entry(format!("{:?}", u.unit_type).to_lowercase()).or_default() += 1;
+        *report
+            .units_by_type
+            .entry(format!("{:?}", u.unit_type).to_lowercase())
+            .or_default() += 1;
         if !ids.insert(u.id.as_str()) {
             p.push(format!("duplicate id {}", u.id));
         }
         if !u.id.starts_with(&format!("{}#u", u.locator)) {
-            p.push(format!("{}: unit id must start with \"{}#u\"", u.id, u.locator));
+            p.push(format!(
+                "{}: unit id must start with \"{}#u\"",
+                u.id, u.locator
+            ));
         }
         unit_work.insert(&u.id, ());
         if !verdicts.contains_key(u.locator.as_str()) {
-            p.push(format!("{}: its passage {} has no verdict", u.id, u.locator));
+            p.push(format!(
+                "{}: its passage {} has no verdict",
+                u.id, u.locator
+            ));
         }
         check_voice(u, header.as_ref(), p);
         let Some((range, excluded)) = hosts.by_locator.get(&u.locator) else {
@@ -347,27 +392,44 @@ pub fn check(records: &[Record], file: &[u8], structure: &Structure) -> Report {
             continue;
         };
         let (Some(start), Some(end)) = (u.start, u.end) else {
-            p.push(format!("{}: not resolved (run `sunlit annotations resolve`)", u.id));
+            p.push(format!(
+                "{}: not resolved (run `sunlit annotations resolve`)",
+                u.id
+            ));
             continue;
         };
         let span = start..end;
         if start >= end || start < range.start || end > range.end {
-            p.push(format!("{}: span {span:?} is outside its passage {range:?}", u.id));
+            p.push(format!(
+                "{}: span {span:?} is outside its passage {range:?}",
+                u.id
+            ));
             continue;
         }
         let bytes = &file[span.clone()];
-        if bytes.first().is_some_and(u8::is_ascii_whitespace) || bytes.last().is_some_and(u8::is_ascii_whitespace) {
+        if bytes.first().is_some_and(u8::is_ascii_whitespace)
+            || bytes.last().is_some_and(u8::is_ascii_whitespace)
+        {
             p.push(format!("{}: span is not trimmed", u.id));
         }
         let text = String::from_utf8_lossy(bytes);
         let squash = |s: &str| s.split_whitespace().collect::<Vec<_>>().join(" ");
         if squash(&text) != squash(&u.quote) {
-            p.push(format!("{}: quote no longer matches the bytes at {span:?}", u.id));
+            p.push(format!(
+                "{}: quote no longer matches the bytes at {span:?}",
+                u.id
+            ));
         }
         if excluded.iter().any(|x| x.start < end && start < x.end) {
-            p.push(format!("{}: span overlaps material that isn't the author's words", u.id));
+            p.push(format!(
+                "{}: span overlaps material that isn't the author's words",
+                u.id
+            ));
         }
-        units_by_passage.entry(&u.locator).or_default().push((span, &u.id));
+        units_by_passage
+            .entry(&u.locator)
+            .or_default()
+            .push((span, &u.id));
     }
 
     // No overlaps within a passage; verdicts agree with units.
@@ -382,8 +444,12 @@ pub fn check(records: &[Record], file: &[u8], structure: &Structure) -> Report {
     for (loc, verdict) in &verdicts {
         let n = units_by_passage.get(loc).map_or(0, Vec::len);
         match verdict {
-            Verdict::Argumentative if n == 0 => p.push(format!("{loc}: argumentative but has no units")),
-            Verdict::NonArgumentative if n > 0 => p.push(format!("{loc}: non-argumentative but has {n} unit(s)")),
+            Verdict::Argumentative if n == 0 => {
+                p.push(format!("{loc}: argumentative but has no units"))
+            }
+            Verdict::NonArgumentative if n > 0 => {
+                p.push(format!("{loc}: non-argumentative but has {n} unit(s)"))
+            }
             _ => {}
         }
     }
@@ -409,10 +475,19 @@ pub fn check(records: &[Record], file: &[u8], structure: &Structure) -> Report {
 
 fn check_voice(u: &UnitRecord, header: Option<&EditionHeader>, p: &mut Vec<String>) {
     let speakers = header.map(|h| h.speakers.as_slice()).unwrap_or_default();
-    let valid_name = |s: &str| !s.is_empty() && s.split('-').all(|w| !w.is_empty() && w.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit()));
+    let valid_name = |s: &str| {
+        !s.is_empty()
+            && s.split('-').all(|w| {
+                !w.is_empty()
+                    && w.bytes()
+                        .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit())
+            })
+    };
     let ok = if !speakers.is_empty() {
         // A dialogue: only its cast may speak.
-        u.voice.strip_prefix("speaker:").is_some_and(|name| speakers.iter().any(|s| s == name))
+        u.voice
+            .strip_prefix("speaker:")
+            .is_some_and(|name| speakers.iter().any(|s| s == name))
     } else {
         u.voice == "author"
             || u.voice == "objector"
@@ -425,6 +500,9 @@ fn check_voice(u: &UnitRecord, header: Option<&EditionHeader>, p: &mut Vec<Strin
         } else {
             format!("speaker:<{}>", speakers.join("|"))
         };
-        p.push(format!("{}: voice {:?} not allowed here ({allowed})", u.id, u.voice));
+        p.push(format!(
+            "{}: voice {:?} not allowed here ({allowed})",
+            u.id, u.voice
+        ));
     }
 }

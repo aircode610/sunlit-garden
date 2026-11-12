@@ -19,11 +19,24 @@ fn every_edition_in_the_source_list_compiles_without_problems() {
     let manifest = Manifest::parse(SOURCES).unwrap();
     for document in &manifest.documents {
         let file = fixture(&document.provider_id);
-        assert_eq!(Some(sunlit_core::Sha256::of(file)), document.sha256, "fixture differs from the pin");
+        assert_eq!(
+            Some(sunlit_core::Sha256::of(file)),
+            document.sha256,
+            "fixture differs from the pin"
+        );
         for edition in &document.editions {
             let s = compile_edition(file, edition).unwrap();
-            assert_eq!(s.problems, Vec::<String>::new(), "edition {}", edition.slug.as_str());
-            assert!(edition.compile.expect.is_some(), "edition {} should declare expectations", edition.slug.as_str());
+            assert_eq!(
+                s.problems,
+                Vec::<String>::new(),
+                "edition {}",
+                edition.slug.as_str()
+            );
+            assert!(
+                edition.compile.expect.is_some(),
+                "edition {} should declare expectations",
+                edition.slug.as_str()
+            );
         }
     }
 }

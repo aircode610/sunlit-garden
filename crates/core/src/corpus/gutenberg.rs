@@ -15,13 +15,22 @@ use std::fmt;
 use std::ops::Range;
 
 /// Both spellings Gutenberg has used over the years.
-const START: [&[u8]; 2] = [b"*** START OF THE PROJECT GUTENBERG EBOOK", b"*** START OF THIS PROJECT GUTENBERG EBOOK"];
-const END: [&[u8]; 2] = [b"*** END OF THE PROJECT GUTENBERG EBOOK", b"*** END OF THIS PROJECT GUTENBERG EBOOK"];
+const START: [&[u8]; 2] = [
+    b"*** START OF THE PROJECT GUTENBERG EBOOK",
+    b"*** START OF THIS PROJECT GUTENBERG EBOOK",
+];
+const END: [&[u8]; 2] = [
+    b"*** END OF THE PROJECT GUTENBERG EBOOK",
+    b"*** END OF THIS PROJECT GUTENBERG EBOOK",
+];
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum GutenbergError {
     /// Expected exactly one START and one END marker line; found these counts.
-    Markers { start: usize, end: usize },
+    Markers {
+        start: usize,
+        end: usize,
+    },
     EndBeforeStart,
     /// Nothing but whitespace between the markers.
     EmptyBody,
@@ -31,7 +40,10 @@ impl fmt::Display for GutenbergError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             GutenbergError::Markers { start, end } => {
-                write!(f, "expected one START and one END marker, found {start} and {end}")
+                write!(
+                    f,
+                    "expected one START and one END marker, found {start} and {end}"
+                )
             }
             GutenbergError::EndBeforeStart => write!(f, "END marker comes before START marker"),
             GutenbergError::EmptyBody => write!(f, "no text between the markers"),
@@ -58,7 +70,10 @@ pub fn body_range(file: &[u8]) -> Result<Range<usize>, GutenbergError> {
     }
 
     let (&[body_start], &[body_end]) = (starts.as_slice(), ends.as_slice()) else {
-        return Err(GutenbergError::Markers { start: starts.len(), end: ends.len() });
+        return Err(GutenbergError::Markers {
+            start: starts.len(),
+            end: ends.len(),
+        });
     };
     if body_end < body_start {
         return Err(GutenbergError::EndBeforeStart);
@@ -73,7 +88,12 @@ pub fn body_range(file: &[u8]) -> Result<Range<usize>, GutenbergError> {
         start += gap;
         start += leading_whitespace(&file[start..body_end]);
     }
-    let end = body_end - file[start..body_end].iter().rev().take_while(|b| b.is_ascii_whitespace()).count();
+    let end = body_end
+        - file[start..body_end]
+            .iter()
+            .rev()
+            .take_while(|b| b.is_ascii_whitespace())
+            .count();
     if start >= end {
         return Err(GutenbergError::EmptyBody);
     }

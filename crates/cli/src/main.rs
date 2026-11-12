@@ -81,10 +81,12 @@ async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     match cli.command {
         Command::Annotations { action } => annotations::run(action).await,
         Command::Import { sources } => {
-            let text = std::fs::read_to_string(&sources).map_err(|e| format!("{}: {e}", sources.display()))?;
+            let text = std::fs::read_to_string(&sources)
+                .map_err(|e| format!("{}: {e}", sources.display()))?;
             let manifest = Manifest::parse(&text)?;
 
-            let database_url = std::env::var("DATABASE_URL").map_err(|_| "DATABASE_URL is not set")?;
+            let database_url =
+                std::env::var("DATABASE_URL").map_err(|_| "DATABASE_URL is not set")?;
             let store = PgStore::connect(&database_url).await?;
             store.migrate().await?;
             let blobs = BlobStore::s3(&S3Config::from_env()?)?;
@@ -93,10 +95,24 @@ async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
             let report = import(&manifest, &store, &blobs, &fetcher).await?;
 
             for doc in &report.documents {
-                let how = if doc.downloaded { "downloaded" } else { "already stored" };
-                println!("{} {} ({how}, sha256 {})", doc.provider_id, how_many(doc.editions.len()), doc.sha256.to_hex());
+                let how = if doc.downloaded {
+                    "downloaded"
+                } else {
+                    "already stored"
+                };
+                println!(
+                    "{} {} ({how}, sha256 {})",
+                    doc.provider_id,
+                    how_many(doc.editions.len()),
+                    doc.sha256.to_hex()
+                );
                 for (slug, range) in &doc.editions {
-                    println!("    edition {}: bytes {}..{}", slug.as_str(), range.start, range.end);
+                    println!(
+                        "    edition {}: bytes {}..{}",
+                        slug.as_str(),
+                        range.start,
+                        range.end
+                    );
                 }
             }
             println!(
@@ -107,12 +123,18 @@ async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
             );
             Ok(())
         }
-        Command::Compile { sources, store, replace } => {
-            let text = std::fs::read_to_string(&sources).map_err(|e| format!("{}: {e}", sources.display()))?;
+        Command::Compile {
+            sources,
+            store,
+            replace,
+        } => {
+            let text = std::fs::read_to_string(&sources)
+                .map_err(|e| format!("{}: {e}", sources.display()))?;
             let manifest = Manifest::parse(&text)?;
             let blobs = BlobStore::s3(&S3Config::from_env()?)?;
             let pg = if store {
-                let database_url = std::env::var("DATABASE_URL").map_err(|_| "DATABASE_URL is not set")?;
+                let database_url =
+                    std::env::var("DATABASE_URL").map_err(|_| "DATABASE_URL is not set")?;
                 let pg = PgStore::connect(&database_url).await?;
                 pg.migrate().await?;
                 Some(pg)
@@ -144,14 +166,26 @@ async fn compile_report(
 ) -> Result<usize, Box<dyn std::error::Error>> {
     let mut needing_review = 0;
     for document in &manifest.documents {
-        let sha = document.sha256.ok_or_else(|| format!("{} is not pinned; run `sunlit import` first", document.url))?;
+        let sha = document
+            .sha256
+            .ok_or_else(|| format!("{} is not pinned; run `sunlit import` first", document.url))?;
         // `get` re-verifies the hash, so we compile exactly the pinned bytes.
         let file = blobs.get(&sha).await?;
         for edition in &document.editions {
             let s = compile_edition(&file, edition)?;
-            let verdict = if s.problems.is_empty() { "OK" } else { "NEEDS REVIEW" };
-            println!("{} ({} #{}): {verdict}", edition.slug.as_str(), document.provider.as_str(), document.provider_id);
-            let role_count = |f: fn(&PlannedRole) -> bool| s.passages.iter().filter(|p| f(&p.role)).count();
+            let verdict = if s.problems.is_empty() {
+                "OK"
+            } else {
+                "NEEDS REVIEW"
+            };
+            println!(
+                "{} ({} #{}): {verdict}",
+                edition.slug.as_str(),
+                document.provider.as_str(),
+                document.provider_id
+            );
+            let role_count =
+                |f: fn(&PlannedRole) -> bool| s.passages.iter().filter(|p| f(&p.role)).count();
             println!(
                 "  passages: {} text, {} editor headings, {} editor notes, {} editor markers, {} author notes",
                 role_count(|r| matches!(r, PlannedRole::Text)),
@@ -166,7 +200,11 @@ async fn compile_report(
                 .iter()
                 .enumerate()
                 .map(|(i, d)| {
-                    let n = s.passages.iter().filter(|p| p.division == i && p.role == PlannedRole::Text).count();
+                    let n = s
+                        .passages
+                        .iter()
+                        .filter(|p| p.division == i && p.role == PlannedRole::Text)
+                        .count();
                     format!("{} ({n})", d.slug)
                 })
                 .collect();
@@ -183,16 +221,39 @@ async fn compile_report(
             if !s.problems.is_empty() {
                 needing_review += 1;
             } else if let Some(target) = &target {
-                let missing = || format!("edition {} is not imported; run `sunlit import` first", edition.slug.as_str());
-                let thinker = target.store.thinker_by_slug(&edition.work.0).await?.ok_or_else(missing)?;
-                let work = target.store.work_by_slug(thinker.id, &edition.work.1).await?.ok_or_else(missing)?;
-                let stored_edition = target.store.edition_by_slug(work.id, &edition.slug).await?.ok_or_else(missing)?;
+                let missing = || {
+                    format!(
+                        "edition {} is not imported; run `sunlit import` first",
+                        edition.slug.as_str()
+                    )
+                };
+                let thinker = target
+                    .store
+                    .thinker_by_slug(&edition.work.0)
+                    .await?
+                    .ok_or_else(missing)?;
+                let work = target
+                    .store
+                    .work_by_slug(thinker.id, &edition.work.1)
+                    .await?
+                    .ok_or_else(missing)?;
+                let stored_edition = target
+                    .store
+                    .edition_by_slug(work.id, &edition.slug)
+                    .await?
+                    .ok_or_else(missing)?;
                 if target.replace {
-                    let removed = target.store.clear_edition_structure(stored_edition.id).await?;
+                    let removed = target
+                        .store
+                        .clear_edition_structure(stored_edition.id)
+                        .await?;
                     println!("  cleared {removed} old passage(s)");
                 }
                 let stored = store_structure(target.store, &stored_edition, &file, &s).await?;
-                println!("  stored: {} divisions, {} passages", stored.divisions, stored.passages);
+                println!(
+                    "  stored: {} divisions, {} passages",
+                    stored.divisions, stored.passages
+                );
             }
         }
     }
@@ -200,5 +261,9 @@ async fn compile_report(
 }
 
 fn how_many(editions: usize) -> String {
-    if editions == 1 { "1 edition".into() } else { format!("{editions} editions") }
+    if editions == 1 {
+        "1 edition".into()
+    } else {
+        format!("{editions} editions")
+    }
 }

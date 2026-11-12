@@ -111,7 +111,8 @@ impl std::error::Error for ManifestError {}
 
 impl Manifest {
     pub fn parse(toml_text: &str) -> Result<Self, ManifestError> {
-        let raw: RawManifest = toml::from_str(toml_text).map_err(|e| ManifestError::Toml(e.to_string()))?;
+        let raw: RawManifest =
+            toml::from_str(toml_text).map_err(|e| ManifestError::Toml(e.to_string()))?;
         validate(raw)
     }
 }
@@ -228,7 +229,9 @@ struct Problems(Vec<String>);
 impl Problems {
     /// Run a parse; on failure record "<context>: <error>" and return None.
     fn check<T, E: fmt::Display>(&mut self, context: &str, result: Result<T, E>) -> Option<T> {
-        result.map_err(|e| self.0.push(format!("{context}: {e}"))).ok()
+        result
+            .map_err(|e| self.0.push(format!("{context}: {e}")))
+            .ok()
     }
 
     fn push(&mut self, problem: String) {
@@ -245,7 +248,9 @@ fn validate(raw: RawManifest) -> Result<Manifest, ManifestError> {
     for t in raw.thinker {
         let ctx = format!("thinker {:?}", t.slug);
         let slug = problems.check(&ctx, Slug::parse(&t.slug));
-        let wikidata_id = t.wikidata.map(|q| problems.check(&ctx, WikidataId::parse(&q)));
+        let wikidata_id = t
+            .wikidata
+            .map(|q| problems.check(&ctx, WikidataId::parse(&q)));
         if let Some(slug) = &slug
             && !thinker_slugs.insert(slug.clone())
         {
@@ -269,7 +274,9 @@ fn validate(raw: RawManifest) -> Result<Manifest, ManifestError> {
         let ctx = format!("work {:?}/{:?}", w.thinker, w.slug);
         let thinker = problems.check(&ctx, Slug::parse(&w.thinker));
         let slug = problems.check(&ctx, Slug::parse(&w.slug));
-        let wikidata_id = w.wikidata.map(|q| problems.check(&ctx, WikidataId::parse(&q)));
+        let wikidata_id = w
+            .wikidata
+            .map(|q| problems.check(&ctx, WikidataId::parse(&q)));
         if let Some(t) = &thinker
             && !thinker_slugs.contains(t)
         {
@@ -319,9 +326,14 @@ fn validate(raw: RawManifest) -> Result<Manifest, ManifestError> {
                 problems.push(format!("{ctx}: work {:?} is not listed", e.work));
             }
             let range = match (e.range, d.provider.as_str()) {
-                (Some(RawRange { start, end }), _) if start >= 0 && start < end => Some(RangeSpec::Bytes { start, end }),
+                (Some(RawRange { start, end }), _) if start >= 0 && start < end => {
+                    Some(RangeSpec::Bytes { start, end })
+                }
                 (Some(r), _) => {
-                    problems.push(format!("{ctx}: range needs 0 <= start < end (got {}..{})", r.start, r.end));
+                    problems.push(format!(
+                        "{ctx}: range needs 0 <= start < end (got {}..{})",
+                        r.start, r.end
+                    ));
                     None
                 }
                 (None, "gutenberg") => Some(RangeSpec::GutenbergBody),
@@ -336,9 +348,17 @@ fn validate(raw: RawManifest) -> Result<Manifest, ManifestError> {
                     .into_iter()
                     .map(|h| {
                         if Slug::parse(&h.slug).is_err() {
-                            problems.push(format!("{ctx}: heading slug {:?} is not a valid slug", h.slug));
+                            problems.push(format!(
+                                "{ctx}: heading slug {:?} is not a valid slug",
+                                h.slug
+                            ));
                         }
-                        HeadingOverride { text: h.text, kind: h.kind, label: h.label, slug: h.slug }
+                        HeadingOverride {
+                            text: h.text,
+                            kind: h.kind,
+                            label: h.label,
+                            slug: h.slug,
+                        }
                     })
                     .collect(),
                 insertions: e
@@ -352,7 +372,10 @@ fn validate(raw: RawManifest) -> Result<Manifest, ManifestError> {
                         },
                     })
                     .collect(),
-                expect: e.expect.map(|x| Expect { divisions: x.divisions, text_passages: x.text_passages }),
+                expect: e.expect.map(|x| Expect {
+                    divisions: x.divisions,
+                    text_passages: x.text_passages,
+                }),
             };
             if let (Some(work), Some(slug), Some(range)) = (work, slug, range) {
                 if !edition_keys.insert((work.clone(), slug.clone())) {
@@ -385,7 +408,11 @@ fn validate(raw: RawManifest) -> Result<Manifest, ManifestError> {
     }
 
     if problems.0.is_empty() {
-        Ok(Manifest { thinkers, works, documents })
+        Ok(Manifest {
+            thinkers,
+            works,
+            documents,
+        })
     } else {
         Err(ManifestError::Invalid(problems.0))
     }
