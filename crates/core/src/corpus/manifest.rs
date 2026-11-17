@@ -132,13 +132,18 @@ impl Manifest {
     /// Where to download `document` from: its URL with a mirror's origin swapped for the
     /// mirror, or the URL itself if no mirror covers it.
     pub fn fetch_url(&self, document: &DocumentEntry) -> String {
+        self.mirrored(document.provider.as_str(), &document.url)
+    }
+
+    /// Where to download any `url` of `provider` (a document, or e.g. its catalogue).
+    pub fn mirrored(&self, provider: &str, url: &str) -> String {
         self.mirrors
             .iter()
             .find_map(|m| {
-                let path = document.url.strip_prefix(&m.origin)?;
-                (m.provider == document.provider).then(|| format!("{}{path}", m.url))
+                let path = url.strip_prefix(&m.origin)?;
+                (m.provider.as_str() == provider).then(|| format!("{}{path}", m.url))
             })
-            .unwrap_or_else(|| document.url.clone())
+            .unwrap_or_else(|| url.to_owned())
     }
 }
 
