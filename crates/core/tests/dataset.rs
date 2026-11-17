@@ -321,3 +321,38 @@ fn v0_3_rules_are_enforced() {
         "an ancient's reported view is allowed: {checked:?}"
     );
 }
+
+#[test]
+fn quoted_voices_are_retired_in_favour_of_attributed_to() {
+    let s = structure("gutenberg-4723", BERKELEY);
+    let quoted = unit(
+        "part-1/3#u1",
+        "part-1/3",
+        "cannot exist otherwise than IN a mind perceiving them",
+        "claim",
+    )
+    .replace("\"voice\":\"author\"", "\"voice\":\"quoted:locke\"");
+    let attributed = quoted
+        .replace("part-1/3#u1", "part-1/3#u2")
+        .replace(
+            "cannot exist otherwise than IN a mind perceiving them",
+            "nor ideas formed by the imagination",
+        )
+        .replace(
+            "\"voice\":\"quoted:locke\"",
+            "\"voice\":\"author\",\"attributed_to\":\"locke\"",
+        );
+
+    let (_, checked, _) = run(BERKELEY, &s, &[HEADER, VERDICT_3, &quoted, &attributed]);
+
+    assert!(
+        checked
+            .iter()
+            .any(|p| p.contains("part-1/3#u1: voice \"quoted:locke\" not allowed")),
+        "{checked:?}"
+    );
+    assert!(
+        !checked.iter().any(|p| p.contains("part-1/3#u2: voice")),
+        "{checked:?}"
+    );
+}
