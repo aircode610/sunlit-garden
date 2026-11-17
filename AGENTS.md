@@ -44,11 +44,20 @@ All UI design and prototyping happens **in Rune itself** — no Figma, HTML mock
   - `--tree out.json` dumps the element tree; `--script FILE.json` replays scripted input.
 - Put renders in a temp dir, not the repo.
 
+## Background work: keep Amirali informed
+Amirali can't see background agents or commands, and replies the agent writes after a background job finishes don't alert him. So:
+- **Live status page:** keep the vault's `Status.md` current (Running · Waiting on Amirali · Done recently · Next, plus its `updated:` date). Update it when background work starts, at each step, and when it ends.
+- **Mac notification** when background work finishes, a long task is done, or his input is needed. Make background shell jobs send it themselves when they end, so it fires even if the agent is busy:
+  ```sh
+  osascript -e 'display notification "Batch 7 decided: 10 changes" with title "Sunlit Garden" sound name "Glass"'
+  ```
+  One short line saying what happened and whether he needs to act. No dialog boxes. (Notifications stay on screen only if Script Editor's notification style is "Persistent" in System Settings.)
+
 ## Memory: the dev vault (`~/grind/sunlit-garden-vault`)
 The vault is the single source of truth for plans, tasks and decisions, and is your memory between sessions. Plain Markdown with Obsidian `[[wikilinks]]`; edit the files directly. Docs never go in this repo.
 
 **At the start of a session** (before the first task):
-- Read `Tasks.md` and the newest note in `Sessions/`.
+- Read `Status.md`, `Tasks.md` and the newest note in `Sessions/`.
 - When starting work on a module, read its note in `Modules/`.
 
 **While working:**
