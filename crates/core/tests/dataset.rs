@@ -341,8 +341,7 @@ fn quoted_voices_are_retired_in_favour_of_attributed_to() {
         .replace(
             "\"voice\":\"quoted:locke\"",
             "\"voice\":\"author\",\"attributed_to\":\"locke\"",
-        )
-        .replace("\"type\":\"claim\",", "\"type\":\"claim\",");
+        );
 
     let (_, checked, _) = run(BERKELEY, &s, &[HEADER, VERDICT_3, &quoted, &attributed]);
 
