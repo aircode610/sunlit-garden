@@ -10,8 +10,19 @@
 #   [[document.edition]]  one work inside that file, `work = "<thinker>/<work>"`;
 #                         Gutenberg files default to the text between the START/END markers,
 #                         other providers need `range = { start = …, end = … }` (byte offsets)
+#   [[mirror]]            where a provider's files are downloaded from; `url` above stays the
+#                         canonical address (provenance), and must sit under the mirror's origin
 #
 # Wikidata ids verified against wikidata.org on 2026-11-11.
+
+# ----------------------------------------------------------------------------- mirrors
+
+# Gutenberg asks automated tools not to download from www.gutenberg.org; its official mirror
+# serves byte-identical files (both pins below verified there on 2026-11-15).
+[[mirror]]
+provider = "gutenberg"
+origin = "https://www.gutenberg.org/"
+url = "https://gutenberg.pglaf.org/"
 
 # ---------------------------------------------------------------------------- thinkers
 
