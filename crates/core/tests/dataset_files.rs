@@ -3,7 +3,7 @@
 
 use sunlit_core::corpus::compile::compile_edition;
 use sunlit_core::corpus::manifest::Manifest;
-use sunlit_core::dataset::{Record, check, parse_jsonl};
+use sunlit_core::dataset::{Record, check, parse_jsonl, to_jsonl};
 
 const SOURCES: &str = include_str!("../../../corpus/sources.toml");
 const FILES: [(&str, &str, &[u8]); 2] = [
@@ -24,6 +24,12 @@ fn every_annotation_file_is_valid() {
     let manifest = Manifest::parse(SOURCES).unwrap();
     for (slug, jsonl, file) in FILES {
         let records = parse_jsonl(jsonl).unwrap_or_else(|e| panic!("{slug}: {e:?}"));
+        // One canonical format (the tools' own), so a hand or script edit can't turn a small
+        // change into a whole-file diff. Fix: `sunlit annotations resolve FILE`.
+        assert!(
+            to_jsonl(&records) == jsonl,
+            "{slug}: not in canonical format; run `sunlit annotations resolve` on it"
+        );
         assert!(
             matches!(&records[0], Record::Edition(h) if h.slug == slug),
             "{slug}: header"
