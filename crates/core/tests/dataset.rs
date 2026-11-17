@@ -3,7 +3,7 @@
 use sunlit_core::corpus::compile::compile_edition;
 use sunlit_core::corpus::compile::structure::Structure;
 use sunlit_core::corpus::manifest::Manifest;
-use sunlit_core::dataset::{Record, check, parse_jsonl, resolve};
+use sunlit_core::dataset::{Record, check, parse_jsonl, resolve, to_jsonl};
 
 const SOURCES: &str = include_str!("../../../corpus/sources.toml");
 const BERKELEY: &[u8] = include_bytes!("fixtures/gutenberg/pg4723.txt");
@@ -238,4 +238,70 @@ fn malformed_records_are_rejected_with_line_numbers() {
             .any(|e| e.starts_with("line 3") && e.contains("supports")),
         "{errors:?}"
     );
+}
+
+#[test]
+fn v0_3_fields_parse_and_round_trip() {
+    let line = r#"{"kind":"unit","id":"part-1/5#u2","locator":"part-1/5","quote":"q","type":"concession","voice":"speaker:cleanthes","stance":"denied","attributed_to":"philo","rhetorical":true,"ironic":true,"annotator":"agent","status":"gold","review_basis":"llm-panel","note":"n"}"#;
+
+    let records = parse_jsonl(line).unwrap();
+
+    assert_eq!(to_jsonl(&records).trim_end(), line);
+}
+
+#[test]
+fn v0_3_rules_are_enforced() {
+    let s = structure("gutenberg-4583", HUME);
+    let header = r#"{"kind":"edition","slug":"gutenberg-4583","scope":"pilot","speakers":["philo","cleanthes","demea","pamphilus"]}"#;
+    let verdict = r#"{"kind":"passage","locator":"part-1/2","verdict":"argumentative","annotator":"agent","status":"draft"}"#;
+    let base = unit("part-1/2#u1", "part-1/2", "my education", "claim")
+        .replace("\"voice\":\"author\"", "\"voice\":\"speaker:demea\"");
+    let ironic_without_note = base.replace("\"annotator\"", "\"ironic\":true,\"annotator\"");
+    let rhetorical_entertained = base
+        .replace("part-1/2#u1", "part-1/2#u2")
+        .replace("my education", "my own children")
+        .replace(
+            "\"stance\":\"asserted\"",
+            "\"stance\":\"entertained\",\"rhetorical\":true",
+        );
+    let gold_without_basis = base
+        .replace("part-1/2#u1", "part-1/2#u3")
+        .replace("my education", "learn logics")
+        .replace("\"status\":\"draft\"", "\"status\":\"gold\"");
+    let attributed_outside_cast = base
+        .replace("part-1/2#u1", "part-1/2#u4")
+        .replace("my education", "ancient")
+        .replace("\"annotator\"", "\"attributed_to\":\"locke\",\"annotator\"");
+
+    let gold_verdict = r#"{"kind":"passage","locator":"part-1/3","verdict":"non-argumentative","reason":"r","annotator":"agent","status":"gold"}"#;
+    let gold_relation = r#"{"kind":"relation","id":"part-1/2#r1","from":"part-1/2#u1","to":"part-1/2#u3","type":"support","annotator":"agent","status":"gold"}"#;
+
+    let (_, checked, _) = run(
+        HUME,
+        &s,
+        &[
+            header,
+            verdict,
+            gold_verdict,
+            &ironic_without_note,
+            &rhetorical_entertained,
+            &gold_without_basis,
+            &attributed_outside_cast,
+            gold_relation,
+        ],
+    );
+
+    for expected in [
+        "part-1/2#u1: ironic needs a note",
+        "part-1/2#u2: a rhetorical question is asserted or denied",
+        "part-1/2#u3: gold needs a review_basis",
+        "part-1/2#u4: attributed_to \"locke\" is not in the cast",
+        "part-1/3: gold needs a review_basis",
+        "part-1/2#r1: gold needs a review_basis",
+    ] {
+        assert!(
+            checked.iter().any(|p| p.contains(expected)),
+            "missing {expected:?} in {checked:?}"
+        );
+    }
 }

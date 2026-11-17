@@ -52,6 +52,8 @@ pub struct PassageVerdict {
     pub reason: Option<String>,
     pub annotator: Annotator,
     pub status: Status,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub review_basis: Option<ReviewBasis>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -80,8 +82,19 @@ pub struct UnitRecord {
     /// `author`, `objector`, `quoted:<who>` or `speaker:<name>`.
     pub voice: String,
     pub stance: Stance,
+    /// Reported views: whose view the speaker says this is (`voice` stays the speaker).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attributed_to: Option<String>,
+    /// A rhetorical question (stance = what it implies: asserted or denied).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub rhetorical: bool,
+    /// Read as ironic by the annotator; needs a note saying why.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub ironic: bool,
     pub annotator: Annotator,
     pub status: Status,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub review_basis: Option<ReviewBasis>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
 }
@@ -95,6 +108,8 @@ pub enum UnitType {
     Reply,
     Example,
     Definition,
+    /// The voice grants a point without arguing for it.
+    Concession,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -119,6 +134,8 @@ pub struct RelationRecord {
     pub annotator: Annotator,
     pub status: Status,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub review_basis: Option<ReviewBasis>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
 }
 
@@ -136,6 +153,16 @@ pub enum RelationType {
 pub enum Annotator {
     Agent,
     Amirali,
+}
+
+/// How a `gold` or `rejected` decision was made.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ReviewBasis {
+    /// Amirali's own judgement.
+    Human,
+    /// Amirali's decision on an LLM review panel's report.
+    LlmPanel,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -340,6 +367,7 @@ pub fn check(records: &[Record], file: &[u8], structure: &Structure) -> Report {
                     v.locator
                 ));
             }
+            check_review_basis(&v.locator, v.status, v.review_basis, p);
             if verdicts.insert(&v.locator, v.verdict).is_some() {
                 p.push(format!("two verdicts for {}", v.locator));
             }
@@ -387,6 +415,7 @@ pub fn check(records: &[Record], file: &[u8], structure: &Structure) -> Report {
             ));
         }
         check_voice(u, header.as_ref(), p);
+        check_v0_3(u, header.as_ref(), p);
         let Some((range, excluded)) = hosts.by_locator.get(&u.locator) else {
             p.push(format!("{}: no author-text passage {:?}", u.id, u.locator));
             continue;
@@ -466,11 +495,53 @@ pub fn check(records: &[Record], file: &[u8], structure: &Structure) -> Report {
                 p.push(format!("{}: endpoint {end} is not a unit", rel.id));
             }
         }
+        check_review_basis(&rel.id, rel.status, rel.review_basis, p);
         if rel.from == rel.to {
             p.push(format!("{}: relation from a unit to itself", rel.id));
         }
     }
     report
+}
+
+/// Guidelines v0.3: irony needs a reason, rhetorical questions imply yes or no, decided labels
+/// say how they were decided, and reported views name a cast member in a dialogue.
+fn check_v0_3(u: &UnitRecord, header: Option<&EditionHeader>, p: &mut Vec<String>) {
+    if u.ironic && u.note.as_deref().is_none_or(|n| n.trim().is_empty()) {
+        p.push(format!("{}: ironic needs a note giving the reason", u.id));
+    }
+    if u.rhetorical && u.stance == Stance::Entertained {
+        p.push(format!(
+            "{}: a rhetorical question is asserted or denied, not entertained",
+            u.id
+        ));
+    }
+    check_review_basis(&u.id, u.status, u.review_basis, p);
+    let speakers = header.map(|h| h.speakers.as_slice()).unwrap_or_default();
+    if let Some(who) = &u.attributed_to
+        && !speakers.is_empty()
+        && !speakers.contains(who)
+    {
+        p.push(format!(
+            "{}: attributed_to {who:?} is not in the cast ({})",
+            u.id,
+            speakers.join("|")
+        ));
+    }
+}
+
+/// A `gold` or `rejected` decision must record whether it was Amirali's own judgement or his
+/// decision on an LLM panel's report.
+fn check_review_basis(id: &str, status: Status, basis: Option<ReviewBasis>, p: &mut Vec<String>) {
+    if status != Status::Draft && basis.is_none() {
+        let what = if status == Status::Gold {
+            "gold"
+        } else {
+            "rejected"
+        };
+        p.push(format!(
+            "{id}: {what} needs a review_basis (human or llm-panel)"
+        ));
+    }
 }
 
 fn check_voice(u: &UnitRecord, header: Option<&EditionHeader>, p: &mut Vec<String>) {
