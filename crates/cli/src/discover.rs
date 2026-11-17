@@ -2,7 +2,7 @@
 //! choosing, pinning and importing stay separate, human-approved steps.
 
 use std::collections::HashSet;
-use std::io::Read;
+use std::io::{ErrorKind, Read, Write};
 use std::path::PathBuf;
 
 use clap::Args;
@@ -81,7 +81,44 @@ pub async fn run(args: DiscoverArgs) -> Result<()> {
     let mut found: Vec<_> = entries.iter().filter(|e| query.matches(e)).collect();
     found.sort_by_key(|e| e.id);
 
-    for e in found.iter().take(args.limit.unwrap_or(usize::MAX)) {
+    // Output is often piped (`| head`, `| grep`): a reader that stops early is not an error.
+    let listing = Listing {
+        limit: args.limit,
+        sources: &args.sources,
+        from: &from,
+        total: entries.len(),
+        raw: &raw,
+    };
+    match print(&found, &in_sources, &listing) {
+        Err(e) if e.kind() == ErrorKind::BrokenPipe => Ok(()),
+        other => Ok(other?),
+    }
+}
+
+/// What the summary line reports.
+struct Listing<'a> {
+    limit: Option<usize>,
+    sources: &'a std::path::Path,
+    from: &'a str,
+    total: usize,
+    raw: &'a [u8],
+}
+
+fn print(
+    found: &[&catalog::CatalogEntry],
+    in_sources: &HashSet<&str>,
+    listing: &Listing,
+) -> std::io::Result<()> {
+    let Listing {
+        limit,
+        sources,
+        from,
+        total,
+        raw,
+    } = listing;
+    let mut out = std::io::stdout().lock();
+
+    for e in found.iter().take(limit.unwrap_or(usize::MAX)) {
         let mark = if in_sources.contains(e.id.to_string().as_str()) {
             '*'
         } else {
@@ -89,27 +126,26 @@ pub async fn run(args: DiscoverArgs) -> Result<()> {
         };
         let title = e.title.lines().next().unwrap_or_default();
         let author = e.authors.first().map_or("", String::as_str);
-        println!(
+        writeln!(
+            out,
             "{:>6} {mark} {:<60.60}  {:<32.32}  {}",
             e.id,
             title,
             author,
             e.locc.join("; ")
-        );
+        )?;
     }
     let marked = found
         .iter()
         .filter(|e| in_sources.contains(e.id.to_string().as_str()))
         .count();
-    println!(
-        "{} book(s), {marked} already in {} (*) · catalogue {} ({} entries, sha256 {})",
+    writeln!(
+        out,
+        "{} book(s), {marked} already in {} (*) · catalogue {from} ({total} entries, sha256 {})",
         found.len(),
-        args.sources.display(),
-        from,
-        entries.len(),
-        Sha256::of(&raw).to_hex()
-    );
-    Ok(())
+        sources.display(),
+        Sha256::of(raw).to_hex()
+    )
 }
 
 /// Gzip files start with the bytes 1f 8b; anything else is taken as plain CSV.
