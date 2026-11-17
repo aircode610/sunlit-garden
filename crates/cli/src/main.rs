@@ -6,12 +6,14 @@
 //! sunlit compile                      # structure report for every edition (stores nothing)
 //! sunlit compile --store              # …and store editions that compiled without problems
 //! sunlit compile --store --replace    # re-split: clear each edition's old structure first
+//! sunlit discover --language en --locc B --author hume   # suggest books from Gutenberg's catalogue
 //! ```
 //!
 //! Configuration comes from the environment (`DATABASE_URL`, `S3_*`); a `.env` file in the
 //! current directory is loaded first if present.
 
 mod annotations;
+mod discover;
 mod fetch;
 
 use std::path::PathBuf;
@@ -40,6 +42,8 @@ enum Command {
         #[command(subcommand)]
         action: annotations::Action,
     },
+    /// Suggest Gutenberg books from its catalogue (prints candidates; imports nothing).
+    Discover(discover::DiscoverArgs),
     /// Import the sources listed in a source list into object storage and Postgres.
     /// Safe to re-run: pinned files already stored are not downloaded again.
     Import {
@@ -80,6 +84,7 @@ async fn main() -> ExitCode {
 async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     match cli.command {
         Command::Annotations { action } => annotations::run(action).await,
+        Command::Discover(args) => discover::run(args).await,
         Command::Import { sources } => {
             let text = std::fs::read_to_string(&sources)
                 .map_err(|e| format!("{}: {e}", sources.display()))?;
