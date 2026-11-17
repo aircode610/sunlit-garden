@@ -5,6 +5,7 @@
 //! [[work]]               # an abstract work, by `thinker = "<slug>"`
 //! [[document]]           # one downloadable file, with its pinned `sha256`
 //! [[document.edition]]   # one work inside that file, `work = "<thinker>/<work>"`
+//! [[mirror]]             # where a provider's files are downloaded from instead
 //! ```
 //!
 //! Parsing happens in two stages: serde reads the raw shape (rejecting unknown keys, so a
@@ -25,6 +26,18 @@ pub struct Manifest {
     pub thinkers: Vec<ThinkerEntry>,
     pub works: Vec<WorkEntry>,
     pub documents: Vec<DocumentEntry>,
+    pub mirrors: Vec<MirrorEntry>,
+}
+
+/// Download a provider's files from `url` instead of `origin` (e.g. Gutenberg's official
+/// mirror). Documents keep their canonical URL as provenance; only the download is redirected.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MirrorEntry {
+    pub provider: Slug,
+    /// Canonical URL prefix, ending in `/`: `https://www.gutenberg.org/`.
+    pub origin: String,
+    /// Mirror URL prefix, ending in `/`: `https://gutenberg.pglaf.org/`.
+    pub url: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -115,6 +128,18 @@ impl Manifest {
             toml::from_str(toml_text).map_err(|e| ManifestError::Toml(e.to_string()))?;
         validate(raw)
     }
+
+    /// Where to download `document` from: its URL with a mirror's origin swapped for the
+    /// mirror, or the URL itself if no mirror covers it.
+    pub fn fetch_url(&self, document: &DocumentEntry) -> String {
+        self.mirrors
+            .iter()
+            .find_map(|m| {
+                let path = document.url.strip_prefix(&m.origin)?;
+                (m.provider == document.provider).then(|| format!("{}{path}", m.url))
+            })
+            .unwrap_or_else(|| document.url.clone())
+    }
 }
 
 // ---- Stage 1: the raw TOML shape --------------------------------------------------------
@@ -128,6 +153,16 @@ struct RawManifest {
     work: Vec<RawWork>,
     #[serde(default)]
     document: Vec<RawDocument>,
+    #[serde(default)]
+    mirror: Vec<RawMirror>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawMirror {
+    provider: String,
+    origin: String,
+    url: String,
 }
 
 #[derive(Deserialize)]
@@ -407,11 +442,51 @@ fn validate(raw: RawManifest) -> Result<Manifest, ManifestError> {
         }
     }
 
+    // Mirrors.
+    let mut mirrors: Vec<MirrorEntry> = Vec::new();
+    for m in raw.mirror {
+        let ctx = format!("mirror for {:?}", m.provider);
+        // The trailing slash matters: "https://www.gutenberg.org" would also be a prefix of
+        // "https://www.gutenberg.org.evil.example/".
+        for (field, prefix) in [("origin", &m.origin), ("url", &m.url)] {
+            if !(prefix.starts_with("https://") && prefix.ends_with('/')) {
+                problems.push(format!(
+                    "{ctx}: {field} must start with https:// and end with / (got {prefix:?})"
+                ));
+            }
+        }
+        if mirrors.iter().any(|x| x.provider.as_str() == m.provider) {
+            problems.push(format!("{ctx}: listed twice"));
+        }
+        if let Some(provider) = problems.check(&ctx, Slug::parse(&m.provider)) {
+            mirrors.push(MirrorEntry {
+                provider,
+                origin: m.origin,
+                url: m.url,
+            });
+        }
+    }
+    // A provider with a mirror is only ever downloaded through it.
+    for d in &documents {
+        for m in mirrors.iter().filter(|m| m.provider == d.provider) {
+            if !d.url.starts_with(&m.origin) {
+                problems.push(format!(
+                    "document {:?} {:?}: url {:?} is not under the mirror origin {:?}",
+                    d.provider.as_str(),
+                    d.provider_id,
+                    d.url,
+                    m.origin
+                ));
+            }
+        }
+    }
+
     if problems.0.is_empty() {
         Ok(Manifest {
             thinkers,
             works,
             documents,
+            mirrors,
         })
     } else {
         Err(ManifestError::Invalid(problems.0))

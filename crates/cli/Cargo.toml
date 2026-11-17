@@ -14,4 +14,8 @@ bytes = "1"
 clap = { version = "4", features = ["derive"] }
 dotenvy = "0.15"
 reqwest = { version = "0.13", default-features = false, features = ["rustls", "http2"] }
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time"] }
+
+[dev-dependencies]
+# Paused, manually advanced clock for testing the request pacing instantly.
+tokio = { version = "1", features = ["test-util"] }

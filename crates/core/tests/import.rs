@@ -6,11 +6,12 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use bytes::Bytes;
 use sqlx::PgPool;
-use sunlit_core::Sha256;
 use sunlit_core::blobs::BlobStore;
 use sunlit_core::corpus::import::{FetchError, Fetcher, ImportError, import};
-use sunlit_core::corpus::manifest::Manifest;
+use sunlit_core::corpus::manifest::{Manifest, MirrorEntry};
 use sunlit_core::store::PgStore;
+use sunlit_core::store::Store;
+use sunlit_core::{Sha256, Slug};
 
 const HUME_URL: &str = "https://www.gutenberg.org/cache/epub/4583/pg4583.txt";
 const HUME_FILE: &str = "The Project Gutenberg eBook of Dialogues\r\n\r\n\
@@ -201,4 +202,50 @@ async fn an_explicit_range_past_the_end_of_the_file_is_refused(pool: PgPool) {
         "got {result:?}"
     );
     assert_eq!(count(&pool, "edition").await, 0);
+}
+
+#[sqlx::test(migrations = "../../migrations")]
+async fn downloads_go_through_the_mirror_but_the_canonical_url_is_recorded(pool: PgPool) {
+    let (store, blobs) = (PgStore::from_pool(pool.clone()), BlobStore::in_memory());
+    let mirror_url = "https://gutenberg.pglaf.org/cache/epub/4583/pg4583.txt";
+    // Only the mirror serves the file: a download from the canonical URL would fail.
+    let fetcher = FakeFetcher::new(&[(mirror_url, HUME_FILE)]);
+    let pin = Sha256::of(HUME_FILE.as_bytes());
+    let mut manifest = hume_manifest(Some(pin));
+    manifest.mirrors.push(MirrorEntry {
+        provider: Slug::parse("gutenberg").unwrap(),
+        origin: "https://www.gutenberg.org/".into(),
+        url: "https://gutenberg.pglaf.org/".into(),
+    });
+
+    import(&manifest, &store, &blobs, &fetcher).await.unwrap();
+
+    let document = store.document_by_sha256(&pin).await.unwrap().unwrap();
+    assert_eq!(document.source_url, HUME_URL, "provenance stays canonical");
+}
+
+#[sqlx::test(migrations = "../../migrations")]
+async fn a_new_unpinned_document_is_also_downloaded_through_the_mirror(pool: PgPool) {
+    let (store, blobs) = (PgStore::from_pool(pool.clone()), BlobStore::in_memory());
+    let fetcher = FakeFetcher::new(&[(
+        "https://gutenberg.pglaf.org/cache/epub/4583/pg4583.txt",
+        HUME_FILE,
+    )]);
+    let mut manifest = hume_manifest(None);
+    manifest.mirrors.push(MirrorEntry {
+        provider: Slug::parse("gutenberg").unwrap(),
+        origin: "https://www.gutenberg.org/".into(),
+        url: "https://gutenberg.pglaf.org/".into(),
+    });
+
+    let result = import(&manifest, &store, &blobs, &fetcher).await;
+
+    // Reported under its canonical URL, the one to look up in sources.toml.
+    let Err(ImportError::Unpinned(observed)) = result else {
+        panic!("got {result:?}")
+    };
+    assert_eq!(
+        observed,
+        vec![(HUME_URL.to_string(), Sha256::of(HUME_FILE.as_bytes()))]
+    );
 }

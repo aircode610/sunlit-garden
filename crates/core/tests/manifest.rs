@@ -210,3 +210,77 @@ fn insertion_attribution_must_be_editor_or_author() {
         matches!(Manifest::parse(&bad), Err(ManifestError::Toml(msg)) if msg.contains("transcriber"))
     );
 }
+
+const GUTENBERG_MIRROR: &str = r#"
+[[mirror]]
+provider = "gutenberg"
+origin = "https://www.gutenberg.org/"
+url = "https://gutenberg.pglaf.org/"
+"#;
+
+#[test]
+fn a_mirror_changes_where_a_document_is_downloaded_not_its_url() {
+    let manifest = Manifest::parse(&format!("{GUTENBERG_MIRROR}{HUME}")).unwrap();
+    let hume = &manifest.documents[0];
+
+    assert_eq!(
+        hume.url,
+        "https://www.gutenberg.org/cache/epub/4583/pg4583.txt"
+    );
+    assert_eq!(
+        manifest.fetch_url(hume),
+        "https://gutenberg.pglaf.org/cache/epub/4583/pg4583.txt"
+    );
+}
+
+#[test]
+fn a_document_cannot_bypass_its_providers_mirror() {
+    let elsewhere = HUME.replace(
+        "https://www.gutenberg.org/",
+        "https://gutenberg.example.com/",
+    );
+
+    let errors = errors(&format!("{GUTENBERG_MIRROR}{elsewhere}"));
+
+    assert!(
+        errors
+            .iter()
+            .any(|e| e.contains("4583") && e.contains("not under the mirror origin")),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn mirror_prefixes_are_https_and_end_in_a_slash_and_one_per_provider() {
+    let no_slash = GUTENBERG_MIRROR.replace(
+        "origin = \"https://www.gutenberg.org/\"",
+        "origin = \"https://www.gutenberg.org\"",
+    );
+    let insecure = GUTENBERG_MIRROR.replace(
+        "https://gutenberg.pglaf.org/",
+        "http://gutenberg.pglaf.org/",
+    );
+    let twice = format!("{GUTENBERG_MIRROR}{GUTENBERG_MIRROR}");
+
+    for (case, toml, expected) in [
+        (
+            "no slash",
+            no_slash,
+            "origin must start with https:// and end with /",
+        ),
+        (
+            "insecure",
+            insecure,
+            "url must start with https:// and end with /",
+        ),
+        ("twice", twice, "listed twice"),
+    ] {
+        let errors = errors(&format!("{toml}{HUME}"));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("mirror") && e.contains(expected)),
+            "{case}: {errors:?}"
+        );
+    }
+}
