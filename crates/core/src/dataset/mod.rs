@@ -415,7 +415,7 @@ pub fn check(records: &[Record], file: &[u8], structure: &Structure) -> Report {
             ));
         }
         check_voice(u, header.as_ref(), p);
-        check_v0_3(u, header.as_ref(), p);
+        check_v0_3(u, p);
         let Some((range, excluded)) = hosts.by_locator.get(&u.locator) else {
             p.push(format!("{}: no author-text passage {:?}", u.id, u.locator));
             continue;
@@ -504,8 +504,8 @@ pub fn check(records: &[Record], file: &[u8], structure: &Structure) -> Report {
 }
 
 /// Guidelines v0.3: irony needs a reason, rhetorical questions imply yes or no, decided labels
-/// say how they were decided, and reported views name a cast member in a dialogue.
-fn check_v0_3(u: &UnitRecord, header: Option<&EditionHeader>, p: &mut Vec<String>) {
+/// say how they were decided, and reported views are attributed to a well-formed name.
+fn check_v0_3(u: &UnitRecord, p: &mut Vec<String>) {
     if u.ironic && u.note.as_deref().is_none_or(|n| n.trim().is_empty()) {
         p.push(format!("{}: ironic needs a note giving the reason", u.id));
     }
@@ -516,17 +516,25 @@ fn check_v0_3(u: &UnitRecord, header: Option<&EditionHeader>, p: &mut Vec<String
         ));
     }
     check_review_basis(&u.id, u.status, u.review_basis, p);
-    let speakers = header.map(|h| h.speakers.as_slice()).unwrap_or_default();
+    // Anyone's view can be reported (Demea quotes Chrysippus), so any well-formed name.
     if let Some(who) = &u.attributed_to
-        && !speakers.is_empty()
-        && !speakers.contains(who)
+        && !valid_name(who)
     {
         p.push(format!(
-            "{}: attributed_to {who:?} is not in the cast ({})",
-            u.id,
-            speakers.join("|")
+            "{}: attributed_to {who:?} is not a name like \"philo\" or \"john-locke\"",
+            u.id
         ));
     }
+}
+
+/// Lowercase words joined by hyphens: `philo`, `john-locke`, `common-opinion`.
+fn valid_name(s: &str) -> bool {
+    !s.is_empty()
+        && s.split('-').all(|w| {
+            !w.is_empty()
+                && w.bytes()
+                    .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit())
+        })
 }
 
 /// A `gold` or `rejected` decision must record whether it was Amirali's own judgement or his
@@ -546,14 +554,6 @@ fn check_review_basis(id: &str, status: Status, basis: Option<ReviewBasis>, p: &
 
 fn check_voice(u: &UnitRecord, header: Option<&EditionHeader>, p: &mut Vec<String>) {
     let speakers = header.map(|h| h.speakers.as_slice()).unwrap_or_default();
-    let valid_name = |s: &str| {
-        !s.is_empty()
-            && s.split('-').all(|w| {
-                !w.is_empty()
-                    && w.bytes()
-                        .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit())
-            })
-    };
     let ok = if !speakers.is_empty() {
         // A dialogue: only its cast may speak.
         u.voice

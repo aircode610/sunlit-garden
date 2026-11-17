@@ -268,10 +268,21 @@ fn v0_3_rules_are_enforced() {
         .replace("part-1/2#u1", "part-1/2#u3")
         .replace("my education", "learn logics")
         .replace("\"status\":\"draft\"", "\"status\":\"gold\"");
-    let attributed_outside_cast = base
+    let attributed_badly_named = base
         .replace("part-1/2#u1", "part-1/2#u4")
         .replace("my education", "ancient")
-        .replace("\"annotator\"", "\"attributed_to\":\"locke\",\"annotator\"");
+        .replace(
+            "\"annotator\"",
+            "\"attributed_to\":\"John Locke\",\"annotator\"",
+        );
+    // Reported views may be anyone's, not only a character's: Demea quotes Chrysippus.
+    let attributed_to_an_ancient = base
+        .replace("part-1/2#u1", "part-1/2#u5")
+        .replace("my education", "pupil")
+        .replace(
+            "\"annotator\"",
+            "\"attributed_to\":\"chrysippus\",\"annotator\"",
+        );
 
     let gold_verdict = r#"{"kind":"passage","locator":"part-1/3","verdict":"non-argumentative","reason":"r","annotator":"agent","status":"gold"}"#;
     let gold_relation = r#"{"kind":"relation","id":"part-1/2#r1","from":"part-1/2#u1","to":"part-1/2#u3","type":"support","annotator":"agent","status":"gold"}"#;
@@ -286,7 +297,8 @@ fn v0_3_rules_are_enforced() {
             &ironic_without_note,
             &rhetorical_entertained,
             &gold_without_basis,
-            &attributed_outside_cast,
+            &attributed_badly_named,
+            &attributed_to_an_ancient,
             gold_relation,
         ],
     );
@@ -295,7 +307,7 @@ fn v0_3_rules_are_enforced() {
         "part-1/2#u1: ironic needs a note",
         "part-1/2#u2: a rhetorical question is asserted or denied",
         "part-1/2#u3: gold needs a review_basis",
-        "part-1/2#u4: attributed_to \"locke\" is not in the cast",
+        "part-1/2#u4: attributed_to \"John Locke\" is not a name like",
         "part-1/3: gold needs a review_basis",
         "part-1/2#r1: gold needs a review_basis",
     ] {
@@ -304,4 +316,8 @@ fn v0_3_rules_are_enforced() {
             "missing {expected:?} in {checked:?}"
         );
     }
+    assert!(
+        !checked.iter().any(|p| p.contains("u5: attributed_to")),
+        "an ancient's reported view is allowed: {checked:?}"
+    );
 }
