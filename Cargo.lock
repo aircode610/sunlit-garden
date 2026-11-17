@@ -4231,6 +4231,7 @@ dependencies = [
  "bytes",
  "clap",
  "dotenvy",
+ "flate2",
  "reqwest",
  "sunlit-core",
  "tokio",
