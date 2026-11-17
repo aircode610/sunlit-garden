@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use clap::Subcommand;
 use sunlit_core::blobs::{BlobStore, S3Config};
 use sunlit_core::corpus::compile::compile_edition;
-use sunlit_core::corpus::compile::structure::Structure;
+use sunlit_core::corpus::compile::structure::{PlannedRole, Structure};
 use sunlit_core::corpus::manifest::Manifest;
 use sunlit_core::dataset::{self, Record};
 
@@ -23,12 +23,32 @@ pub enum Action {
         #[arg(long, default_value = "corpus/sources.toml")]
         sources: PathBuf,
     },
+    /// Print every author-text passage of the file's edition as JSON lines
+    /// (`{"locator", "text"}`, text = the author's words only), in reading order.
+    Passages {
+        file: PathBuf,
+        #[arg(long, default_value = "corpus/sources.toml")]
+        sources: PathBuf,
+    },
 }
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 pub async fn run(action: Action) -> Result<()> {
     match action {
+        Action::Passages { file, sources } => {
+            let (_, bytes, structure) = load(&file, &sources).await?;
+            for (i, p) in structure.passages.iter().enumerate() {
+                if p.role == PlannedRole::Text {
+                    let line = serde_json::json!({
+                        "locator": p.locator,
+                        "text": structure.author_words(&bytes, i),
+                    });
+                    println!("{line}");
+                }
+            }
+            Ok(())
+        }
         Action::Resolve { file, sources } => {
             let (mut records, bytes, structure) = load(&file, &sources).await?;
             let problems = dataset::resolve(&mut records, &bytes, &structure);

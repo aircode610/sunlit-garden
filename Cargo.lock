@@ -4233,6 +4233,7 @@ dependencies = [
  "dotenvy",
  "flate2",
  "reqwest",
+ "serde_json",
  "sunlit-core",
  "tokio",
 ]
