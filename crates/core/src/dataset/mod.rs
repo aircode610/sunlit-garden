@@ -79,7 +79,8 @@ pub struct UnitRecord {
     pub end: Option<usize>,
     #[serde(rename = "type")]
     pub unit_type: UnitType,
-    /// `author`, `objector`, `quoted:<who>` or `speaker:<name>`.
+    /// Who says the words: `author`, `objector` or `speaker:<name>`. Whose view it is goes in
+    /// `attributed_to` (guidelines v0.4).
     pub voice: String,
     pub stance: Stance,
     /// Reported views: whose view the speaker says this is (`voice` stays the speaker).
@@ -562,12 +563,11 @@ fn check_voice(u: &UnitRecord, header: Option<&EditionHeader>, p: &mut Vec<Strin
     } else {
         u.voice == "author"
             || u.voice == "objector"
-            || u.voice.strip_prefix("quoted:").is_some_and(valid_name)
             || u.voice.strip_prefix("speaker:").is_some_and(valid_name)
     };
     if !ok {
         let allowed = if speakers.is_empty() {
-            "author | objector | quoted:<who> | speaker:<name>".to_string()
+            "author | objector | speaker:<name>; whose view it is goes in attributed_to".to_string()
         } else {
             format!("speaker:<{}>", speakers.join("|"))
         };
