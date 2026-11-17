@@ -129,3 +129,37 @@ fn list(field: &str) -> Vec<String> {
         .map(str::to_owned)
         .collect()
 }
+
+/// Which books to suggest. Every non-empty field must match; empty fields match everything.
+/// Only `Text` entries ever match (no audio, images or datasets).
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Query {
+    /// Any of these language codes (`en`).
+    pub languages: Vec<String>,
+    /// Any Library of Congress class starting with one of these (`B` also matches `BL`, `BX`).
+    pub locc: Vec<String>,
+    /// Classes that don't count. A book is dropped only if none of its *other* classes match:
+    /// philosophy that is also Catholic theology (`B; BX`) survives excluding `BX`.
+    pub exclude_locc: Vec<String>,
+    /// Appears in the authors field, ignoring case ("hume, david").
+    pub author: Option<String>,
+}
+
+impl Query {
+    pub fn matches(&self, entry: &CatalogEntry) -> bool {
+        let any = |wanted: &[String], test: &dyn Fn(&str) -> bool| {
+            wanted.is_empty() || wanted.iter().any(|w| test(w))
+        };
+        let counted = |class: &&String| !self.exclude_locc.iter().any(|x| class.starts_with(x));
+        let classes: Vec<&String> = entry.locc.iter().filter(counted).collect();
+        let excluded_everything = !entry.locc.is_empty() && classes.is_empty();
+        entry.kind == "Text"
+            && !excluded_everything
+            && any(&self.languages, &|w| entry.languages.iter().any(|l| l == w))
+            && any(&self.locc, &|w| classes.iter().any(|c| c.starts_with(w)))
+            && self.author.as_deref().is_none_or(|a| {
+                let a = a.to_lowercase();
+                entry.authors.iter().any(|x| x.to_lowercase().contains(&a))
+            })
+    }
+}
