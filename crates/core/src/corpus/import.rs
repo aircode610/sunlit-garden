@@ -152,7 +152,7 @@ pub async fn import<S: Store, F: Fetcher>(
     // 1. Refuse before writing anything if any document isn't pinned, reporting all of them.
     let mut unpinned = Vec::new();
     for document in manifest.documents.iter().filter(|d| d.sha256.is_none()) {
-        let bytes = fetch(fetcher, &document.url).await?;
+        let bytes = fetch(fetcher, &manifest.fetch_url(document)).await?;
         unpinned.push((document.url.clone(), Sha256::of(&bytes)));
     }
     if !unpinned.is_empty() {
@@ -188,13 +188,16 @@ pub async fn import<S: Store, F: Fetcher>(
     // 3. Documents and the editions inside them.
     let mut documents = Vec::new();
     for document in &manifest.documents {
-        documents.push(import_document(document, &work_ids, store, blobs, fetcher).await?);
+        let from = manifest.fetch_url(document);
+        documents.push(import_document(document, &from, &work_ids, store, blobs, fetcher).await?);
     }
     Ok(Report { documents })
 }
 
+/// `from` is where to download the file (its URL, or a mirror's copy of it).
 async fn import_document<S: Store, F: Fetcher>(
     document: &DocumentEntry,
+    from: &str,
     work_ids: &HashMap<(&Slug, &Slug), WorkId>,
     store: &S,
     blobs: &BlobStore,
@@ -209,7 +212,7 @@ async fn import_document<S: Store, F: Fetcher>(
     let (bytes, downloaded) = if blobs.contains(&pinned).await? {
         (blobs.get(&pinned).await?, false)
     } else {
-        let bytes = fetch(fetcher, &document.url).await?;
+        let bytes = fetch(fetcher, from).await?;
         let observed = Sha256::of(&bytes);
         if observed != pinned {
             return Err(ImportError::HashMismatch {
