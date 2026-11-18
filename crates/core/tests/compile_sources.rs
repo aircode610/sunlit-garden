@@ -8,7 +8,21 @@ const SOURCES: &str = include_str!("../../../corpus/sources.toml");
 
 /// The pinned file of a document, kept as tests/fixtures/<provider>/<file name in its URL>.
 fn fixture(provider: &str, url: &str) -> Vec<u8> {
-    let name = url.rsplit('/').next().unwrap_or_default();
+    // A URL's last segment, with anything that isn't safe in a file name as `_`
+    // ("index.php?title=…&action=raw" for Wikisource).
+    let name: String = url
+        .rsplit('/')
+        .next()
+        .unwrap_or_default()
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || "._-".contains(c) {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
     let path = format!(
         "{}/tests/fixtures/{provider}/{name}",
         env!("CARGO_MANIFEST_DIR")

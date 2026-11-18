@@ -69,6 +69,13 @@ wikidata = "Q209102"
 born = 240
 died = 317
 
+[[thinker]]
+slug = "gottfried-wilhelm-leibniz"
+name = "Gottfried Wilhelm Leibniz"
+wikidata = "Q9047"
+born = 1646
+died = 1716
+
 # ------------------------------------------------------------------------------- works
 
 [[work]]
@@ -146,6 +153,15 @@ title = "On the Anger of God"
 wikidata = "Q42188497"
 first_year = 313
 original_language = "la"
+
+# Written 1714 in French, first published (in German) 1720.
+[[work]]
+thinker = "gottfried-wilhelm-leibniz"
+slug = "monadology"
+title = "The Monadology"
+wikidata = "Q1211539"
+first_year = 1714
+original_language = "fr"
 
 # --------------------------------------------------------------------------- documents
 
@@ -687,3 +703,40 @@ divisions = [
 text_passages = { "chapter-1" = 2, "chapter-2" = 4, "chapter-3" = 1, "chapter-4" = 3, "chapter-5" = 3, "chapter-6" = 1, "chapter-7" = 6, "chapter-8" = 4, "chapter-9" = 2, "chapter-10" = 14, "chapter-11" = 4, "chapter-12" = 1, "chapter-13" = 5, "chapter-14" = 1, "chapter-15" = 2, "chapter-16" = 2, "chapter-17" = 4, "chapter-18" = 3, "chapter-19" = 2, "chapter-20" = 4, "chapter-21" = 2, "chapter-22" = 6, "chapter-23" = 21 }
 text_passages_total = 97
 
+
+
+# Wikisource: one page, pinned by revision (oldid), fetched as raw wikitext. Robert Latta's
+# translation (1898; Latta d. 1932): public domain in the US. Proofread once (75%), not
+# checked against scans. Wikisource's own contributions are CC BY-SA: credit Wikisource when
+# shown.
+[[document]]
+provider = "wikisource"
+provider_id = "Monadology_(Leibniz,_tr._Latta)@10779036"
+url = "https://en.wikisource.org/w/index.php?title=Monadology_(Leibniz,_tr._Latta)&oldid=10779036&action=raw"
+licence = "public-domain-us"
+media_type = "text/x-wiki; charset=utf-8"
+sha256 = "1843b3c4ffc31e70d886128ce357fb6147323658ac69a80387baf44410aa6842" # reviewed 2026-11-18
+
+# §§ 1–90 inside <div class=prose> (bytes 244..38060); no headings. Brackets are Latta's
+# (French originals, "[His possibility]") or edition references ("[E. 469; G. vi. 27]");
+# Leibniz's own references are in parentheses ("(Theodicy 10.)").
+[[document.edition]]
+work = "gottfried-wilhelm-leibniz/monadology"
+slug = "wikisource-monadology-latta"
+title = "The Monadology"
+language = "en"
+translator = "Robert Latta"
+published_year = 1898
+range = { start = 244, end = 38060 }
+undivided = true
+passages = "numbered-sections"
+markup = "wikitext"
+
+[[document.edition.insertion]]
+prefix = "["
+by = "editor"
+
+# 90 numbered sections, counted independently (Python) and by the compiler.
+[document.edition.expect]
+divisions = []
+text_passages_total = 90
