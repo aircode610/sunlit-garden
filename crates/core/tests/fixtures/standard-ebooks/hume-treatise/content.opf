@@ -1,0 +1,340 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" dir="ltr" prefix="rdf: http://www.w3.org/1999/02/22-rdf-syntax-ns#" unique-identifier="uid" version="3.0" xml:lang="en-US">
+	<metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+		<dc:identifier id="uid">https://standardebooks.org/ebooks/david-hume/a-treatise-of-human-nature</dc:identifier>
+		<dc:date>2026-08-17T20:44:59Z</dc:date>
+		<meta property="dcterms:modified">2026-08-17T20:44:59Z</meta>
+		<dc:rights>The source text and artwork in this ebook are believed to be in the United States public domain; that is, they are believed to be free of copyright restrictions in the United States. They may still be copyrighted in other countries, so users located outside of the United States must check their local laws before using this ebook. The creators of, and contributors to, this ebook dedicate their contributions to the worldwide public domain via the terms in the [CC0 1.0 Universal Public Domain Dedication](https://creativecommons.org/publicdomain/zero/1.0/).</dc:rights>
+		<meta property="rdf:type">http://schema.org/Book</meta>
+		<dc:publisher id="publisher">Standard Ebooks</dc:publisher>
+		<meta property="file-as" refines="#publisher">Standard Ebooks</meta>
+		<link href="https://standardebooks.org/" refines="#publisher" rel="schema:url"/>
+		<meta property="role" refines="#publisher" scheme="marc:relators">bkd</meta>
+		<meta property="role" refines="#publisher" scheme="marc:relators">mdc</meta>
+		<meta property="role" refines="#publisher" scheme="marc:relators">pbl</meta>
+		<dc:contributor id="type-designer">The League of Moveable Type</dc:contributor>
+		<meta property="file-as" refines="#type-designer">League of Moveable Type, The</meta>
+		<link href="https://www.theleagueofmoveabletype.com/" refines="#type-designer" rel="schema:url"/>
+		<meta property="role" refines="#type-designer" scheme="marc:relators">tyd</meta>
+		<meta id="conformance-statement" property="dcterms:conformsTo">EPUB Accessibility 1.1 - WCAG 2.2 Level AA</meta>
+		<meta property="a11y:certifiedBy" refines="#conformance-statement">Standard Ebooks</meta>
+		<meta property="schema:accessMode">textual</meta>
+		<meta property="schema:accessModeSufficient">textual</meta>
+		<meta property="schema:accessibilityFeature">alternativeText</meta>
+		<meta property="schema:accessibilityFeature">displayTransformability</meta>
+		<meta property="schema:accessibilityFeature">readingOrder</meta>
+		<meta property="schema:accessibilityFeature">structuralNavigation</meta>
+		<meta property="schema:accessibilityFeature">tableOfContents</meta>
+		<meta property="schema:accessibilityFeature">unlocked</meta>
+		<meta property="schema:accessibilityHazard">none</meta>
+		<meta property="schema:accessibilitySummary">This publication conforms to WCAG 2.2 Level AA.</meta>
+		<dc:title id="title">A Treatise of Human Nature</dc:title>
+		<meta property="file-as" refines="#title">Treatise of Human Nature, A</meta>
+		<meta property="title-type" refines="#title">main</meta>
+		<dc:title id="subtitle">Being an Attempt to Introduce the Experimental Method of Reasoning Into Moral Subjects</dc:title>
+		<meta property="title-type" refines="#subtitle">subtitle</meta>
+		<meta property="file-as" refines="#subtitle">Being an Attempt to Introduce the Experimental Method of Reasoning Into Moral Subjects</meta>
+		<dc:title id="fulltitle">A Treatise of Human Nature: Being an Attempt to Introduce the Experimental Method of Reasoning Into Moral Subjects</dc:title>
+		<meta property="file-as" refines="#fulltitle">Treatise of Human Nature, A</meta>
+		<meta property="title-type" refines="#fulltitle">expanded</meta>
+		<dc:subject id="subject-1">Knowledge, Theory of</dc:subject>
+		<meta property="authority" refines="#subject-1">LCSH</meta>
+		<meta property="term" refines="#subject-1">sh85072732</meta>
+		<meta property="schema:genre">Nonfiction</meta>
+		<meta property="schema:genre">Philosophy</meta>
+		<meta property="schema:abstract">Philosopher David Hume lays out a clear and original vision of our knowledge and understanding of the world, and also of human psychology and morality.</meta>
+		<dc:description>
+			&lt;p&gt;In the &lt;i&gt;Treatise of Human Nature&lt;/i&gt;, written in 1739, &lt;a href="https://standardebooks.org/ebooks/david-hume"&gt;David Hume&lt;/a&gt; lays out his initial vision of our knowledge and understanding of the world, of the nature of our psychology and motivation, and, building on these, of moral and political philosophy.&lt;/p&gt;
+			&lt;p&gt;In Book I, Hume considers our understanding of the world. With a keen critical perspective that is ever skeptical about abstract metaphysical claims, he follows other empiricists (such as &lt;a href="https://standardebooks.org/ebooks/john-locke"&gt;Locke&lt;/a&gt;) in grounding our understanding in experience as the source of all our ideas and of their relations to each other. In one important line of argument, he raises what has come to be known as his “problem of induction” at the heart of our understanding of causation and of science, arguing that we have no reason to think that the future will be like the past, since our only evidence for that claim could be past experience—a problem that has plagued philosophers ever since.&lt;/p&gt;
+			&lt;p&gt;In Book II, Hume turns from belief and reason to desire and the passions, famously arguing that “it is not contrary to reason to prefer the destruction of the whole world to the scratching of my finger”—that questions of what we &lt;em&gt;ought&lt;/em&gt; to desire or value are not questions we can settle by appealing to beliefs and arguments. Rather, our desires and passions can be independent of our beliefs, so that values aren’t a &lt;em&gt;part of&lt;/em&gt; the world, but are &lt;em&gt;projected&lt;/em&gt; by us &lt;em&gt;onto&lt;/em&gt; the world.&lt;/p&gt;
+			&lt;p&gt;In Book III, Hume spells out the implications this view has for morality, and so for moral values and moral taste. In doing so, he emphasizes our sympathy for others and the need for us to use that sympathy so as to adopt “steady and general points of view” as the proper vantage point for engaging in moral criticism.&lt;/p&gt;
+			&lt;p&gt;The &lt;i&gt;Treatise&lt;/i&gt; was poorly received, with Hume himself writing that it fell “deadborn from the press.” He thought it an immature work, written as it was before he was 25 years old, and he later reworked his account from Book I in his &lt;a href="https://standardebooks.org/ebooks/david-hume/an-enquiry-concerning-human-understanding"&gt;&lt;i&gt;Enquiry Concerning Human Understanding&lt;/i&gt;&lt;/a&gt; and from Book III in his &lt;i&gt;Enquiry Concerning the Principles of Morals&lt;/i&gt;. Nonetheless, much of Hume’s dissatisfaction seems to be stylistic rather than substantive; philosophical scholarship has tended to focus on the &lt;i&gt;Treatise&lt;/i&gt; over his other works, and it has remained highly influential to this day, shaping important strands of thought in philosophy and psychology.&lt;/p&gt;
+		</dc:description>
+		<dc:language>en-GB</dc:language>
+		<dc:source>https://www.gutenberg.org/ebooks/4705</dc:source>
+		<dc:source>https://archive.org/details/0213-bk</dc:source>
+		<meta property="schema:wordCount">216363</meta>
+		<meta property="schema:educationalLevel">38.69</meta>
+		<link href="https://en.wikipedia.org/wiki/A_Treatise_of_Human_Nature" rel="schema:sameAs"/>
+		<meta id="vcs-repository" property="schema:workExample">schema:workExample</meta>
+		<meta property="rdf:type" refines="#vcs-repository">http://schema.org/SoftwareSourceCode</meta>
+		<link href="https://github.com/standardebooks/david-hume_a-treatise-of-human-nature" refines="#vcs-repository" rel="schema:codeRepository"/>
+		<dc:creator id="author">David Hume</dc:creator>
+		<meta property="file-as" refines="#author">Hume, David</meta>
+		<link href="https://en.wikipedia.org/wiki/David_Hume" refines="#author" rel="schema:sameAs"/>
+		<link href="https://id.loc.gov/authorities/names/n79054039.html" refines="#author" rel="schema:sameAs"/>
+		<meta property="role" refines="#author" scheme="marc:relators">aut</meta>
+		<meta property="role" refines="#author" scheme="marc:relators">win</meta>
+		<meta property="role" refines="#author" scheme="marc:relators">wpr</meta>
+		<dc:contributor id="artist">Jean Baptiste Siméon Chardin</dc:contributor>
+		<meta property="file-as" refines="#artist">Chardin, Jean Baptiste Siméon</meta>
+		<link href="https://en.wikipedia.org/wiki/Jean_Sim%C3%A9on_Chardin" refines="#artist" rel="schema:sameAs"/>
+		<link href="https://id.loc.gov/authorities/names/n79061326.html" refines="#artist" rel="schema:sameAs"/>
+		<meta property="role" refines="#artist" scheme="marc:relators">art</meta>
+		<dc:contributor id="transcriber-1">Col Choat</dc:contributor>
+		<meta property="file-as" refines="#transcriber-1">Choat, Col</meta>
+		<meta property="role" refines="#transcriber-1" scheme="marc:relators">trc</meta>
+		<dc:contributor id="transcriber-2">David Widger</dc:contributor>
+		<meta property="file-as" refines="#transcriber-2">Widger, David</meta>
+		<link href="https://id.loc.gov/authorities/names/no2011017869.html" refines="#transcriber-2" rel="schema:sameAs"/>
+		<link href="https://www.gutenberg.net.au/widger/home.html" refines="#transcriber-2" rel="schema:url"/>
+		<meta property="role" refines="#transcriber-2" scheme="marc:relators">trc</meta>
+		<dc:contributor id="transcriber-3">Distributed Proofreaders</dc:contributor>
+		<meta property="file-as" refines="#transcriber-3">Distributed Proofreaders</meta>
+		<link href="https://www.pgdp.net/" refines="#transcriber-3" rel="schema:url"/>
+		<meta property="role" refines="#transcriber-3" scheme="marc:relators">trc</meta>
+		<dc:contributor id="editor">L. A. Selby-Bigge</dc:contributor>
+		<meta property="file-as" refines="#editor">Selby-Bigge, L. A.</meta>
+		<link href="https://en.wikipedia.org/wiki/Sir_Amherst_Selby-Bigge%2C_1st_Baronet" refines="#editor" rel="schema:sameAs"/>
+		<meta property="role" refines="#editor" scheme="marc:relators">ann</meta>
+		<meta property="role" refines="#editor" scheme="marc:relators">edt</meta>
+		<dc:contributor id="producer-1">Bennett Helm</dc:contributor>
+		<meta property="file-as" refines="#producer-1">Helm, Bennett</meta>
+		<meta property="role" refines="#producer-1" scheme="marc:relators">bkp</meta>
+		<meta property="role" refines="#producer-1" scheme="marc:relators">blw</meta>
+		<meta property="role" refines="#producer-1" scheme="marc:relators">cov</meta>
+		<meta property="role" refines="#producer-1" scheme="marc:relators">mrk</meta>
+		<meta property="role" refines="#producer-1" scheme="marc:relators">pfr</meta>
+		<meta property="role" refines="#producer-1" scheme="marc:relators">tyg</meta>
+		<dc:contributor id="producer-2">Lukas Bystricky</dc:contributor>
+		<meta property="file-as" refines="#producer-2">Bystricky, Lukas</meta>
+		<meta property="role" refines="#producer-2" scheme="marc:relators">pfr</meta>
+	</metadata>
+	<manifest>
+		<item href="css/core.css" id="core.css" media-type="text/css"/>
+		<item href="css/local.css" id="local.css" media-type="text/css"/>
+		<item href="css/se.css" id="se.css" media-type="text/css"/>
+		<item href="images/cover.svg" id="cover.svg" media-type="image/svg+xml" properties="cover-image"/>
+		<item href="images/logo.svg" id="logo.svg" media-type="image/svg+xml"/>
+		<item href="images/titlepage.svg" id="titlepage.svg" media-type="image/svg+xml"/>
+		<item href="text/appendix.xhtml" id="appendix.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/book-1.xhtml" id="book-1.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/book-2.xhtml" id="book-2.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/book-3.xhtml" id="book-3.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/colophon.xhtml" id="colophon.xhtml" media-type="application/xhtml+xml" properties="svg"/>
+		<item href="text/endnotes.xhtml" id="endnotes.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/epigraph.xhtml" id="epigraph.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/halftitlepage.xhtml" id="halftitlepage.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/imprint.xhtml" id="imprint.xhtml" media-type="application/xhtml+xml" properties="svg"/>
+		<item href="text/introduction.xhtml" id="introduction.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/part-1-1.xhtml" id="part-1-1.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/part-1-2.xhtml" id="part-1-2.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/part-1-3.xhtml" id="part-1-3.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/part-1-4.xhtml" id="part-1-4.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/part-2-1.xhtml" id="part-2-1.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/part-2-2.xhtml" id="part-2-2.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/part-2-3.xhtml" id="part-2-3.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/part-3-1.xhtml" id="part-3-1.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/part-3-2.xhtml" id="part-3-2.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/part-3-3.xhtml" id="part-3-3.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/preface.xhtml" id="preface.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-1-1.xhtml" id="section-1-1-1.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-1-2.xhtml" id="section-1-1-2.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-1-3.xhtml" id="section-1-1-3.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-1-4.xhtml" id="section-1-1-4.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-1-5.xhtml" id="section-1-1-5.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-1-6.xhtml" id="section-1-1-6.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-1-7.xhtml" id="section-1-1-7.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-2-1.xhtml" id="section-1-2-1.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-2-2.xhtml" id="section-1-2-2.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-2-3.xhtml" id="section-1-2-3.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-2-4.xhtml" id="section-1-2-4.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-2-5.xhtml" id="section-1-2-5.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-2-6.xhtml" id="section-1-2-6.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-3-1.xhtml" id="section-1-3-1.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-3-2.xhtml" id="section-1-3-2.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-3-3.xhtml" id="section-1-3-3.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-3-4.xhtml" id="section-1-3-4.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-3-5.xhtml" id="section-1-3-5.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-3-6.xhtml" id="section-1-3-6.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-3-7.xhtml" id="section-1-3-7.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-3-8.xhtml" id="section-1-3-8.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-3-9.xhtml" id="section-1-3-9.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-3-10.xhtml" id="section-1-3-10.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-3-11.xhtml" id="section-1-3-11.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-3-12.xhtml" id="section-1-3-12.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-3-13.xhtml" id="section-1-3-13.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-3-14.xhtml" id="section-1-3-14.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-3-15.xhtml" id="section-1-3-15.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-3-16.xhtml" id="section-1-3-16.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-4-1.xhtml" id="section-1-4-1.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-4-2.xhtml" id="section-1-4-2.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-4-3.xhtml" id="section-1-4-3.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-4-4.xhtml" id="section-1-4-4.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-4-5.xhtml" id="section-1-4-5.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-4-6.xhtml" id="section-1-4-6.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-1-4-7.xhtml" id="section-1-4-7.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-1-1.xhtml" id="section-2-1-1.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-1-2.xhtml" id="section-2-1-2.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-1-3.xhtml" id="section-2-1-3.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-1-4.xhtml" id="section-2-1-4.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-1-5.xhtml" id="section-2-1-5.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-1-6.xhtml" id="section-2-1-6.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-1-7.xhtml" id="section-2-1-7.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-1-8.xhtml" id="section-2-1-8.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-1-9.xhtml" id="section-2-1-9.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-1-10.xhtml" id="section-2-1-10.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-1-11.xhtml" id="section-2-1-11.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-1-12.xhtml" id="section-2-1-12.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-2-1.xhtml" id="section-2-2-1.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-2-2.xhtml" id="section-2-2-2.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-2-3.xhtml" id="section-2-2-3.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-2-4.xhtml" id="section-2-2-4.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-2-5.xhtml" id="section-2-2-5.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-2-6.xhtml" id="section-2-2-6.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-2-7.xhtml" id="section-2-2-7.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-2-8.xhtml" id="section-2-2-8.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-2-9.xhtml" id="section-2-2-9.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-2-10.xhtml" id="section-2-2-10.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-2-11.xhtml" id="section-2-2-11.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-2-12.xhtml" id="section-2-2-12.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-3-1.xhtml" id="section-2-3-1.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-3-2.xhtml" id="section-2-3-2.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-3-3.xhtml" id="section-2-3-3.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-3-4.xhtml" id="section-2-3-4.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-3-5.xhtml" id="section-2-3-5.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-3-6.xhtml" id="section-2-3-6.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-3-7.xhtml" id="section-2-3-7.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-3-8.xhtml" id="section-2-3-8.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-3-9.xhtml" id="section-2-3-9.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-2-3-10.xhtml" id="section-2-3-10.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-3-1-1.xhtml" id="section-3-1-1.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-3-1-2.xhtml" id="section-3-1-2.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-3-2-1.xhtml" id="section-3-2-1.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-3-2-2.xhtml" id="section-3-2-2.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-3-2-3.xhtml" id="section-3-2-3.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-3-2-4.xhtml" id="section-3-2-4.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-3-2-5.xhtml" id="section-3-2-5.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-3-2-6.xhtml" id="section-3-2-6.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-3-2-7.xhtml" id="section-3-2-7.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-3-2-8.xhtml" id="section-3-2-8.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-3-2-9.xhtml" id="section-3-2-9.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-3-2-10.xhtml" id="section-3-2-10.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-3-2-11.xhtml" id="section-3-2-11.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-3-2-12.xhtml" id="section-3-2-12.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-3-3-1.xhtml" id="section-3-3-1.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-3-3-2.xhtml" id="section-3-3-2.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-3-3-3.xhtml" id="section-3-3-3.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-3-3-4.xhtml" id="section-3-3-4.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-3-3-5.xhtml" id="section-3-3-5.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/section-3-3-6.xhtml" id="section-3-3-6.xhtml" media-type="application/xhtml+xml"/>
+		<item href="text/titlepage.xhtml" id="titlepage.xhtml" media-type="application/xhtml+xml" properties="svg"/>
+		<item href="text/uncopyright.xhtml" id="uncopyright.xhtml" media-type="application/xhtml+xml"/>
+		<item href="toc.xhtml" id="toc.xhtml" media-type="application/xhtml+xml" properties="nav"/>
+	</manifest>
+	<spine>
+		<itemref idref="titlepage.xhtml"/>
+		<itemref idref="imprint.xhtml"/>
+		<itemref idref="epigraph.xhtml"/>
+		<itemref idref="preface.xhtml"/>
+		<itemref idref="introduction.xhtml"/>
+		<itemref idref="halftitlepage.xhtml"/>
+		<itemref idref="book-1.xhtml"/>
+		<itemref idref="part-1-1.xhtml"/>
+		<itemref idref="section-1-1-1.xhtml"/>
+		<itemref idref="section-1-1-2.xhtml"/>
+		<itemref idref="section-1-1-3.xhtml"/>
+		<itemref idref="section-1-1-4.xhtml"/>
+		<itemref idref="section-1-1-5.xhtml"/>
+		<itemref idref="section-1-1-6.xhtml"/>
+		<itemref idref="section-1-1-7.xhtml"/>
+		<itemref idref="part-1-2.xhtml"/>
+		<itemref idref="section-1-2-1.xhtml"/>
+		<itemref idref="section-1-2-2.xhtml"/>
+		<itemref idref="section-1-2-3.xhtml"/>
+		<itemref idref="section-1-2-4.xhtml"/>
+		<itemref idref="section-1-2-5.xhtml"/>
+		<itemref idref="section-1-2-6.xhtml"/>
+		<itemref idref="part-1-3.xhtml"/>
+		<itemref idref="section-1-3-1.xhtml"/>
+		<itemref idref="section-1-3-2.xhtml"/>
+		<itemref idref="section-1-3-3.xhtml"/>
+		<itemref idref="section-1-3-4.xhtml"/>
+		<itemref idref="section-1-3-5.xhtml"/>
+		<itemref idref="section-1-3-6.xhtml"/>
+		<itemref idref="section-1-3-7.xhtml"/>
+		<itemref idref="section-1-3-8.xhtml"/>
+		<itemref idref="section-1-3-9.xhtml"/>
+		<itemref idref="section-1-3-10.xhtml"/>
+		<itemref idref="section-1-3-11.xhtml"/>
+		<itemref idref="section-1-3-12.xhtml"/>
+		<itemref idref="section-1-3-13.xhtml"/>
+		<itemref idref="section-1-3-14.xhtml"/>
+		<itemref idref="section-1-3-15.xhtml"/>
+		<itemref idref="section-1-3-16.xhtml"/>
+		<itemref idref="part-1-4.xhtml"/>
+		<itemref idref="section-1-4-1.xhtml"/>
+		<itemref idref="section-1-4-2.xhtml"/>
+		<itemref idref="section-1-4-3.xhtml"/>
+		<itemref idref="section-1-4-4.xhtml"/>
+		<itemref idref="section-1-4-5.xhtml"/>
+		<itemref idref="section-1-4-6.xhtml"/>
+		<itemref idref="section-1-4-7.xhtml"/>
+		<itemref idref="book-2.xhtml"/>
+		<itemref idref="part-2-1.xhtml"/>
+		<itemref idref="section-2-1-1.xhtml"/>
+		<itemref idref="section-2-1-2.xhtml"/>
+		<itemref idref="section-2-1-3.xhtml"/>
+		<itemref idref="section-2-1-4.xhtml"/>
+		<itemref idref="section-2-1-5.xhtml"/>
+		<itemref idref="section-2-1-6.xhtml"/>
+		<itemref idref="section-2-1-7.xhtml"/>
+		<itemref idref="section-2-1-8.xhtml"/>
+		<itemref idref="section-2-1-9.xhtml"/>
+		<itemref idref="section-2-1-10.xhtml"/>
+		<itemref idref="section-2-1-11.xhtml"/>
+		<itemref idref="section-2-1-12.xhtml"/>
+		<itemref idref="part-2-2.xhtml"/>
+		<itemref idref="section-2-2-1.xhtml"/>
+		<itemref idref="section-2-2-2.xhtml"/>
+		<itemref idref="section-2-2-3.xhtml"/>
+		<itemref idref="section-2-2-4.xhtml"/>
+		<itemref idref="section-2-2-5.xhtml"/>
+		<itemref idref="section-2-2-6.xhtml"/>
+		<itemref idref="section-2-2-7.xhtml"/>
+		<itemref idref="section-2-2-8.xhtml"/>
+		<itemref idref="section-2-2-9.xhtml"/>
+		<itemref idref="section-2-2-10.xhtml"/>
+		<itemref idref="section-2-2-11.xhtml"/>
+		<itemref idref="section-2-2-12.xhtml"/>
+		<itemref idref="part-2-3.xhtml"/>
+		<itemref idref="section-2-3-1.xhtml"/>
+		<itemref idref="section-2-3-2.xhtml"/>
+		<itemref idref="section-2-3-3.xhtml"/>
+		<itemref idref="section-2-3-4.xhtml"/>
+		<itemref idref="section-2-3-5.xhtml"/>
+		<itemref idref="section-2-3-6.xhtml"/>
+		<itemref idref="section-2-3-7.xhtml"/>
+		<itemref idref="section-2-3-8.xhtml"/>
+		<itemref idref="section-2-3-9.xhtml"/>
+		<itemref idref="section-2-3-10.xhtml"/>
+		<itemref idref="book-3.xhtml"/>
+		<itemref idref="part-3-1.xhtml"/>
+		<itemref idref="section-3-1-1.xhtml"/>
+		<itemref idref="section-3-1-2.xhtml"/>
+		<itemref idref="part-3-2.xhtml"/>
+		<itemref idref="section-3-2-1.xhtml"/>
+		<itemref idref="section-3-2-2.xhtml"/>
+		<itemref idref="section-3-2-3.xhtml"/>
+		<itemref idref="section-3-2-4.xhtml"/>
+		<itemref idref="section-3-2-5.xhtml"/>
+		<itemref idref="section-3-2-6.xhtml"/>
+		<itemref idref="section-3-2-7.xhtml"/>
+		<itemref idref="section-3-2-8.xhtml"/>
+		<itemref idref="section-3-2-9.xhtml"/>
+		<itemref idref="section-3-2-10.xhtml"/>
+		<itemref idref="section-3-2-11.xhtml"/>
+		<itemref idref="section-3-2-12.xhtml"/>
+		<itemref idref="part-3-3.xhtml"/>
+		<itemref idref="section-3-3-1.xhtml"/>
+		<itemref idref="section-3-3-2.xhtml"/>
+		<itemref idref="section-3-3-3.xhtml"/>
+		<itemref idref="section-3-3-4.xhtml"/>
+		<itemref idref="section-3-3-5.xhtml"/>
+		<itemref idref="section-3-3-6.xhtml"/>
+		<itemref idref="appendix.xhtml"/>
+		<itemref idref="endnotes.xhtml"/>
+		<itemref idref="colophon.xhtml"/>
+		<itemref idref="uncopyright.xhtml"/>
+	</spine>
+</package>

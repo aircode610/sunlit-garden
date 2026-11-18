@@ -81,13 +81,19 @@ fn roman(s: &str) -> Option<u32> {
 }
 
 /// The answer key from a Standard Ebooks book: its text files in reading order (`content.opf`
-/// spine), as (file name, XHTML). Sections typed chapter / subchapter / part / division open
-/// divisions, labelled by their heading's ordinal; every body `<p>` starts a passage. Heading text
-/// and note-reference numbers are not part of the book's words.
+/// spine), as (file name, XHTML). Sections typed chapter / subchapter / part / division — and the
+/// author's front and back matter (preface, introduction, appendix, …) — open divisions,
+/// labelled by their heading's ordinal (else its title); every body `<p>` starts a passage.
+/// Nesting follows `<section>` elements within a file and `data-parent` across files (books
+/// split one file per section). Heading text and note-reference numbers are not part of the
+/// book's words.
 pub fn standard_ebooks_gold(spine: &[(String, String)]) -> Result<Segmented, XhtmlError> {
     let mut out = Segmented::default();
+    // Depth of every division seen so far, by its id (for `data-parent` in later files).
+    let mut depth_of: std::collections::HashMap<String, usize> = Default::default();
     for (_, xhtml) in spine {
-        let mut depth = 0;
+        // Depths of the divisions open in this file, innermost last.
+        let mut open: Vec<usize> = Vec::new();
         // Open elements: (name, epub:type, is a division section).
         let mut stack: Vec<(String, String, bool)> = Vec::new();
         let mut heading: Option<(usize, String, String)> = None; // (depth, ordinal, all text)
@@ -110,11 +116,29 @@ pub fn standard_ebooks_gold(spine: &[(String, String)]) -> Result<Segmented, Xht
                                     | "part"
                                     | "division"
                                     | "z3998:section"
+                                    | "preface"
+                                    | "foreword"
+                                    | "introduction"
+                                    | "prologue"
+                                    | "epilogue"
+                                    | "conclusion"
+                                    | "afterword"
+                                    | "appendix"
                             )
                         });
                     if is_division {
-                        depth += 1;
+                        let attr =
+                            |k: &str| attrs.iter().find(|(a, _)| a == k).map(|(_, v)| v.clone());
+                        let parent = attr("data-parent")
+                            .and_then(|p| depth_of.get(&p).copied())
+                            .or_else(|| open.last().copied())
+                            .unwrap_or(0);
+                        if let Some(id) = attr("id") {
+                            depth_of.insert(id, parent + 1);
+                        }
+                        open.push(parent + 1);
                     }
+                    let depth = open.last().copied().unwrap_or(0);
                     let is_heading = name == "hgroup"
                         || (name.len() == 2
                             && name.starts_with('h')
@@ -133,7 +157,7 @@ pub fn standard_ebooks_gold(spine: &[(String, String)]) -> Result<Segmented, Xht
                 Token::End { name } => {
                     let (_, _, was_division) = stack.pop().expect("tokenize guarantees nesting");
                     if was_division {
-                        depth -= 1;
+                        open.pop();
                     }
                     let is_heading = name == "hgroup"
                         || (name.len() == 2
