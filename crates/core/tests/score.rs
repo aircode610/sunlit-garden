@@ -1,6 +1,6 @@
 //! The compiler scorer on the Hume Enquiry test pair: Standard Ebooks is the answer key.
 
-use sunlit_core::corpus::score::{DivisionMark, standard_ebooks_gold};
+use sunlit_core::corpus::score::{DivisionMark, spine_order, standard_ebooks_gold};
 
 const DIR: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -9,18 +9,35 @@ const DIR: &str = concat!(
 
 fn spine() -> Vec<(String, String)> {
     let opf = std::fs::read_to_string(format!("{DIR}/content.opf")).unwrap();
-    // The reading order is the content.opf spine; the fixture keeps only the text chapters.
-    let mut files = Vec::new();
-    for idref in opf
-        .split("<itemref idref=\"")
-        .skip(1)
-        .map(|s| s.split('"').next().unwrap())
-    {
-        if let Ok(text) = std::fs::read_to_string(format!("{DIR}/{idref}")) {
-            files.push((idref.to_owned(), text));
-        }
-    }
-    files
+    // The fixture keeps only the book's text chapters from the spine.
+    spine_order(&opf)
+        .unwrap()
+        .into_iter()
+        .filter_map(|id| {
+            std::fs::read_to_string(format!("{DIR}/{id}"))
+                .ok()
+                .map(|t| (id, t))
+        })
+        .collect()
+}
+
+#[test]
+fn the_spine_gives_the_reading_order() {
+    let opf = std::fs::read_to_string(format!("{DIR}/content.opf")).unwrap();
+    let order = spine_order(&opf).unwrap();
+    let chapters: Vec<&String> = order
+        .iter()
+        .filter(|id| id.starts_with("chapter-"))
+        .collect();
+    assert_eq!(
+        chapters,
+        (1..=12)
+            .map(|n| format!("chapter-{n}.xhtml"))
+            .collect::<Vec<_>>()
+            .iter()
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(order.first().map(String::as_str), Some("titlepage.xhtml"));
 }
 
 #[test]
@@ -240,5 +257,64 @@ fn a_misplaced_boundary_and_a_flat_part_are_counted() {
     assert!(
         (r.division_depths - 2.0 / 3.0).abs() < 1e-9,
         "the Part is at the wrong depth"
+    );
+}
+
+#[test]
+fn a_word_split_differently_at_a_boundary_still_maps_there() {
+    use sunlit_core::corpus::score::{DivisionMark, Segmented, score};
+    // Gutenberg prints "every one", Standard Ebooks "everyone", right where Section II starts.
+    let gold = Segmented {
+        words: w("the end of one section everyone will readily allow that"),
+        boundaries: vec![0, 5],
+        divisions: vec![DivisionMark {
+            at: 5,
+            depth: 1,
+            label: "2".into(),
+        }],
+    };
+    let ours = Segmented {
+        words: w("the end of one section every one will readily allow that"),
+        boundaries: vec![0, 5],
+        divisions: vec![DivisionMark {
+            at: 5,
+            depth: 1,
+            label: "2".into(),
+        }],
+    };
+
+    let r = score(&ours, &gold);
+
+    assert_eq!(r.passages.f1, 1.0, "{r:?}");
+    assert_eq!(r.divisions.f1, 1.0, "{r:?}");
+}
+
+/// The plain-text compiler's score on the Enquiry (default options) may only go up. When a
+/// compiler change improves it, raise these floors in the same commit.
+#[test]
+fn the_compiler_does_not_get_worse_on_the_enquiry() {
+    use sunlit_core::corpus::score::{score, segment};
+    let r = score(
+        &segment(GUTENBERG_9662, &compiled_9662()),
+        &standard_ebooks_gold(&spine()).unwrap(),
+    );
+
+    let floors = [
+        ("passage precision", r.passages.precision, 0.488),
+        ("passage recall", r.passages.recall, 1.0),
+        ("division F1", r.divisions.f1, 0.941),
+        ("division labels", r.division_labels, 0.96),
+        ("division nesting", r.division_depths, 0.44),
+    ];
+    for (name, value, floor) in floors {
+        assert!(
+            value >= floor - 1e-9,
+            "{name} dropped to {value:.4} (floor {floor})"
+        );
+    }
+    assert!(
+        r.window_diff <= 0.00195 + 1e-9,
+        "WindowDiff rose to {:.4}",
+        r.window_diff
     );
 }

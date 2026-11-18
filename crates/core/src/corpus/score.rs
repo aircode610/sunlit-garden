@@ -421,53 +421,83 @@ pub struct Report {
     /// Share of the answer key's divisions matched with the same label / the same depth.
     pub division_labels: f64,
     pub division_depths: f64,
+    /// Answer-key divisions with no division of ours at their start, and ours with no answer-key
+    /// division at theirs (`at` = answer-key word position; unmapped ones are left out).
+    pub missed_divisions: Vec<DivisionMark>,
+    pub extra_divisions: Vec<DivisionMark>,
+    /// Matched divisions whose label or depth differs: (answer key, ours).
+    pub wrong_divisions: Vec<(DivisionMark, DivisionMark)>,
 }
 
 /// Score `ours` against the answer key `gold`.
 pub fn score(ours: &Segmented, gold: &Segmented) -> Report {
     let pairs = align(&ours.words, &gold.words);
-    // Map an ours-word position onto the answer key (next aligned word within reach).
-    let map = |i: usize| -> Option<usize> {
+    // Map an ours-word position onto the answer key through the next aligned word (within
+    // reach). A position inside an unaligned gap (words the two editions spell or split
+    // differently, e.g. "every one" / "everyone") is ambiguous: if the answer key has a boundary
+    // in the same gap, it maps there — the texts can't tell them apart.
+    let map = |i: usize, targets: &std::collections::BTreeSet<usize>| -> Option<usize> {
         let k = pairs.partition_point(|&(a, _)| a < i);
-        pairs
-            .get(k)
-            .filter(|&&(a, _)| a - i <= MAP_REACH)
-            .map(|&(_, b)| b)
+        let &(a, b) = pairs.get(k).filter(|&&(a, _)| a - i <= MAP_REACH)?;
+        if a == i {
+            return Some(b);
+        }
+        let floor = k.checked_sub(1).map_or(0, |p| pairs[p].1 + 1);
+        Some(targets.range(floor..=b).next_back().copied().unwrap_or(b))
     };
 
     // Passages.
-    let mapped: Vec<Option<usize>> = ours.boundaries.iter().map(|&i| map(i)).collect();
+    let gold_set: std::collections::BTreeSet<usize> = gold.boundaries.iter().copied().collect();
+    let mapped: Vec<Option<usize>> = ours.boundaries.iter().map(|&i| map(i, &gold_set)).collect();
     let mut hyp: Vec<usize> = mapped.iter().flatten().copied().collect();
     hyp.sort_unstable();
     hyp.dedup();
-    let gold_set: std::collections::BTreeSet<usize> = gold.boundaries.iter().copied().collect();
     let tp = hyp.iter().filter(|b| gold_set.contains(b)).count();
     let passages = Prf::new(tp, ours.boundaries.len(), gold.boundaries.len());
     let (pk, window_diff) = segmentation_errors(&gold.boundaries, &hyp, gold.words.len());
 
     // Divisions: group by position; within a position, pair in reading order.
+    let gold_div_at: std::collections::BTreeSet<usize> =
+        gold.divisions.iter().map(|d| d.at).collect();
     let ours_divs: Vec<(usize, &DivisionMark)> = ours
         .divisions
         .iter()
-        .filter_map(|d| map(d.at).map(|p| (p, d)))
+        .filter_map(|d| map(d.at, &gold_div_at).map(|p| (p, d)))
         .collect();
     let mut by_pos: std::collections::BTreeMap<usize, Vec<&DivisionMark>> = Default::default();
     for (p, d) in &ours_divs {
         by_pos.entry(*p).or_default().push(d);
     }
     let (mut matched, mut labels, mut depths) = (0, 0, 0);
+    let (mut missed, mut extra, mut wrong) = (Vec::new(), Vec::new(), Vec::new());
     let mut gold_by_pos: std::collections::BTreeMap<usize, Vec<&DivisionMark>> = Default::default();
     for d in &gold.divisions {
         gold_by_pos.entry(d.at).or_default().push(d);
     }
     for (pos, gs) in &gold_by_pos {
-        if let Some(os) = by_pos.get(pos) {
-            for (g, o) in gs.iter().zip(os) {
-                matched += 1;
-                labels += usize::from(g.label == o.label);
-                depths += usize::from(g.depth == o.depth);
+        let os = by_pos.get(pos).map_or(&[][..], Vec::as_slice);
+        for (g, o) in gs.iter().zip(os) {
+            matched += 1;
+            labels += usize::from(g.label == o.label);
+            depths += usize::from(g.depth == o.depth);
+            if g.label != o.label || g.depth != o.depth {
+                wrong.push((
+                    (*g).clone(),
+                    DivisionMark {
+                        at: *pos,
+                        ..(*o).clone()
+                    },
+                ));
             }
         }
+        missed.extend(gs.iter().skip(os.len()).map(|g| (*g).clone()));
+    }
+    for (pos, os) in &by_pos {
+        let gs = gold_by_pos.get(pos).map_or(0, Vec::len);
+        extra.extend(os.iter().skip(gs).map(|o| DivisionMark {
+            at: *pos,
+            ..(*o).clone()
+        }));
     }
     let share = |n: usize| {
         if gold.divisions.is_empty() {
@@ -486,6 +516,9 @@ pub fn score(ours: &Segmented, gold: &Segmented) -> Report {
         divisions: Prf::new(matched, ours.divisions.len(), gold.divisions.len()),
         division_labels: share(labels),
         division_depths: share(depths),
+        missed_divisions: missed,
+        extra_divisions: extra,
+        wrong_divisions: wrong,
     }
 }
 
@@ -525,4 +558,24 @@ fn segmentation_errors(reference: &[usize], hypothesis: &[usize], n: usize) -> (
         pk_err as f64 / windows as f64,
         wd_err as f64 / windows as f64,
     )
+}
+
+/// The reading order of a Standard Ebooks (EPUB) book: `idref`s of the `<spine>`'s `<itemref>`s
+/// in `content.opf` (in Standard Ebooks the id is the file name, e.g. `chapter-1.xhtml`).
+pub fn spine_order(content_opf: &str) -> Result<Vec<String>, XhtmlError> {
+    let mut in_spine = false;
+    let mut out = Vec::new();
+    for token in tokenize(content_opf)? {
+        match token {
+            Token::Start { name, .. } if name == "spine" => in_spine = true,
+            Token::End { name } if name == "spine" => in_spine = false,
+            Token::Start { name, attrs } if in_spine && name == "itemref" => {
+                if let Some((_, id)) = attrs.into_iter().find(|(k, _)| k == "idref") {
+                    out.push(id);
+                }
+            }
+            _ => {}
+        }
+    }
+    Ok(out)
 }
