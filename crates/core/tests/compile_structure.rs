@@ -560,3 +560,43 @@ fn a_back_of_book_index_is_skipped_not_text() {
         "everything still covered"
     );
 }
+
+/// Footnotes printed as indented paragraphs ("    [7] Nothing is more useful…", plus any
+/// indented paragraphs that continue it) are notes on the passage with the marker "[7]", not text.
+#[test]
+fn footnote_paragraphs_are_notes_on_the_passage_with_their_marker() {
+    use sunlit_core::corpus::compile::structure::PlannedRole;
+    let file: &[u8] = include_bytes!("fixtures/gutenberg/pg9662.txt");
+    let s = compile_plain_text(file, body_range(file).unwrap(), &Options::default());
+    let texts: Vec<String> = (0..s.passages.len())
+        .filter(|&i| s.passages[i].role == PlannedRole::Text)
+        .map(|i| s.author_words(file, i))
+        .collect();
+
+    let footnote_like = texts
+        .iter()
+        .filter(|t| {
+            t.trim_start().starts_with('[') && t[1..].starts_with(|c: char| c.is_ascii_digit())
+        })
+        .count();
+    assert_eq!(
+        footnote_like, 0,
+        "a text passage starts with a footnote number"
+    );
+    assert!(
+        !texts
+            .iter()
+            .any(|t| t.starts_with("The same distinction between reason and experience")),
+        "footnote 7's second paragraph is still text"
+    );
+    assert!(
+        !s.problems.iter().any(|p| p.contains("in no unit")),
+        "everything still covered"
+    );
+    // Without a declaration of who wrote the notes, the edition goes to review (as for brackets).
+    assert!(
+        s.problems
+            .iter()
+            .any(|p| p.contains("note style not declared"))
+    );
+}

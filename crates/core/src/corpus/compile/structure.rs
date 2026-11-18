@@ -543,6 +543,41 @@ impl Sink<'_> {
         }
     }
 
+    /// A footnote printed as a paragraph: "[n] …" whose marker "[n]" appears in a text passage of
+    /// this division, plus the indented paragraphs that continue it. Planned as note paragraphs
+    /// on the passage with the marker (attribution as declared). `open` is the host of the
+    /// footnote being continued. Returns whether `r` was a footnote paragraph.
+    fn footnote(
+        &mut self,
+        r: &Range<usize>,
+        open: &mut Option<usize>,
+        counters: &mut HostCounters,
+    ) -> bool {
+        let file = self.file;
+        let host = match footnote_number(&file[r.clone()]) {
+            Some(n) => {
+                let marker = format!("[{n}]");
+                self.passages
+                    .iter()
+                    .enumerate()
+                    .rev()
+                    .find(|(_, p)| {
+                        p.division == self.division
+                            && p.role == PlannedRole::Text
+                            && file[p.range.clone()]
+                                .windows(marker.len())
+                                .any(|w| w == marker.as_bytes())
+                    })
+                    .map(|(i, _)| i)
+            }
+            None => open.filter(|_| indented(file, r)),
+        };
+        *open = host;
+        let Some(host) = host else { return false };
+        self.note_paragraph(r.clone(), host, counters);
+        true
+    }
+
     /// Bare editor markers must match editor note paragraphs one-to-one within a host.
     fn close_host(&mut self, host: Option<usize>, counters: &HostCounters) {
         if let Some(h) = host
@@ -567,8 +602,12 @@ fn numbered_sections(sink: &mut Sink, paras: &[Range<usize>]) {
     let mut counters = HostCounters::default();
     let mut number = 0u32;
 
+    let mut footnote: Option<usize> = None;
     for r in paras {
         let bytes = &file[r.clone()];
+        if sink.footnote(r, &mut footnote, &mut counters) {
+            continue;
+        }
         if is_whole_bracket(bytes) {
             let Some(host) = current else {
                 sink.problems
@@ -657,7 +696,11 @@ fn plain_paragraphs(sink: &mut Sink, paras: &[Range<usize>]) {
     let mut k = 0;
     let mut current: Option<usize> = None;
     let mut counters = HostCounters::default();
+    let mut footnote: Option<usize> = None;
     for r in paras {
+        if sink.footnote(r, &mut footnote, &mut counters) {
+            continue;
+        }
         if is_whole_bracket(&sink.file[r.clone()]) {
             let Some(host) = current else {
                 sink.problems
@@ -679,6 +722,41 @@ fn plain_paragraphs(sink: &mut Sink, paras: &[Range<usize>]) {
         current = Some(host);
     }
     sink.close_host(current, &counters);
+}
+
+/// The number of a footnote paragraph, which starts "[n] " ("[7] Nothing is more useful…").
+fn footnote_number(bytes: &[u8]) -> Option<u32> {
+    let rest = bytes.strip_prefix(b"[")?;
+    let close = rest.iter().position(|&b| b == b']')?;
+    let digits = &rest[..close];
+    if digits.is_empty()
+        || !digits.iter().all(u8::is_ascii_digit)
+        || rest
+            .get(close + 1)
+            .is_some_and(|b| !b.is_ascii_whitespace())
+    {
+        return None;
+    }
+    std::str::from_utf8(digits).ok()?.parse().ok()
+}
+
+/// Every line of the paragraph starts with at least four spaces (how Gutenberg prints notes).
+fn indented(file: &[u8], r: &Range<usize>) -> bool {
+    let line_start = file[..r.start]
+        .iter()
+        .rposition(|&b| b == b'\n')
+        .map_or(0, |i| i + 1);
+    let lines = std::iter::once(&file[line_start..r.start]).chain(
+        file[r.clone()].split(|&b| b == b'\n').skip(1).map(|l| {
+            &l[..l
+                .iter()
+                .position(|b| !b.is_ascii_whitespace() || *b == b'\r')
+                .unwrap_or(l.len())]
+        }),
+    );
+    lines
+        .into_iter()
+        .all(|indent| indent.iter().filter(|&&b| b == b' ').count() >= 4)
 }
 
 /// Who wrote this bracketed text, by the longest matching declared prefix.
