@@ -436,12 +436,13 @@ fn the_held_out_treatise_does_not_get_worse() {
 }
 
 /// A tuning book: heading fixes are made on it. The 1777 Gutenberg text differs from Standard
-/// Ebooks' 1790 one (Part III revised, Part VI ↔ VII), so it can't reach 100%.
+/// Ebooks' 1790 one (Part III revised, Part VI ↔ VII; the 1790-only Part VI and Advertisement are
+/// left out of the answer key), so it can't reach 100%.
 #[test]
 fn moral_sentiments_does_not_get_worse() {
     let r = score_by_paragraph(
         include_bytes!("fixtures/gutenberg/pg67363.txt"),
         "smith-moral-sentiments",
     );
-    assert_floors(&r, [0.835, 0.789, 0.847, 0.718, 0.281], 0.1080);
+    assert_floors(&r, [0.844, 0.790, 0.926, 0.857, 0.904], 0.1083);
 }

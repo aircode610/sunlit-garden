@@ -271,6 +271,8 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
     let mut paths: Vec<String> = Vec::new();
     // Open numbered divisions, outermost first, for nesting (see `nest`).
     let mut open: Vec<usize> = Vec::new();
+    // Divisions with no text of their own: fine if they hold sub-divisions (checked at the end).
+    let mut without_text: Vec<usize> = Vec::new();
     let mut passages: Vec<PlannedPassage> = Vec::new();
     let heading_indices: Vec<usize> = (0..paras.len())
         .filter(|&i| matches!(kinds[i], Para::Heading(_)))
@@ -317,7 +319,10 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
         }
         node.range = paras[start].start..content.last().map_or(paras[start].end, |&i| paras[i].end);
         let d = divisions.len();
-        node.parent = nest(&mut open, &divisions, &node, d);
+        // Directly under a heading with no text of its own (Smith's "SECTION II." then
+        // "INTRODUCTION.")?
+        let under_bare_heading = d > 0 && without_text.last() == Some(&(d - 1));
+        node.parent = nest(&mut open, &divisions, &node, d, under_bare_heading);
         let path = match node.parent {
             Some(p) => format!("{}/{}", paths[p], node.slug),
             None => node.slug.clone(),
@@ -335,9 +340,23 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
         paths.push(path.clone());
         let mut content_ranges: Vec<Range<usize>> =
             content.iter().map(|&i| paras[i].clone()).collect();
+        // Heading material after a heading that already carries its title: a lone short line
+        // before the sub-divisions ("Consisting of three Sections.").
+        if node.title.is_some()
+            && let [only] = &content_ranges[..]
+            && text(only).trim().lines().count() == 1
+            && text(only).trim().len() <= 80
+        {
+            units.push(Unit {
+                kind: UnitKind::DivisionHeading,
+                range: only.clone(),
+            });
+            content_ranges.clear();
+        }
         // A numbered division's title: its first paragraph, one short line in capitals.
         let mut title_markers = Vec::new();
-        if heading_number(&node.label).is_some()
+        if node.title.is_none()
+            && heading_number(&node.label).is_some()
             && let Some(first) = content_ranges.first().cloned()
             && looks_like_heading(&text(&first))
             && footnote_number(&file[first.clone()]).is_none()
@@ -357,7 +376,7 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
             content_ranges.remove(0);
         }
         if content_ranges.is_empty() {
-            problems.push(format!("division {:?} has no text", node.slug));
+            without_text.push(d);
         } else {
             let mut sink = Sink {
                 file,
@@ -380,6 +399,12 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
             } else {
                 plain_paragraphs(&mut sink, &content_ranges);
             }
+        }
+    }
+
+    for d in without_text {
+        if !divisions.iter().any(|x| x.parent == Some(d)) {
+            problems.push(format!("division {:?} has no text", paths[d]));
         }
     }
 
@@ -998,11 +1023,11 @@ struct Known {
 }
 
 /// A heading paragraph: a heading word and number on the first line ("PART I.", "CHAP. I."),
-/// optionally followed by up to two short lines of title ("Of the PROPRIETY of ACTION."); or a
+/// optionally followed by up to six short lines of title ("Of the PROPRIETY of ACTION."); or a
 /// plain heading word alone ("INTRODUCTION", "CONTENTS.").
 fn known_heading(text: &str) -> Option<Known> {
     let lines: Vec<&str> = text.trim().lines().map(str::trim).collect();
-    if lines.is_empty() || lines.len() > 3 || lines.iter().any(|l| l.len() > 80) {
+    if lines.is_empty() || lines.len() > 7 || lines.iter().any(|l| l.len() > 80) {
         return None;
     }
     let first = normalise(lines[0]);
@@ -1166,14 +1191,24 @@ fn title_case(text: &str) -> String {
 /// first. A heading of a kind already open closes back to that level and becomes its sibling
 /// (Section V after Section IV's Parts); a different kind numbered 1 nests inside the innermost
 /// open numbered division (Part I after Section IV); anything else — an unnumbered heading
-/// (Introduction, Index) or a new kind not starting at 1 — starts again at the top level.
+/// (Introduction, Index) or a new kind not starting at 1 — starts again at the top level, unless
+/// it comes straight after a heading with no text of its own: then it opens inside that one
+/// (Smith's "SECTION II." then "INTRODUCTION.") and the numbered divisions stay open.
 fn nest(
     open: &mut Vec<usize>,
     divisions: &[DivisionNode],
     node: &DivisionNode,
     index: usize,
+    under_bare_heading: bool,
 ) -> Option<usize> {
     let number = heading_number(&node.label);
+    if number.is_none()
+        && under_bare_heading
+        && let Some(&innermost) = open.last()
+        && innermost + 1 == index
+    {
+        return Some(innermost);
+    }
     let parent = if let Some(level) = open.iter().position(|&o| divisions[o].kind == node.kind) {
         open.truncate(level);
         open.last().copied()
