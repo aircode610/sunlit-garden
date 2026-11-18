@@ -6,22 +6,21 @@ use sunlit_core::corpus::manifest::Manifest;
 
 const SOURCES: &str = include_str!("../../../corpus/sources.toml");
 
-/// The pinned file of Gutenberg #`provider_id`, kept in tests/fixtures/gutenberg.
-fn fixture(provider_id: &str) -> Vec<u8> {
+/// The pinned file of a document, kept as tests/fixtures/<provider>/<file name in its URL>.
+fn fixture(provider: &str, url: &str) -> Vec<u8> {
+    let name = url.rsplit('/').next().unwrap_or_default();
     let path = format!(
-        "{}/tests/fixtures/gutenberg/pg{provider_id}.txt",
+        "{}/tests/fixtures/{provider}/{name}",
         env!("CARGO_MANIFEST_DIR")
     );
-    std::fs::read(&path).unwrap_or_else(|_| {
-        panic!("no fixture for Gutenberg #{provider_id}: add it to tests/fixtures")
-    })
+    std::fs::read(&path).unwrap_or_else(|_| panic!("no fixture {path}: add it to tests/fixtures"))
 }
 
 #[test]
 fn every_edition_in_the_source_list_compiles_without_problems() {
     let manifest = Manifest::parse(SOURCES).unwrap();
     for document in &manifest.documents {
-        let file = fixture(&document.provider_id);
+        let file = fixture(document.provider.as_str(), &document.url);
         assert_eq!(
             Some(sunlit_core::Sha256::of(&file)),
             document.sha256,
