@@ -125,8 +125,9 @@ pub struct PlannedPassage {
     pub locator: String,
     pub role: PlannedRole,
     pub range: Range<usize>,
-    /// Index into `Compiled::divisions`.
-    pub division: usize,
+    /// Index into `Compiled::divisions`, or `None` for a work with no divisions (Gaunilo's
+    /// reply, cited by its numbered sections alone).
+    pub division: Option<usize>,
 }
 
 /// Everything the compiler learned about one edition.
@@ -200,7 +201,7 @@ pub(super) fn check_expectations(
             };
             let have = passages
                 .iter()
-                .filter(|p| p.division == d && p.role == PlannedRole::Text)
+                .filter(|p| p.division == Some(d) && p.role == PlannedRole::Text)
                 .count();
             if have != want {
                 problems.push(format!(
@@ -659,7 +660,7 @@ impl Sink<'_> {
             locator,
             role,
             range,
-            division: self.division,
+            division: Some(self.division),
         });
         self.passages.len() - 1
     }
@@ -798,7 +799,7 @@ impl Sink<'_> {
                     .enumerate()
                     .rev()
                     .find(|(_, p)| {
-                        p.division == self.division
+                        p.division == Some(self.division)
                             && p.role == PlannedRole::Text
                             && file[p.range.clone()]
                                 .windows(marker.len())

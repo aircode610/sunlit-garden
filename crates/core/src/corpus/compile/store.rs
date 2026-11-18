@@ -132,7 +132,7 @@ pub async fn store_structure<S: Store>(
         };
         let new = NewPassage {
             edition: edition.id,
-            division: Some(division_ids[p.division]),
+            division: p.division.map(|d| division_ids[d]),
             ordinal: i as i32,
             locator: Locator::parse(&p.locator)?,
             role,

@@ -791,7 +791,11 @@ fn titles_on_the_heading_line_and_chapters_numbered_through_the_parts() {
     assert_eq!(d.iter().filter(|x| x.kind == "introduction").count(), 1);
     // The contents list ends where the body's "THE INTRODUCTION" repeats its "INTRODUCTION".
     let intro = find("introduction", "Introduction");
-    let first = s.passages.iter().find(|p| p.division == intro).unwrap();
+    let first = s
+        .passages
+        .iter()
+        .find(|p| p.division == Some(intro))
+        .unwrap();
     assert!(file[first.range.clone()].starts_with(b"Nature (the art whereby God"));
     let parts: Vec<(&str, Option<&str>)> = d
         .iter()

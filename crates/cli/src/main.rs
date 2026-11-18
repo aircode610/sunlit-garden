@@ -215,7 +215,7 @@ async fn compile_report(
                     let n = s
                         .passages
                         .iter()
-                        .filter(|p| p.division == i && p.role == PlannedRole::Text)
+                        .filter(|p| p.division == Some(i) && p.role == PlannedRole::Text)
                         .count();
                     format!("{} ({n})", d.slug)
                 })

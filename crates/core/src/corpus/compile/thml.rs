@@ -11,8 +11,8 @@
 use std::ops::Range;
 
 use super::structure::{
-    Options, PlannedPassage, PlannedRole, Structure, check_expectations, normalise, numbered_entry,
-    slugify, title_text,
+    Options, PassageUnit, PlannedPassage, PlannedRole, Structure, check_expectations, normalise,
+    numbered_entry, slugify, title_text,
 };
 use super::{Compiled, DivisionNode, Unit, UnitKind, check_coverage};
 use crate::corpus::xhtml::{Token, decode, tokenize_spans};
@@ -55,13 +55,10 @@ pub fn compile_thml(file: &[u8], id: &str, options: &Options) -> Structure {
             return s;
         }
     };
-    let Some(first) = tokens.iter().position(
-        |(_, t)| matches!(t, Token::Start { attrs, .. } if attr(attrs, "id") == Some(id)),
-    ) else {
+    let Some((first, last)) = element(&tokens, id) else {
         s.problems.push(format!("no element with id {id:?}"));
         return s;
     };
-    let last = matching_end(&tokens, first);
     s.compiled.body = tokens[first].0.start..tokens[last].0.end;
 
     let mut w = Walker {
@@ -71,6 +68,9 @@ pub fn compile_thml(file: &[u8], id: &str, options: &Options) -> Structure {
         open: Vec::new(),
         paths: Vec::new(),
         counts: Vec::new(),
+        work_count: 0,
+        numbered: options.passages == PassageUnit::NumberedSections,
+        notes: Vec::new(),
     };
     w.skip(&tokens[first].0, "markup");
     w.skip(&tokens[last].0, "markup");
@@ -79,7 +79,7 @@ pub fn compile_thml(file: &[u8], id: &str, options: &Options) -> Structure {
     let mut s = w.s;
     let paths = w.paths;
     for (d, path) in paths.iter().enumerate() {
-        let has_text = s.passages.iter().any(|p| p.division == d);
+        let has_text = s.passages.iter().any(|p| p.division == Some(d));
         let has_children = s.compiled.divisions.iter().any(|x| x.parent == Some(d));
         if !has_text && !has_children {
             s.problems.push(format!("division {path:?} has no text"));
@@ -107,6 +107,13 @@ struct Walker<'a> {
     paths: Vec<String>,
     /// Text passages so far in each division (their numbers).
     counts: Vec<usize>,
+    /// Text passages so far directly in the work (an undivided work).
+    work_count: usize,
+    /// Declared `passages = "numbered-sections"`: "1. …" starts a passage, other paragraphs
+    /// continue it.
+    numbered: bool,
+    /// Editor's notes so far on each passage (by passage index).
+    notes: Vec<usize>,
 }
 
 impl Walker<'_> {
@@ -137,6 +144,12 @@ impl Walker<'_> {
                         if let Some(&d) = self.open.last() {
                             self.s.compiled.divisions[d].title = Some(title);
                         }
+                    } else if name == "p"
+                        && attr(attrs, "style").is_some_and(|st| st.contains("text-align:center"))
+                        && !self.has_text(self.open.last().copied())
+                    {
+                        // Centred lines before the text: the work's printed title block.
+                        self.unit(whole, UnitKind::DivisionHeading);
                     } else if name == "p" {
                         self.paragraph(i, end);
                     } else if name == "pb" {
@@ -185,34 +198,70 @@ impl Walker<'_> {
         self.open.push(self.s.compiled.divisions.len() - 1);
     }
 
+    /// Whether the division (or, for `None`, the work itself) has text passages yet.
+    fn has_text(&self, container: Option<usize>) -> bool {
+        self.s
+            .passages
+            .iter()
+            .any(|p| p.division == container && p.role == PlannedRole::Text)
+    }
+
     /// A body paragraph: tokens `start` (`<p …>`) to `end` (`</p>`).
     fn paragraph(&mut self, start: usize, end: usize) {
         self.skip(&self.tokens[start].0.clone(), "markup");
         self.skip(&self.tokens[end].0.clone(), "markup");
-        let content = trim(self.src, self.tokens[start].0.end..self.tokens[end].0.start);
+        let mut content = trim(self.src, self.tokens[start].0.end..self.tokens[end].0.start);
         if content.is_empty() {
             return;
         }
-        let Some(&d) = self.open.last() else {
-            self.s
-                .problems
-                .push("paragraph outside any division".into());
-            return;
+        let container = self.open.last().copied();
+        let prefix = container.map_or(String::new(), |d| format!("{}/", self.paths[d]));
+        let host = if self.numbered {
+            match section_number(&self.src[content.clone()]) {
+                Some((number, len)) => {
+                    // The printed number is a label, not the text.
+                    self.unit(content.start..content.start + len, UnitKind::SectionNumber);
+                    content = trim(self.src, content.start + len..content.end);
+                    self.new_passage(format!("{prefix}{number}"), container, content.clone())
+                }
+                None => match self
+                    .s
+                    .passages
+                    .iter()
+                    .rposition(|p| p.division == container && p.role == PlannedRole::Text)
+                {
+                    // A continuation paragraph: the section runs on over it.
+                    Some(h) => {
+                        self.s.passages[h].range.end = content.end;
+                        h
+                    }
+                    None => {
+                        self.s
+                            .problems
+                            .push(format!("{prefix}: text before the first numbered section"));
+                        self.unit(content, UnitKind::Text);
+                        return;
+                    }
+                },
+            }
+        } else {
+            let n = match container {
+                Some(d) => {
+                    self.counts[d] += 1;
+                    self.counts[d]
+                }
+                None => {
+                    self.work_count += 1;
+                    self.work_count
+                }
+            };
+            self.new_passage(format!("{prefix}{n}"), container, content.clone())
         };
-        self.counts[d] += 1;
-        let locator = format!("{}/{}", self.paths[d], self.counts[d]);
-        self.s.passages.push(PlannedPassage {
-            locator: locator.clone(),
-            role: PlannedRole::Text,
-            range: content.clone(),
-            division: d,
-        });
-        let host = self.s.passages.len() - 1;
+        let locator = self.s.passages[host].locator.clone();
 
         // Editor's notes inside: nested passages; the author text around them is covered in
         // pieces.
         let mut cursor = content.start;
-        let mut notes = 0;
         let mut j = start + 1;
         while j < end {
             if let Token::Start { name, .. } = &self.tokens[j].1
@@ -221,20 +270,37 @@ impl Walker<'_> {
                 let close = matching_end(self.tokens, j);
                 let note = self.tokens[j].0.start..self.tokens[close].0.end;
                 self.text_piece(cursor..note.start);
-                notes += 1;
+                self.notes[host] += 1;
                 self.unit(note.clone(), UnitKind::Insertion);
                 self.s.passages.push(PlannedPassage {
-                    locator: format!("{locator}/note-{notes}"),
+                    locator: format!("{locator}/note-{}", self.notes[host]),
                     role: PlannedRole::EditorNote { on: host },
                     range: note.clone(),
-                    division: d,
+                    division: container,
                 });
+                self.notes.push(0);
                 cursor = note.end;
                 j = close;
             }
             j += 1;
         }
         self.text_piece(cursor..content.end);
+    }
+
+    fn new_passage(
+        &mut self,
+        locator: String,
+        division: Option<usize>,
+        range: Range<usize>,
+    ) -> usize {
+        self.s.passages.push(PlannedPassage {
+            locator,
+            role: PlannedRole::Text,
+            range,
+            division,
+        });
+        self.notes.push(0);
+        self.s.passages.len() - 1
     }
 
     fn text_piece(&mut self, range: Range<usize>) {
@@ -280,6 +346,13 @@ fn division_name(title: &str) -> (String, String, String) {
     ("division".to_owned(), t.to_owned(), slugify(&n))
 }
 
+/// "1. IF one doubts…" → (1, length of "1."): a section number printed at the start.
+fn section_number(text: &str) -> Option<(u32, usize)> {
+    let digits = text.find(|c: char| !c.is_ascii_digit())?;
+    let n: u32 = text[..digits].parse().ok()?;
+    text[digits..].starts_with(". ").then_some((n, digits + 1))
+}
+
 /// The text of a markup fragment: tags removed (inline markup never separates words:
 /// "un<i>known</i>" is "unknown"), entities decoded, whitespace collapsed.
 pub(crate) fn text_of(markup: &str) -> String {
@@ -308,6 +381,23 @@ fn is_heading(name: &str) -> bool {
     name.len() == 2 && name.starts_with('h') && name.as_bytes()[1].is_ascii_digit()
 }
 
+/// The start and end token indices of the element with `id`.
+fn element(tokens: &[(Range<usize>, Token)], id: &str) -> Option<(usize, usize)> {
+    let first = tokens.iter().position(
+        |(_, t)| matches!(t, Token::Start { attrs, .. } if attr(attrs, "id") == Some(id)),
+    )?;
+    Some((first, matching_end(tokens, first)))
+}
+
+/// The bytes of the element with `id`, from its start tag to its end tag: an edition's range
+/// inside a multi-work XML file.
+pub fn element_range(file: &[u8], id: &str) -> Result<Range<usize>, String> {
+    let src = std::str::from_utf8(file).map_err(|_| "file is not UTF-8".to_owned())?;
+    let tokens = tokenize_spans(src).map_err(|e| format!("not well-formed: {e}"))?;
+    let (first, last) = element(&tokens, id).ok_or_else(|| format!("no element with id {id:?}"))?;
+    Ok(tokens[first].0.start..tokens[last].0.end)
+}
+
 /// The index of the end token closing the start token at `start`.
 fn matching_end(tokens: &[(Range<usize>, Token)], start: usize) -> usize {
     let mut depth = 0usize;
@@ -326,8 +416,12 @@ fn matching_end(tokens: &[(Range<usize>, Token)], start: usize) -> usize {
     tokens.len() - 1
 }
 
-/// `range` without surrounding whitespace.
+/// `range` without surrounding whitespace (empty if there's nothing but whitespace).
 fn trim(src: &str, range: Range<usize>) -> Range<usize> {
+    // A self-closing element (`<p/>`) has no content: its "inside" runs backwards.
+    if range.start >= range.end {
+        return range.start..range.start;
+    }
     let t = &src[range.clone()];
     let start = range.start + (t.len() - t.trim_start().len());
     let end = range.end - (t.len() - t.trim_end().len());

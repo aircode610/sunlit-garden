@@ -178,6 +178,9 @@ pub fn compile_edition(
     file: &[u8],
     edition: &EditionEntry,
 ) -> Result<structure::Structure, String> {
+    if let RangeSpec::Element { id } = &edition.range {
+        return Ok(thml::compile_thml(file, id, &edition.compile));
+    }
     let body = match edition.range {
         RangeSpec::GutenbergBody => gutenberg::body_range(file).map_err(|e| e.to_string())?,
         RangeSpec::Bytes { start, end } if end as usize <= file.len() => {
@@ -189,6 +192,7 @@ pub fn compile_edition(
                 file.len()
             ));
         }
+        RangeSpec::Element { .. } => unreachable!("compiled as ThML above"),
     };
     Ok(structure::compile_plain_text(file, body, &edition.compile))
 }

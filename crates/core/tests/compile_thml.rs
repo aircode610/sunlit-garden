@@ -73,3 +73,53 @@ fn a_thml_work_is_its_divisions_and_paragraphs() {
         "AND so, Lord, do thou & give. Amen."
     );
 }
+
+#[test]
+fn an_empty_self_closing_paragraph_is_no_passage() {
+    let file = br#"<ThML><div1 title="Proslogium" id="iii"><div2 title="Chapter I." id="iii.ii"><p/><p>Up now.</p></div2></div1></ThML>"#;
+    let s = compile_thml(file, "iii", &Options::default());
+    assert!(s.problems.is_empty(), "{:?}", s.problems);
+    assert_eq!(s.passages.len(), 1);
+}
+
+/// Gaunilo's reply as CCEL prints it: no sub-divisions, a centred title block, then sections
+/// numbered by the text ("1. IF one doubts…") with continuation paragraphs. Declared
+/// `passages = "numbered-sections"`, each section is one passage with no division, cited "1".
+#[test]
+fn an_undivided_work_in_numbered_sections() {
+    use sunlit_core::corpus::compile::structure::PassageUnit;
+    let src = r#"<ThML><div2 title="In Behalf of the Fool" id="v.i">
+<p style="text-align:center" id="v.i-p1"><cite>IN BEHALF OF THE FOOL.</cite></p>
+<p style="text-align:center" id="v.i-p3">BY <name>GAUNILON</name>, A MONK OF MARMOUTIER.</p>
+<p style="text-indent:.2in" id="v.i-p4" />
+<p class="PFirst">1. IF one doubts or denies the existence of a being.</p>
+<p class="PContinue">The existence of this being is proved.</p>
+<p class="PFirst">2. To this assertion, I reply.</p>
+</div2></ThML>"#;
+    let options = Options {
+        passages: PassageUnit::NumberedSections,
+        ..Options::default()
+    };
+    let s = compile_thml(src.as_bytes(), "v.i", &options);
+    assert!(s.problems.is_empty(), "{:?}", s.problems);
+    assert!(s.compiled.divisions.is_empty());
+    let plan: Vec<(&str, Option<usize>, String)> = s
+        .passages
+        .iter()
+        .enumerate()
+        .map(|(i, p)| {
+            (
+                p.locator.as_str(),
+                p.division,
+                s.author_words(src.as_bytes(), i),
+            )
+        })
+        .collect();
+    assert_eq!(
+        plan,
+        [
+            ("1", None, "IF one doubts or denies the existence of a being. The existence of this being is proved.".to_owned()),
+            ("2", None, "To this assertion, I reply.".to_owned()),
+        ]
+    );
+}

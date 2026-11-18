@@ -76,6 +76,12 @@ pub enum ImportError {
         end: i64,
         file_length: usize,
     },
+    /// The edition's XML element (`range = { div = … }`) isn't in the file.
+    Element {
+        url: String,
+        edition: Slug,
+        error: String,
+    },
     Store(StoreError),
     Blob(BlobError),
 }
@@ -122,6 +128,11 @@ impl fmt::Display for ImportError {
                 "{url}, edition {}: range {start}..{end} doesn't fit a {file_length}-byte file",
                 edition.as_str()
             ),
+            ImportError::Element {
+                url,
+                edition,
+                error,
+            } => write!(f, "{url}, edition {}: {error}", edition.as_str()),
             ImportError::Store(e) => write!(f, "{e}"),
             ImportError::Blob(e) => write!(f, "{e}"),
         }
@@ -240,7 +251,7 @@ async fn import_document<S: Store, F: Fetcher>(
 
     let mut editions = Vec::new();
     for edition in &document.editions {
-        let range = edition_range(edition.range, &bytes, &document.url, &edition.slug)?;
+        let range = edition_range(&edition.range, &bytes, &document.url, &edition.slug)?;
         let (thinker, work) = (&edition.work.0, &edition.work.1);
         store
             .ensure_edition(&NewEdition {
@@ -277,7 +288,7 @@ async fn fetch<F: Fetcher>(fetcher: &F, url: &str) -> Result<Bytes, ImportError>
 }
 
 fn edition_range(
-    spec: RangeSpec,
+    spec: &RangeSpec,
     bytes: &[u8],
     url: &str,
     edition: &Slug,
@@ -289,15 +300,21 @@ fn edition_range(
                 error,
             })
         }
-        RangeSpec::Bytes { start, end } if end as usize <= bytes.len() => {
+        &RangeSpec::Bytes { start, end } if end as usize <= bytes.len() => {
             Ok(start as usize..end as usize)
         }
-        RangeSpec::Bytes { start, end } => Err(ImportError::Range {
+        &RangeSpec::Bytes { start, end } => Err(ImportError::Range {
             url: url.to_owned(),
             edition: edition.clone(),
             start,
             end,
             file_length: bytes.len(),
         }),
+        RangeSpec::Element { id } => crate::corpus::compile::thml::element_range(bytes, id)
+            .map_err(|error| ImportError::Element {
+                url: url.to_owned(),
+                edition: edition.clone(),
+                error,
+            }),
     }
 }
