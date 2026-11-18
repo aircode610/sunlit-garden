@@ -18,6 +18,7 @@ fn berkeley_options() -> Options {
             kind: "part".into(),
             label: "I".into(),
             slug: "part-1".into(),
+            by: None,
         }],
         // Declared for edition #4723: its bracketed notes, markers and cross-references are the
         // editor's.
@@ -43,6 +44,7 @@ fn hume_options() -> Options {
             kind: "letter".into(),
             label: "Pamphilus to Hermippus".into(),
             slug: "pamphilus-to-hermippus".into(),
+            by: None,
         }],
         // Declared for edition #4583: bracketed text is Hume's own source references.
         insertions: vec![InsertionRule {
@@ -1038,4 +1040,72 @@ fn a_contents_list_followed_by_front_matter_ends_with_its_entries() {
             s.problems
         );
     }
+}
+
+/// A division declared as the editor's (a modern introduction) is covered but never passages:
+/// its words aren't the author's.
+#[test]
+fn a_division_declared_as_the_editors_is_skipped() {
+    use sunlit_core::corpus::compile::structure::{Attribution, HeadingOverride, PassageUnit};
+    let file = b"INTRODUCTION\n\nHolbach is best known for The System of Nature.\n\nPREFACE\n\nThe source of man's unhappiness is his ignorance of Nature.\n";
+    let options = Options {
+        passages: PassageUnit::Paragraphs,
+        headings: vec![HeadingOverride {
+            text: "INTRODUCTION".into(),
+            kind: "introduction".into(),
+            label: "Introduction".into(),
+            slug: "introduction".into(),
+            by: Some(Attribution::Editor),
+        }],
+        ..Options::default()
+    };
+    let s = compile_plain_text(file, 0..file.len(), &options);
+    let texts: Vec<&[u8]> = s.passages.iter().map(|p| &file[p.range.clone()]).collect();
+    assert_eq!(
+        texts,
+        [&b"The source of man's unhappiness is his ignorance of Nature."[..]]
+    );
+    let slugs: Vec<&str> = s
+        .compiled
+        .divisions
+        .iter()
+        .map(|d| d.slug.as_str())
+        .collect();
+    assert_eq!(slugs, ["preface"]);
+    assert!(s.problems.is_empty(), "{:?}", s.problems);
+}
+
+/// A title printed in italics under a bare heading ("CHAP. I." / "_Nature and her Laws_.") is
+/// the division's title; a printer's end mark ("END OF PART I.", "FINIS.") is no one's words.
+#[test]
+fn italic_titles_and_end_marks_are_not_passages() {
+    use sunlit_core::corpus::compile::structure::PassageUnit;
+    let file = b"CHAP. I.\n\n_Nature and her Laws_.\n\nMen will always deceive themselves.\n\nEND OF PART I.\n\nCHAP. II.\n\n_Of Motion, and its Origin._\n\nMotion is an effort.\n\nFINIS.\n";
+    let options = Options {
+        passages: PassageUnit::Paragraphs,
+        ..Options::default()
+    };
+    let s = compile_plain_text(file, 0..file.len(), &options);
+    let texts: Vec<&[u8]> = s.passages.iter().map(|p| &file[p.range.clone()]).collect();
+    assert_eq!(
+        texts,
+        [
+            &b"Men will always deceive themselves."[..],
+            b"Motion is an effort."
+        ]
+    );
+    let titles: Vec<Option<&str>> = s
+        .compiled
+        .divisions
+        .iter()
+        .map(|d| d.title.as_deref())
+        .collect();
+    assert_eq!(
+        titles,
+        [
+            Some("Nature and her Laws"),
+            Some("Of Motion, and its Origin")
+        ]
+    );
+    assert!(s.problems.is_empty(), "{:?}", s.problems);
 }

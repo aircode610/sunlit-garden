@@ -25,6 +25,9 @@ pub struct HeadingOverride {
     pub label: String,
     /// Locator segment for passages inside it, e.g. `part-1`.
     pub slug: String,
+    /// Whose words the division is, if not the author's: `Editor` (a modern introduction) is
+    /// covered but never passages.
+    pub by: Option<Attribution>,
 }
 
 /// Who wrote a style of bracketed insertion in this edition.
@@ -206,18 +209,29 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
             Some(_) => {
                 let mut end = (stop..paras.len())
                     .find(|&i| {
+                        let t = text(&paras[i]);
                         let entry = match id(i) {
                             Some(_) => repeats(i).is_some(),
-                            None => !text(&paras[i]).chars().any(char::is_lowercase),
+                            None => {
+                                !t.chars().any(char::is_lowercase)
+                                    || (t.trim().lines().count() <= 3
+                                        && t.lines().next().and_then(numbered_entry).is_some())
+                            }
                         };
                         !entry || is_separator(&text(&paras[i]))
                     })
                     .unwrap_or(paras.len());
                 // A title in capitals opening the front matter ("A BRIEF SKETCH OF THE LIFE…")
-                // looks like an entry; an entry that isn't a heading ends in a page number.
+                // looks like an entry; an entry that isn't a heading is numbered ("CHAP. I. …")
+                // or ends in a page number.
                 while end > stop
                     && id(end - 1).is_none()
                     && !ends_in_page_number(&text(&paras[end - 1]))
+                    && text(&paras[end - 1])
+                        .lines()
+                        .next()
+                        .and_then(numbered_entry)
+                        .is_none()
                 {
                     end -= 1;
                 }
@@ -236,6 +250,7 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
     enum Para {
         Heading(DivisionNode),
         Separator,
+        EndMark,
         Contents,
         Content,
     }
@@ -249,6 +264,8 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
             Para::Contents
         } else if is_separator(&t) {
             Para::Separator
+        } else if is_end_mark(&t) {
+            Para::EndMark
         } else if let Some(o) = options.headings.iter().find(|o| normalise(&o.text) == n) {
             Para::Heading(division(&o.kind, &o.label, &o.slug, r.clone()))
         } else if let Some(k) = known_heading(&t) {
@@ -328,6 +345,7 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
             .filter(|&i| {
                 let unit_kind = match kinds[i] {
                     Para::Separator => Some(UnitKind::Skipped("separator")),
+                    Para::EndMark => Some(UnitKind::Skipped("end mark")),
                     Para::Contents => Some(UnitKind::Skipped("table of contents")),
                     _ => None,
                 };
@@ -355,6 +373,20 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
             for &i in &content {
                 units.push(Unit {
                     kind: UnitKind::Skipped("front matter"),
+                    range: paras[i].clone(),
+                });
+            }
+            continue;
+        }
+        // A division declared as the editor's (a modern introduction): covered, never passages.
+        let editorial = options.headings.iter().any(|o| {
+            o.by == Some(Attribution::Editor)
+                && normalise(&o.text) == normalise(&text(&paras[start]))
+        });
+        if editorial {
+            for &i in &content {
+                units.push(Unit {
+                    kind: UnitKind::Skipped("editor's division"),
                     range: paras[i].clone(),
                 });
             }
@@ -433,15 +465,14 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
         if node.title.is_none()
             && heading_number(&node.label).is_some()
             && let Some(first) = content_ranges.first().cloned()
-            && is_title_continuation(&text(&first))
+            && (is_title_continuation(&text(&first)) || is_italic_title(&text(&first)))
             && footnote_number(&file[first.clone()]).is_none()
             && section_number(&file[first.clone()]).is_none()
         {
             let printed = text(&first);
             title_markers = bracket_numbers(printed.as_bytes());
             let title = String::from_utf8_lossy(&without_brackets(printed.as_bytes())).into_owned();
-            let title = title.split_whitespace().collect::<Vec<_>>().join(" ");
-            let title = title.trim_end_matches('.').trim().to_owned();
+            let title = title_text(&title);
             divisions[d].title = Some(title.clone());
             node.title = Some(title);
             units.push(Unit {
@@ -491,7 +522,26 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
             .filter(|&&i| contents_heading.is_some_and(|c| i > c))
             .map(|&i| normalise(&text(&paras[i])))
             .collect();
-        if after_contents != toc {
+        // Lists print page numbers and wrap entries over lines, so failing the exact match,
+        // the list's numbered entries (Part I, Chap. I, Chap. II, …) must match the numbered
+        // headings found, in order.
+        let mut listed: Vec<(&str, u32)> = toc.iter().filter_map(|l| numbered_entry(l)).collect();
+        // The same entry twice in a row is a transcription slip (no book has two consecutive
+        // Chapter VIIs): kept visible as a warning.
+        let printed = listed.len();
+        listed.dedup();
+        if listed.len() < printed {
+            warnings.push(format!(
+                "contents list repeats {} entr(y/ies) in a row (transcription slip?)",
+                printed - listed.len()
+            ));
+        }
+        let found: Vec<(&str, u32)> = after_contents
+            .iter()
+            .filter_map(|h| h.lines().next().and_then(numbered_entry))
+            .filter(|(kind, _)| listed.iter().any(|(k, _)| k == kind))
+            .collect();
+        if after_contents != toc && (listed.is_empty() || listed != found) {
             problems.push(format!(
                 "contents list {toc:?} doesn't match the headings found {after_contents:?}"
             ));
@@ -1132,6 +1182,31 @@ fn without_brackets(bytes: &[u8]) -> Vec<u8> {
 
 /// `PART 4`, `PART IV`, `BOOK II`, `CHAPTER IX`, `SECTION 3`, or a standalone known heading word.
 /// Returns (kind, label, slug).
+/// Heading words and the division kind each one opens.
+const HEADING_WORDS: [(&str, &str); 6] = [
+    ("PART", "part"),
+    ("BOOK", "book"),
+    ("CHAPTER", "chapter"),
+    ("CHAP.", "chapter"),
+    ("SECTION", "section"),
+    ("SECT.", "section"),
+];
+
+/// A line that starts with a heading word and a number, in any case and whatever follows
+/// ("CHAP. I. Nature and her laws.", "PART I--Laws of Nature"): its kind and number.
+fn numbered_entry(line: &str) -> Option<(&'static str, u32)> {
+    let n = normalise(line);
+    HEADING_WORDS.iter().find_map(|&(word, kind)| {
+        let rest = n.strip_prefix(word)?.trim_start();
+        let end = rest
+            .find(|c: char| !c.is_ascii_alphanumeric())
+            .unwrap_or(rest.len());
+        let number = &rest[..end];
+        let value = number.parse::<u32>().ok().or_else(|| roman(number))?;
+        Some((kind, value))
+    })
+}
+
 /// A recognised heading: its kind, printed number or word, locator slug and title, if printed.
 struct Known {
     kind: String,
@@ -1153,15 +1228,7 @@ fn known_heading(text: &str) -> Option<Known> {
         return None;
     }
     let first = normalise(lines[0]);
-    let kinds = [
-        ("PART", "part"),
-        ("BOOK", "book"),
-        ("CHAPTER", "chapter"),
-        ("CHAP.", "chapter"),
-        ("SECTION", "section"),
-        ("SECT.", "section"),
-    ];
-    for (word, kind) in kinds {
+    for (word, kind) in HEADING_WORDS {
         if let Some(rest) = first.strip_prefix(word).and_then(|r| r.strip_prefix(' ')) {
             let (number, same_line) = rest.split_once(' ').unwrap_or((rest, ""));
             let number = number.trim_end_matches('.');
@@ -1302,6 +1369,26 @@ fn is_prose(text: &str) -> bool {
         && text.chars().any(|c| c.is_lowercase())
         && !last.eq_ignore_ascii_case("ibid")
         && last.parse::<u32>().is_err()
+}
+
+/// A title printed in italics: up to three short lines wholly in Gutenberg's `_…_`
+/// ("_Nature and her Laws_.").
+fn is_italic_title(text: &str) -> bool {
+    let t = text.trim();
+    (1..=3).contains(&t.lines().count())
+        && t.lines().all(|l| l.trim().len() <= 80)
+        && t.starts_with('_')
+        && t.trim_end_matches('.').ends_with('_')
+}
+
+/// A printer's end mark, no one's words: "END OF PART I.", "FINIS.", "THE END.".
+fn is_end_mark(text: &str) -> bool {
+    let t = text.trim();
+    let n = normalise(t);
+    let n = n.trim_end_matches('.');
+    t.lines().count() == 1
+        && !t.chars().any(char::is_lowercase)
+        && (n == "FINIS" || n == "THE END" || (n.starts_with("END OF ") && n.len() <= 60))
 }
 
 /// The rest of a wrapped title: up to three short lines, in capitals.
