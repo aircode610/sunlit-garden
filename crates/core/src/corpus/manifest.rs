@@ -97,8 +97,9 @@ pub enum RangeSpec {
     GutenbergBody,
     /// Explicit byte offsets, e.g. for one work inside a multi-work volume.
     Bytes { start: i64, end: i64 },
-    /// One element of an XML file, by its `id` (a ThML `divN`: one work in a CCEL volume).
-    Element { id: String },
+    /// One element of an XML file, by its `id` (a ThML `divN`: one work in a CCEL volume),
+    /// without the elements in `except` (another work nested inside it).
+    Element { id: String, except: Vec<String> },
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -290,6 +291,8 @@ struct RawRange {
     end: Option<i64>,
     /// `range = { div = "iii" }`: the XML element with this id.
     div: Option<String>,
+    /// With `div`: elements inside it that are another work (`except = ["iii.ii.viii"]`).
+    except: Option<Vec<String>>,
 }
 
 // ---- Stage 2: validation ----------------------------------------------------------------
@@ -403,6 +406,7 @@ fn validate(raw: RawManifest) -> Result<Manifest, ManifestError> {
                         start: Some(start),
                         end: Some(end),
                         div: None,
+                        except: None,
                     }),
                     _,
                 ) if start >= 0 && start < end => Some(RangeSpec::Bytes { start, end }),
@@ -411,9 +415,13 @@ fn validate(raw: RawManifest) -> Result<Manifest, ManifestError> {
                         start: None,
                         end: None,
                         div: Some(id),
+                        except,
                     }),
                     _,
-                ) if !id.is_empty() => Some(RangeSpec::Element { id }),
+                ) if !id.is_empty() => Some(RangeSpec::Element {
+                    id,
+                    except: except.unwrap_or_default(),
+                }),
                 (Some(r), _) => {
                     problems.push(format!(
                         "{ctx}: range needs either 0 <= start < end or div = \"<id>\" (got {:?}..{:?}, div {:?})",

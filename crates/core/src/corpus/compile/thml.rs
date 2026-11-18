@@ -30,8 +30,9 @@ const DIVISION_WORDS: [&str; 9] = [
     "INDEX",
 ];
 
-/// Compile the work inside the element with `id` (a `divN`) of a ThML file.
-pub fn compile_thml(file: &[u8], id: &str, options: &Options) -> Structure {
+/// Compile the work inside the element with `id` (a `divN`) of a ThML file, leaving out the
+/// elements in `except` (another work nested inside it).
+pub fn compile_thml(file: &[u8], id: &str, except: &[String], options: &Options) -> Structure {
     let mut s = Structure {
         compiled: Compiled {
             body: 0..0,
@@ -71,6 +72,7 @@ pub fn compile_thml(file: &[u8], id: &str, options: &Options) -> Structure {
         work_count: 0,
         numbered: options.passages == PassageUnit::NumberedSections,
         notes: Vec::new(),
+        except,
     };
     w.skip(&tokens[first].0, "markup");
     w.skip(&tokens[last].0, "markup");
@@ -114,6 +116,8 @@ struct Walker<'a> {
     numbered: bool,
     /// Editor's notes so far on each passage (by passage index).
     notes: Vec<usize>,
+    /// Ids of elements that are another work: covered, never walked into.
+    except: &'a [String],
 }
 
 impl Walker<'_> {
@@ -123,6 +127,17 @@ impl Walker<'_> {
         while i < to {
             let (span, token) = &self.tokens[i];
             match token {
+                Token::Start { attrs, .. }
+                    if attr(attrs, "id").is_some_and(|x| self.except.iter().any(|e| e == x)) =>
+                {
+                    let end = matching_end(self.tokens, i);
+                    self.unit(
+                        span.start..self.tokens[end].0.end,
+                        UnitKind::Skipped("another work"),
+                    );
+                    i = end + 1;
+                    continue;
+                }
                 Token::Start { name, attrs } if is_div(name) => {
                     self.open_division(attrs, span.start);
                     self.skip(span, "markup");
@@ -150,7 +165,8 @@ impl Walker<'_> {
                     {
                         // Centred lines before the text: the work's printed title block.
                         self.unit(whole, UnitKind::DivisionHeading);
-                    } else if name == "p" {
+                    } else if name == "p" || name == "verse" {
+                        // Verse quoted in the text is a passage like a paragraph.
                         self.paragraph(i, end);
                     } else if name == "pb" {
                         self.skip(span, "page break");
@@ -212,6 +228,11 @@ impl Walker<'_> {
         self.skip(&self.tokens[end].0.clone(), "markup");
         let mut content = trim(self.src, self.tokens[start].0.end..self.tokens[end].0.start);
         if content.is_empty() {
+            return;
+        }
+        // Only markup and whitespace (a page break, a no-break space): no passage.
+        if text_of(&self.src[content.clone()]).is_empty() {
+            self.unit(content, UnitKind::Skipped("markup"));
             return;
         }
         let container = self.open.last().copied();
@@ -353,14 +374,27 @@ fn section_number(text: &str) -> Option<(u32, usize)> {
     text[digits..].starts_with(". ").then_some((n, digits + 1))
 }
 
-/// The text of a markup fragment: tags removed (inline markup never separates words:
-/// "un<i>known</i>" is "unknown"), entities decoded, whitespace collapsed.
+/// The text of a markup fragment: tags removed, entities decoded, whitespace collapsed. Inline
+/// markup never separates words ("un<i>known</i>" is "unknown"); a verse line or line break
+/// does.
 pub(crate) fn text_of(markup: &str) -> String {
     let mut out = String::new();
     let mut rest = markup;
     while let Some(lt) = rest.find('<') {
         out.push_str(&decode(&rest[..lt], 0).unwrap_or_else(|_| rest[..lt].to_owned()));
-        rest = rest[lt..].find('>').map_or("", |gt| &rest[lt + gt + 1..]);
+        let Some(gt) = rest[lt..].find('>') else {
+            rest = "";
+            break;
+        };
+        let tag = rest[lt + 1..lt + gt].trim_start_matches('/');
+        let name = tag
+            .split(|c: char| c.is_whitespace() || c == '/')
+            .next()
+            .unwrap_or("");
+        if matches!(name, "l" | "br" | "p" | "verse") {
+            out.push(' ');
+        }
+        rest = &rest[lt + gt + 1..];
     }
     out.push_str(&decode(rest, 0).unwrap_or_else(|_| rest.to_owned()));
     out.split_whitespace().collect::<Vec<_>>().join(" ")

@@ -26,7 +26,7 @@ const VOLUME: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
 #[test]
 fn a_thml_work_is_its_divisions_and_paragraphs() {
     let file = VOLUME.as_bytes();
-    let s = compile_thml(file, "iii", &Options::default());
+    let s = compile_thml(file, "iii", &[], &Options::default());
     assert!(s.problems.is_empty(), "{:?}", s.problems);
     assert!(
         check_coverage(file, &s.compiled).is_empty(),
@@ -77,7 +77,7 @@ fn a_thml_work_is_its_divisions_and_paragraphs() {
 #[test]
 fn an_empty_self_closing_paragraph_is_no_passage() {
     let file = br#"<ThML><div1 title="Proslogium" id="iii"><div2 title="Chapter I." id="iii.ii"><p/><p>Up now.</p></div2></div1></ThML>"#;
-    let s = compile_thml(file, "iii", &Options::default());
+    let s = compile_thml(file, "iii", &[], &Options::default());
     assert!(s.problems.is_empty(), "{:?}", s.problems);
     assert_eq!(s.passages.len(), 1);
 }
@@ -100,7 +100,7 @@ fn an_undivided_work_in_numbered_sections() {
         passages: PassageUnit::NumberedSections,
         ..Options::default()
     };
-    let s = compile_thml(src.as_bytes(), "v.i", &options);
+    let s = compile_thml(src.as_bytes(), "v.i", &[], &options);
     assert!(s.problems.is_empty(), "{:?}", s.problems);
     assert!(s.compiled.divisions.is_empty());
     let plan: Vec<(&str, Option<usize>, String)> = s
@@ -121,5 +121,51 @@ fn an_undivided_work_in_numbered_sections() {
             ("1", None, "IF one doubts or denies the existence of a being. The existence of this being is proved.".to_owned()),
             ("2", None, "To this assertion, I reply.".to_owned()),
         ]
+    );
+}
+
+/// A paragraph holding only a page break and a no-break space (ANF 7 has hundreds) is no
+/// passage, and Unicode whitespace between units is whitespace.
+#[test]
+fn a_paragraph_without_words_is_no_passage() {
+    let file = "<ThML><div2 title=\"The Divine Institutes\" id=\"iii.ii\"><div3 title=\"Book I.\" id=\"b1\"><p><pb n=\"9\"/> \u{a0}</p><p>Men of great and excelling genius.</p></div3></div2></ThML>";
+    let s = compile_thml(file.as_bytes(), "iii.ii", &[], &Options::default());
+    assert!(s.problems.is_empty(), "{:?}", s.problems);
+    let texts: Vec<&str> = s.passages.iter().map(|p| &file[p.range.clone()]).collect();
+    assert_eq!(texts, ["Men of great and excelling genius."]);
+}
+
+/// CCEL nests the Epitome of the Divine Institutes (a work of its own) inside the Institutes'
+/// element: `except` leaves it out of this edition.
+#[test]
+fn an_excepted_element_is_another_work() {
+    let file = br#"<ThML><div2 title="The Divine Institutes" id="iii.ii"><div3 title="Book I." id="b1"><p>Men of great genius.</p></div3><div3 title="The Epitome of the Divine Institutes" id="iii.ii.viii"><p>Although the books.</p></div3></div2></ThML>"#;
+    let s = compile_thml(
+        file,
+        "iii.ii",
+        &["iii.ii.viii".to_owned()],
+        &Options::default(),
+    );
+    assert!(s.problems.is_empty(), "{:?}", s.problems);
+    let slugs: Vec<&str> = s
+        .compiled
+        .divisions
+        .iter()
+        .map(|d| d.slug.as_str())
+        .collect();
+    assert_eq!(slugs, ["book-1"]);
+    assert_eq!(s.passages.len(), 1);
+}
+
+/// Verse quoted in the text (Lactantius quoting Virgil) is a passage like a paragraph.
+#[test]
+fn a_verse_block_is_a_passage() {
+    let file = br#"<ThML><div2 title="The Divine Institutes" id="iii.ii"><div3 title="Book I." id="b1"><p>As the poet says:</p><verse><l class="t1">Know first, the heaven, the earth,</l><l class="t1">The moon's pale orb.</l></verse></div3></div2></ThML>"#;
+    let s = compile_thml(file, "iii.ii", &[], &Options::default());
+    assert!(s.problems.is_empty(), "{:?}", s.problems);
+    assert_eq!(s.passages.len(), 2);
+    assert_eq!(
+        s.author_words(file, 1),
+        "Know first, the heaven, the earth, The moon's pale orb."
     );
 }

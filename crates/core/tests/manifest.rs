@@ -294,7 +294,10 @@ fn an_edition_can_be_one_element_of_an_xml_file() {
     let m = Manifest::parse(&by_id).unwrap();
     assert_eq!(
         m.documents[0].editions[0].range,
-        RangeSpec::Element { id: "iii".into() }
+        RangeSpec::Element {
+            id: "iii".into(),
+            except: vec![]
+        }
     );
     // Either bytes or an element, never both.
     let both = ccel.replace(

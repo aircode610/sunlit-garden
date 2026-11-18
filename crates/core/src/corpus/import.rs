@@ -310,7 +310,7 @@ fn edition_range(
             end,
             file_length: bytes.len(),
         }),
-        RangeSpec::Element { id } => crate::corpus::compile::thml::element_range(bytes, id)
+        RangeSpec::Element { id, .. } => crate::corpus::compile::thml::element_range(bytes, id)
             .map_err(|error| ImportError::Element {
                 url: url.to_owned(),
                 edition: edition.clone(),
