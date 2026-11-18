@@ -7,6 +7,7 @@
 //! sunlit compile --store              # …and store editions that compiled without problems
 //! sunlit compile --store --replace    # re-split: clear each edition's old structure first
 //! sunlit discover --language en --locc B --author hume   # suggest books from Gutenberg's catalogue
+//! sunlit score                        # the compiler vs a hand-structured edition
 //! ```
 //!
 //! Configuration comes from the environment (`DATABASE_URL`, `S3_*`); a `.env` file in the
@@ -15,6 +16,7 @@
 mod annotations;
 mod discover;
 mod fetch;
+mod score;
 
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -44,6 +46,9 @@ enum Command {
     },
     /// Suggest Gutenberg books from its catalogue (prints candidates; imports nothing).
     Discover(discover::DiscoverArgs),
+    /// Score the plain-text compiler against a hand-structured edition (default: Hume's
+    /// Enquiry, Gutenberg #9662 vs Standard Ebooks).
+    Score(score::ScoreArgs),
     /// Import the sources listed in a source list into object storage and Postgres.
     /// Safe to re-run: pinned files already stored are not downloaded again.
     Import {
@@ -85,6 +90,7 @@ async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     match cli.command {
         Command::Annotations { action } => annotations::run(action).await,
         Command::Discover(args) => discover::run(args).await,
+        Command::Score(args) => score::run(args),
         Command::Import { sources } => {
             let text = std::fs::read_to_string(&sources)
                 .map_err(|e| format!("{}: {e}", sources.display()))?;
