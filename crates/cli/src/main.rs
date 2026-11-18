@@ -198,12 +198,13 @@ async fn compile_report(
             let role_count =
                 |f: fn(&PlannedRole) -> bool| s.passages.iter().filter(|p| f(&p.role)).count();
             println!(
-                "  passages: {} text, {} editor headings, {} editor notes, {} editor markers, {} author notes",
+                "  passages: {} text, {} editor headings, {} editor notes, {} editor markers, {} author notes, {} margin notes",
                 role_count(|r| matches!(r, PlannedRole::Text)),
                 role_count(|r| matches!(r, PlannedRole::EditorHeading { .. })),
                 role_count(|r| matches!(r, PlannedRole::EditorNote { .. })),
                 role_count(|r| matches!(r, PlannedRole::EditorMarker { .. })),
                 role_count(|r| matches!(r, PlannedRole::AuthorNote { .. })),
+                role_count(|r| matches!(r, PlannedRole::MarginNote { .. })),
             );
             let divisions: Vec<String> = s
                 .compiled

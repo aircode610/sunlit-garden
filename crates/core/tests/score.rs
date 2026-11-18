@@ -370,10 +370,20 @@ fn nesting_across_files_and_front_matter_are_read_from_the_answer_key() {
 /// Compiles a Gutenberg fixture as an import would declare it (cited by paragraph) and scores it
 /// against a Standard Ebooks fixture folder.
 fn score_by_paragraph(file: &[u8], standard_ebooks: &str) -> sunlit_core::corpus::score::Report {
+    score_with(file, standard_ebooks, Default::default())
+}
+
+/// As `score_by_paragraph`, for an edition that declares its marginal notes.
+fn score_with(
+    file: &[u8],
+    standard_ebooks: &str,
+    margin_notes: sunlit_core::corpus::compile::structure::MarginNotes,
+) -> sunlit_core::corpus::score::Report {
     use sunlit_core::corpus::compile::structure::{Options, PassageUnit, compile_plain_text};
     use sunlit_core::corpus::score::{score, segment};
     let options = Options {
         passages: PassageUnit::Paragraphs,
+        margin_notes,
         ..Options::default()
     };
     let s = compile_plain_text(
@@ -452,13 +462,15 @@ fn moral_sentiments_does_not_get_worse() {
     assert_floors(&r, [0.844, 0.790, 0.926, 0.857, 0.904], 0.1083);
 }
 
-/// A tuning book for titles on the heading line ("CHAPTER I. OF SENSE"). Precision stays low:
-/// this edition prints Hobbes' marginal notes as paragraphs, which Standard Ebooks leaves out.
+/// A tuning book for titles on the heading line ("CHAPTER I. OF SENSE") and margin notes:
+/// compiled as an import would declare it, with Hobbes' marginal notes in Title Case.
 #[test]
 fn leviathan_does_not_get_worse() {
-    let r = score_by_paragraph(
+    use sunlit_core::corpus::compile::structure::MarginNotes;
+    let r = score_with(
         include_bytes!("fixtures/gutenberg/pg3207.txt"),
         "hobbes-leviathan",
+        MarginNotes::TitleCase,
     );
-    assert_floors(&r, [0.627, 0.977, 0.895, 0.886, 0.886], 0.0423);
+    assert_floors(&r, [0.937, 0.978, 0.990, 0.981, 0.981], 0.0145);
 }

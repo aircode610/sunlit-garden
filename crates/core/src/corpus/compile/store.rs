@@ -116,6 +116,7 @@ pub async fn store_structure<S: Store>(
             PlannedRole::EditorNote { on } => PassageRole::EditorNote { on: target(on)? },
             PlannedRole::EditorMarker { in_ } => PassageRole::EditorMarker { in_: target(in_)? },
             PlannedRole::AuthorNote { on } => PassageRole::AuthorNote { on: target(on)? },
+            PlannedRole::MarginNote { on } => PassageRole::MarginNote { on: target(on)? },
         };
         let text = std::str::from_utf8(&file[p.range.clone()])
             .map_err(|_| StoreStructureError::NotUtf8 {

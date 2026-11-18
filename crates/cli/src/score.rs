@@ -3,7 +3,9 @@
 use std::path::PathBuf;
 
 use clap::Args;
-use sunlit_core::corpus::compile::structure::{Options, PassageUnit, compile_plain_text};
+use sunlit_core::corpus::compile::structure::{
+    MarginNotes, Options, PassageUnit, compile_plain_text,
+};
 use sunlit_core::corpus::gutenberg;
 use sunlit_core::corpus::score::{
     DivisionMark, Report, Segmented, score, segment, spine_order, standard_ebooks_gold,
@@ -23,6 +25,10 @@ pub struct ScoreArgs {
     /// `numbered-sections`). Default `paragraphs`: the Enquiry is cited by paragraph.
     #[arg(long, default_value = "paragraphs")]
     passages: String,
+    /// How the edition prints the author's marginal notes, as it would declare it (`none`,
+    /// `title-case`).
+    #[arg(long, default_value = "none")]
+    margin_notes: String,
 }
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -39,8 +45,14 @@ pub fn run(args: ScoreArgs) -> Result<()> {
             );
         }
     };
+    let margin_notes = match args.margin_notes.as_str() {
+        "none" => MarginNotes::None,
+        "title-case" => MarginNotes::TitleCase,
+        other => return Err(format!("--margin-notes {other:?}: none or title-case").into()),
+    };
     let options = Options {
         passages,
+        margin_notes,
         ..Options::default()
     };
     let structure = compile_plain_text(&file, gutenberg::body_range(&file)?, &options);

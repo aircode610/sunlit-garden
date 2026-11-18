@@ -247,6 +247,8 @@ pub enum PassageRole {
     EditorMarker { in_: PassageId },
     /// The author's own note or reference on the passage `on`.
     AuthorNote { on: PassageId },
+    /// The author's marginal note glossing the passage `on`.
+    MarginNote { on: PassageId },
 }
 
 impl PassageRole {
@@ -258,6 +260,7 @@ impl PassageRole {
             PassageRole::EditorNote { on } => ("editor-note", Some(on.0)),
             PassageRole::EditorMarker { in_ } => ("editor-marker", Some(in_.0)),
             PassageRole::AuthorNote { on } => ("author-note", Some(on.0)),
+            PassageRole::MarginNote { on } => ("margin-note", Some(on.0)),
         }
     }
 
@@ -268,6 +271,7 @@ impl PassageRole {
             ("editor-note", Some(id)) => Ok(PassageRole::EditorNote { on: PassageId(id) }),
             ("editor-marker", Some(id)) => Ok(PassageRole::EditorMarker { in_: PassageId(id) }),
             ("author-note", Some(id)) => Ok(PassageRole::AuthorNote { on: PassageId(id) }),
+            ("margin-note", Some(id)) => Ok(PassageRole::MarginNote { on: PassageId(id) }),
             _ => Err(InvalidValue {
                 kind: "passage kind/attachment",
                 value: format!("{kind} / {attached_to:?}"),

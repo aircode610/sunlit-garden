@@ -34,6 +34,8 @@ pub enum UnitKind {
     /// Bracketed text printed inside an author paragraph (a note, marker or reference); who
     /// wrote it is declared per edition.
     Insertion,
+    /// The author's marginal note, printed as its own paragraph (declared per edition).
+    MarginNote,
     /// Deliberately not part of the work's text, with the reason ("table of contents").
     Skipped(&'static str),
 }
