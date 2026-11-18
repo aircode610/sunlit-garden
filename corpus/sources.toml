@@ -76,6 +76,13 @@ wikidata = "Q9047"
 born = 1646
 died = 1716
 
+[[thinker]]
+slug = "ronald-knox"
+name = "Ronald Knox"
+wikidata = "Q707945"
+born = 1888
+died = 1957
+
 # ------------------------------------------------------------------------------- works
 
 [[work]]
@@ -162,6 +169,15 @@ title = "The Monadology"
 wikidata = "Q1211539"
 first_year = 1714
 original_language = "fr"
+
+# "There once was a man who said, 'God / Must think it exceedingly odd…'": Berkeley's
+# idealism as a limerick (the v0 demo's link). Knox: "a companion verse … on Idealism" (Reed,
+# p. 48 footnote). Year of writing unverified; no Wikidata item.
+[[work]]
+thinker = "ronald-knox"
+slug = "limerick-on-idealism"
+title = "Limerick on Idealism"
+original_language = "en"
 
 # --------------------------------------------------------------------------- documents
 
@@ -740,3 +756,32 @@ by = "editor"
 [document.edition.expect]
 divisions = []
 text_passages_total = 90
+
+# Internet Archive: Langford Reed, The Complete Limerick Book (Jarrolds, London; second
+# edition, its note dated December 1926 — the catalogue's "Putnam 1925" is wrong). The OCR
+# text, pinned; the limerick is on p. 49 ("The Clerical Limerick"), signed FATHER RONALD KNOX.
+# Public domain in the US (published 1924–27); in UK copyright until the end of 2027 (Knox
+# d. 1957): not to be shown to UK users before 2028.
+[[document]]
+provider = "internet-archive"
+provider_id = "completelimerick0000lang"
+url = "https://archive.org/download/completelimerick0000lang/completelimerick0000lang_djvu.txt"
+licence = "public-domain-us; uk-copyright-until-2028"
+media_type = "text/plain; charset=utf-8"
+sha256 = "7493d28116929ff785684414f904107fe87db145985d1e68c0301b2098659efe" # reviewed 2026-11-18
+
+# The five lines only (bytes 59706..59868); the signature is the attribution, not the poem.
+# OCR slip kept byte-exact (errata rule): the opening quote reads "‘‘ God" for "“God".
+[[document.edition]]
+work = "ronald-knox/limerick-on-idealism"
+slug = "internet-archive-reed-limerick-book"
+title = "Limerick on Idealism (in The Complete Limerick Book, p. 49)"
+language = "en"
+range = { start = 59706, end = 59868 }
+undivided = true
+passages = "paragraphs"
+
+[document.edition.expect]
+divisions = []
+text_passages_total = 1
+
