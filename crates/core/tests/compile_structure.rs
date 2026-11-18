@@ -969,3 +969,73 @@ fn leviathans_margin_notes_attach_to_the_paragraphs_they_gloss() {
         s.problems
     );
 }
+
+/// A contents list of heading-like entries ("INTRODUCTION.", "CHAPTER 1.  THE RIGHTS AND
+/// INVOLVED DUTIES OF MANKIND CONSIDERED.") followed by front matter before the body: the list
+/// ends where its entries end, and every heading of the body is a division exactly once.
+/// Wollstonecraft's Vindication (Gutenberg #3420: a transcriber's date, a life of the author and
+/// the dedication between) and Mill's On Liberty (#34901: an epigraph between; entries carry
+/// page numbers).
+#[test]
+fn a_contents_list_followed_by_front_matter_ends_with_its_entries() {
+    use sunlit_core::corpus::compile::structure::PassageUnit;
+    let options = Options {
+        passages: PassageUnit::Paragraphs,
+        ..Options::default()
+    };
+    // Front matter after the list is skipped like a title page: whose words it is can't be
+    // told. Wollstonecraft's 20 KB (a life by another hand, her dedication) needs review; Mill's
+    // epigraph doesn't.
+    for (file, chapters, long_front_matter) in [
+        (
+            &include_bytes!("fixtures/gutenberg/pg3420.txt")[..],
+            13,
+            true,
+        ),
+        (
+            &include_bytes!("fixtures/gutenberg/pg34901.txt")[..],
+            5,
+            false,
+        ),
+    ] {
+        let s = compile_plain_text(file, body_range(file).unwrap(), &options);
+        let d = &s.compiled.divisions;
+        let labels: Vec<&str> = d
+            .iter()
+            .filter(|x| x.kind == "chapter")
+            .map(|x| x.label.as_str())
+            .collect();
+        assert_eq!(labels.len(), chapters, "{labels:?}");
+        assert!(
+            !s.problems.iter().any(|p| p.contains("two divisions")),
+            "{:?}",
+            s.problems
+        );
+        // The last contents entry is in the list; the front matter's own title is not.
+        assert!(
+            s.toc
+                .iter()
+                .any(|l| l == "EXPECTED TO PRODUCE." || l.ends_with(" 177")),
+            "{:?}",
+            s.toc
+        );
+        assert!(
+            !s.toc
+                .iter()
+                .any(|l| l.starts_with("A BRIEF SKETCH") || l == "ON LIBERTY.")
+        );
+        assert!(
+            !s.problems.iter().any(|p| p.contains("in no unit")),
+            "{:?}",
+            s.problems
+        );
+        assert_eq!(
+            s.problems
+                .iter()
+                .any(|p| p.contains("bytes of front matter")),
+            long_front_matter,
+            "{:?}",
+            s.problems
+        );
+    }
+}
