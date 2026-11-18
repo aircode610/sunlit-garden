@@ -3,7 +3,7 @@
 use std::path::PathBuf;
 
 use clap::Args;
-use sunlit_core::corpus::compile::structure::{Options, compile_plain_text};
+use sunlit_core::corpus::compile::structure::{Options, PassageUnit, compile_plain_text};
 use sunlit_core::corpus::gutenberg;
 use sunlit_core::corpus::score::{
     DivisionMark, Report, Segmented, score, segment, spine_order, standard_ebooks_gold,
@@ -13,19 +13,37 @@ const FIXTURES: &str = "crates/core/tests/fixtures";
 
 #[derive(Args)]
 pub struct ScoreArgs {
-    /// A Gutenberg plain-text file, compiled with default options.
+    /// A Gutenberg plain-text file, compiled with default options (plus --passages).
     #[arg(long, default_value_t = format!("{FIXTURES}/gutenberg/pg9662.txt"))]
     gutenberg: String,
     /// A Standard Ebooks folder: content.opf and the text files of its spine (the answer key).
     #[arg(long, default_value_t = format!("{FIXTURES}/standard-ebooks/hume-enquiry"))]
     standard_ebooks: String,
+    /// What one passage is, as the edition would declare it (`auto`, `paragraphs`,
+    /// `numbered-sections`). Default `paragraphs`: the Enquiry is cited by paragraph.
+    #[arg(long, default_value = "paragraphs")]
+    passages: String,
 }
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 pub fn run(args: ScoreArgs) -> Result<()> {
     let file = std::fs::read(&args.gutenberg).map_err(|e| format!("{}: {e}", args.gutenberg))?;
-    let structure = compile_plain_text(&file, gutenberg::body_range(&file)?, &Options::default());
+    let passages = match args.passages.as_str() {
+        "auto" => PassageUnit::Auto,
+        "paragraphs" => PassageUnit::Paragraphs,
+        "numbered-sections" => PassageUnit::NumberedSections,
+        other => {
+            return Err(
+                format!("--passages {other:?}: auto, paragraphs or numbered-sections").into(),
+            );
+        }
+    };
+    let options = Options {
+        passages,
+        ..Options::default()
+    };
+    let structure = compile_plain_text(&file, gutenberg::body_range(&file)?, &options);
     let ours = segment(&file, &structure);
 
     let dir = PathBuf::from(&args.standard_ebooks);

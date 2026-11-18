@@ -95,9 +95,14 @@ fn the_answer_key_has_the_books_sections_and_parts() {
 const GUTENBERG_9662: &[u8] = include_bytes!("fixtures/gutenberg/pg9662.txt");
 
 fn compiled_9662() -> sunlit_core::corpus::compile::structure::Structure {
-    use sunlit_core::corpus::compile::structure::{Options, compile_plain_text};
+    use sunlit_core::corpus::compile::structure::{Options, PassageUnit, compile_plain_text};
     let body = sunlit_core::corpus::gutenberg::body_range(GUTENBERG_9662).unwrap();
-    compile_plain_text(GUTENBERG_9662, body, &Options::default())
+    // As an import would declare it: the Enquiry is cited by paragraph (EHU 10.1).
+    let options = Options {
+        passages: PassageUnit::Paragraphs,
+        ..Options::default()
+    };
+    compile_plain_text(GUTENBERG_9662, body, &options)
 }
 
 #[test]
@@ -294,11 +299,11 @@ fn the_compiler_does_not_get_worse_on_the_enquiry() {
     );
 
     let floors = [
-        ("passage precision", r.passages.precision, 0.488),
+        ("passage precision", r.passages.precision, 1.0),
         ("passage recall", r.passages.recall, 1.0),
-        ("division F1", r.divisions.f1, 0.941),
-        ("division labels", r.division_labels, 0.96),
-        ("division nesting", r.division_depths, 0.96),
+        ("division F1", r.divisions.f1, 1.0),
+        ("division labels", r.division_labels, 1.0),
+        ("division nesting", r.division_depths, 1.0),
     ];
     for (name, value, floor) in floors {
         assert!(
@@ -307,7 +312,7 @@ fn the_compiler_does_not_get_worse_on_the_enquiry() {
         );
     }
     assert!(
-        r.window_diff <= 0.00195 + 1e-9,
+        r.window_diff <= 0.0 + 1e-9,
         "WindowDiff rose to {:.4}",
         r.window_diff
     );

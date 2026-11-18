@@ -32,6 +32,7 @@ fn berkeley_options() -> Options {
             },
         ],
         expect: None,
+        ..Options::default()
     }
 }
 
@@ -49,6 +50,7 @@ fn hume_options() -> Options {
             by: Attribution::Author,
         }],
         expect: None,
+        ..Options::default()
     }
 }
 
@@ -534,4 +536,136 @@ fn parts_nest_inside_the_section_they_follow() {
         "{:?}",
         s.problems
     );
+}
+
+/// A back-of-book index is the publisher's apparatus, not the author's text: like a contents
+/// list it's skipped (still covered), never passages.
+#[test]
+fn a_back_of_book_index_is_skipped_not_text() {
+    let file: &[u8] = include_bytes!("fixtures/gutenberg/pg9662.txt");
+    let s = compile_plain_text(file, body_range(file).unwrap(), &Options::default());
+
+    assert!(
+        !s.passages.iter().any(|p| p.locator.starts_with("index")),
+        "index entries became passages"
+    );
+    assert!(!s.compiled.divisions.iter().any(|d| d.slug == "index"));
+    let skipped = s
+        .compiled
+        .units
+        .iter()
+        .filter(|u| u.kind == UnitKind::Skipped("index"))
+        .count();
+    assert!(skipped > 100, "{skipped} index paragraphs skipped");
+    assert!(
+        !s.problems.iter().any(|p| p.contains("in no unit")),
+        "everything still covered"
+    );
+}
+
+/// Footnotes printed as indented paragraphs ("    [7] Nothing is more useful…", plus any
+/// indented paragraphs that continue it) are notes on the passage with the marker "[7]", not text.
+#[test]
+fn footnote_paragraphs_are_notes_on_the_passage_with_their_marker() {
+    use sunlit_core::corpus::compile::structure::PlannedRole;
+    let file: &[u8] = include_bytes!("fixtures/gutenberg/pg9662.txt");
+    let s = compile_plain_text(file, body_range(file).unwrap(), &Options::default());
+    let texts: Vec<String> = (0..s.passages.len())
+        .filter(|&i| s.passages[i].role == PlannedRole::Text)
+        .map(|i| s.author_words(file, i))
+        .collect();
+
+    let footnote_like = texts
+        .iter()
+        .filter(|t| {
+            t.trim_start().starts_with('[') && t[1..].starts_with(|c: char| c.is_ascii_digit())
+        })
+        .count();
+    assert_eq!(
+        footnote_like, 0,
+        "a text passage starts with a footnote number"
+    );
+    assert!(
+        !texts
+            .iter()
+            .any(|t| t.starts_with("The same distinction between reason and experience")),
+        "footnote 7's second paragraph is still text"
+    );
+    assert!(
+        !s.problems.iter().any(|p| p.contains("in no unit")),
+        "everything still covered"
+    );
+    // Without a declaration of who wrote the notes, the edition goes to review (as for brackets).
+    assert!(
+        s.problems
+            .iter()
+            .any(|p| p.contains("note style not declared"))
+    );
+}
+
+/// A numbered division's title ("SECTION X." then "OF MIRACLES.") is part of its heading, not a
+/// passage. A footnote on a title can't be attached yet (notes attach to passages): a problem.
+#[test]
+fn a_numbered_divisions_title_is_part_of_its_heading() {
+    use sunlit_core::corpus::compile::structure::{PassageUnit, PlannedRole};
+    let file: &[u8] = include_bytes!("fixtures/gutenberg/pg9662.txt");
+    // The Enquiry is cited by paragraph (EHU 10.1); its printed numbers are Selby-Bigge's.
+    let options = Options {
+        passages: PassageUnit::Paragraphs,
+        ..Options::default()
+    };
+    let s = compile_plain_text(file, body_range(file).unwrap(), &options);
+    let section = |n: &str| {
+        s.compiled
+            .divisions
+            .iter()
+            .find(|d| d.slug == format!("section-{n}"))
+            .unwrap()
+    };
+
+    assert_eq!(section("10").title.as_deref(), Some("OF MIRACLES"));
+    assert_eq!(section("6").title.as_deref(), Some("OF PROBABILITY"));
+    let texts = (0..s.passages.len())
+        .filter(|&i| s.passages[i].role == PlannedRole::Text)
+        .count();
+    assert_eq!(
+        texts, 256,
+        "one text passage per paragraph of the book, as in the answer key"
+    );
+    assert!(
+        s.problems
+            .iter()
+            .any(|p| p.contains("footnote on a heading")),
+        "{:?}",
+        s.problems
+            .iter()
+            .filter(|p| !p.contains("not declared"))
+            .collect::<Vec<_>>()
+    );
+    assert!(
+        !s.problems.iter().any(|p| p.contains("in no unit")),
+        "everything still covered"
+    );
+}
+
+#[test]
+fn the_passage_unit_can_be_declared_per_edition() {
+    use sunlit_core::corpus::compile::structure::PassageUnit;
+    use sunlit_core::corpus::manifest::Manifest;
+    let toml = include_str!("../../../corpus/sources.toml").replace(
+        "slug = \"gutenberg-4583\"\n",
+        "slug = \"gutenberg-4583\"\npassages = \"paragraphs\"\n",
+    );
+    let m = Manifest::parse(&toml).unwrap();
+    let e = |slug: &str| {
+        m.documents
+            .iter()
+            .flat_map(|d| &d.editions)
+            .find(|e| e.slug.as_str() == slug)
+            .unwrap()
+            .compile
+            .passages
+    };
+    assert_eq!(e("gutenberg-4583"), PassageUnit::Paragraphs);
+    assert_eq!(e("gutenberg-4723"), PassageUnit::Auto, "default");
 }
