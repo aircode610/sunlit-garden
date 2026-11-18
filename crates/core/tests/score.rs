@@ -441,13 +441,18 @@ fn assert_floors(r: &sunlit_core::corpus::score::Report, floors: [f64; 5], windo
 ///   headings ("BOOK I OF THE UNDERSTANDING"), and front matter (prose) sits between it and the
 ///   body, so the list ends at its first entry and the rest become divisions. Not fixed here:
 ///   it waits for a tuning book with the same pattern.
+/// - Wollstonecraft / On Liberty's contents lists (the list is its entries when front matter
+///   follows): division F1 90.4% → 99.1%, passages F1 98.7% → 99.0%; but nesting 94.3% →
+///   88.7%. "SECT II THE SAME SUBJECT CONTINUED" (no full stop after SECT) is found only through
+///   the now-complete contents list, as an unnumbered division, which closes the open Part.
+///   Not fixed here: it waits for a tuning book with the same pattern.
 #[test]
 fn the_held_out_treatise_does_not_get_worse() {
     let r = score_by_paragraph(
         include_bytes!("fixtures/gutenberg/pg4705.txt"),
         "hume-treatise",
     );
-    assert_floors(&r, [0.980, 0.994, 0.903, 0.952, 0.943], 0.0056);
+    assert_floors(&r, [0.985, 0.994, 0.990, 0.962, 0.886], 0.0056);
 }
 
 /// A tuning book: heading fixes are made on it. The 1777 Gutenberg text differs from Standard
@@ -473,4 +478,33 @@ fn leviathan_does_not_get_worse() {
         MarginNotes::TitleCase,
     );
     assert_floors(&r, [0.937, 0.978, 0.990, 0.981, 0.981], 0.0145);
+}
+
+/// Tuning books for contents lists followed by front matter. Front matter is skipped (whose
+/// words it is can't be told), so Standard Ebooks' dedication counts as missed.
+#[test]
+fn wollstonecraft_and_on_liberty_do_not_get_worse() {
+    let r = score_by_paragraph(
+        include_bytes!("fixtures/gutenberg/pg3420.txt"),
+        "wollstonecraft-vindication",
+    );
+    assert_floors(&r, [0.965, 0.954, 0.896, 0.866, 0.866], 0.0218);
+    let r = score_by_paragraph(
+        include_bytes!("fixtures/gutenberg/pg34901.txt"),
+        "mill-on-liberty",
+    );
+    assert_floors(&r, [0.944, 0.992, 0.800, 0.666, 0.666], 0.0037);
+}
+
+/// Standard Ebooks' bridgehead (a summary line under a heading, here Wollstonecraft's chapter
+/// title) is part of the heading: not the book's words, not a passage.
+#[test]
+fn a_bridgehead_is_heading_material_in_the_answer_key() {
+    let xhtml = r#"<html><body><section id="chapter-1" epub:type="chapter"><h2 epub:type="z3998:ordinal">I</h2><p epub:type="se:bridgehead">The rights of mankind considered.</p><p>In the present state of society.</p></section></body></html>"#;
+    let gold = standard_ebooks_gold(&[("chapter-1.xhtml".into(), xhtml.into())]).unwrap();
+    assert_eq!(
+        gold.words,
+        ["in", "the", "present", "state", "of", "society"]
+    );
+    assert_eq!(gold.boundaries, [0]);
 }

@@ -83,7 +83,8 @@ fn roman(s: &str) -> Option<u32> {
 /// The answer key from a Standard Ebooks book: its text files in reading order (`content.opf`
 /// spine), as (file name, XHTML). Sections typed chapter / subchapter / part / division — and the
 /// author's front and back matter (preface, introduction, appendix, …) — open divisions,
-/// labelled by their heading's ordinal (else its title); every body `<p>` starts a passage.
+/// labelled by their heading's ordinal (else its title); every body `<p>` starts a passage
+/// (a `se:bridgehead` line under a heading is heading material).
 /// Nesting follows `<section>` elements within a file and `data-parent` across files (books
 /// split one file per section). Heading text and note-reference numbers are not part of the
 /// book's words.
@@ -146,7 +147,9 @@ pub fn standard_ebooks_gold(spine: &[(String, String)]) -> Result<Segmented, Xht
                     if is_heading && heading.is_none() {
                         heading = Some((depth, String::new(), String::new()));
                     }
-                    if name == "p" && heading.is_none() {
+                    // A bridgehead is a summary line under a heading: heading material.
+                    let bridgehead = ty.split_whitespace().any(|t| t == "se:bridgehead");
+                    if name == "p" && heading.is_none() && !bridgehead {
                         in_p += 1;
                         if in_p == 1 {
                             p_start = Some(out.words.len());

@@ -189,21 +189,43 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
     if let Some(c) = contents_heading {
         // The list runs to the first separator or heading-like line. If that line is an entry
         // of the list ("PART I.", "INTRODUCTION"), the same heading appears again where the body
-        // starts, with no prose in between (a contents list has none): the list runs to there.
+        // starts. With no prose in between (a contents list has none), the list runs to there.
+        // With front matter in between (a preface, a dedication), the list is its entries: it
+        // runs while paragraphs are headings that appear again later, or other lines without
+        // lowercase ("PAGE" / "INTRODUCTORY 1"), and ends at the first that isn't.
         let id = |i: usize| known_heading(&text(&paras[i])).map(|k| (k.kind, k.slug));
+        let repeats = |i: usize| (i + 1..paras.len()).find(|&j| id(j) == id(i));
         let stop = (c + 1..paras.len())
             .find(|&i| is_separator(&text(&paras[i])) || id(i).is_some())
             .unwrap_or(paras.len());
-        let repeat = (stop < paras.len() && id(stop).is_some())
-            .then(|| (stop + 1..paras.len()).find(|&i| id(i) == id(stop)))
+        let end = match (stop < paras.len() && id(stop).is_some())
+            .then(|| repeats(stop))
             .flatten()
-            .filter(|&body| !(stop + 1..body).any(|i| is_prose(&text(&paras[i]))));
-        for (i, r) in paras
-            .iter()
-            .enumerate()
-            .take(repeat.unwrap_or(stop))
-            .skip(c + 1)
         {
+            Some(body) if !(stop + 1..body).any(|i| is_prose(&text(&paras[i]))) => body,
+            Some(_) => {
+                let mut end = (stop..paras.len())
+                    .find(|&i| {
+                        let entry = match id(i) {
+                            Some(_) => repeats(i).is_some(),
+                            None => !text(&paras[i]).chars().any(char::is_lowercase),
+                        };
+                        !entry || is_separator(&text(&paras[i]))
+                    })
+                    .unwrap_or(paras.len());
+                // A title in capitals opening the front matter ("A BRIEF SKETCH OF THE LIFE…")
+                // looks like an entry; an entry that isn't a heading ends in a page number.
+                while end > stop
+                    && id(end - 1).is_none()
+                    && !ends_in_page_number(&text(&paras[end - 1]))
+                {
+                    end -= 1;
+                }
+                end
+            }
+            None => stop,
+        };
+        for (i, r) in paras.iter().enumerate().take(end).skip(c + 1) {
             toc_paragraphs.push(i);
             toc.extend(text(r).lines().map(normalise).filter(|l| !l.is_empty()));
         }
@@ -321,6 +343,21 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
             })
             .collect();
         if node.kind == "contents" {
+            // Front matter between the list and the next heading (a life of the author, a
+            // dedication, an epigraph): whose words it is can't be told, so it's skipped like a
+            // title page — and if it's long, a heading was probably missed (add an override).
+            let bytes: usize = content.iter().map(|&i| paras[i].len()).sum();
+            if bytes > MAX_TITLE_PAGE_BYTES {
+                problems.push(format!(
+                    "{bytes} bytes of front matter after the contents list: a heading was probably missed (add an override)"
+                ));
+            }
+            for &i in &content {
+                units.push(Unit {
+                    kind: UnitKind::Skipped("front matter"),
+                    range: paras[i].clone(),
+                });
+            }
             continue;
         }
         // A back-of-book index is the publisher's apparatus: covered, but never passages.
@@ -391,12 +428,12 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
             });
             content_ranges.clear();
         }
-        // A numbered division's title: its first paragraph, one short line in capitals.
+        // A numbered division's title: its first paragraph, up to three short lines in capitals.
         let mut title_markers = Vec::new();
         if node.title.is_none()
             && heading_number(&node.label).is_some()
             && let Some(first) = content_ranges.first().cloned()
-            && looks_like_heading(&text(&first))
+            && is_title_continuation(&text(&first))
             && footnote_number(&file[first.clone()]).is_none()
             && section_number(&file[first.clone()]).is_none()
         {
@@ -1247,6 +1284,13 @@ fn is_contents_heading(text: &str) -> bool {
     let n = normalise(text);
     let n = n.trim_end_matches('.');
     n == "CONTENTS" || n == "TABLE OF CONTENTS" || n.starts_with("CONTENTS OF ")
+}
+
+/// "OF INDIVIDUALITY, AS ONE OF THE ELEMENTS / OF WELL-BEING        103".
+fn ends_in_page_number(text: &str) -> bool {
+    text.split_whitespace()
+        .last()
+        .is_some_and(|w| w.parse::<u32>().is_ok())
 }
 
 /// Running prose, which a contents list never contains: 20 words or more, not all capitals, not
