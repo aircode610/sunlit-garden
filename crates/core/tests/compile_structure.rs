@@ -936,3 +936,36 @@ fn margin_notes_are_declared_per_edition() {
     let bad = toml.replace("\"title-case\"", "\"italic\"");
     assert!(Manifest::parse(&bad).is_err());
 }
+
+/// Gutenberg's Leviathan prints 669 of Hobbes' marginal notes as Title Case paragraphs.
+#[test]
+fn leviathans_margin_notes_attach_to_the_paragraphs_they_gloss() {
+    use sunlit_core::corpus::compile::structure::{MarginNotes, PassageUnit, PlannedRole};
+    let file: &[u8] = include_bytes!("fixtures/gutenberg/pg3207.txt");
+    let options = Options {
+        passages: PassageUnit::Paragraphs,
+        margin_notes: MarginNotes::TitleCase,
+        ..Options::default()
+    };
+    let s = compile_plain_text(file, body_range(file).unwrap(), &options);
+    let notes: Vec<(usize, usize)> = (0..s.passages.len())
+        .filter_map(|i| match s.passages[i].role {
+            PlannedRole::MarginNote { on } => Some((i, on)),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(notes.len(), 669);
+    for &(i, on) in &notes {
+        // On a text paragraph, printed just before it.
+        assert_eq!(s.passages[on].role, PlannedRole::Text);
+        assert!(s.passages[i].range.end < s.passages[on].range.start);
+    }
+    let text = |i: usize| &file[s.passages[i].range.clone()];
+    let memory = notes.iter().find(|&&(i, _)| text(i) == b"Memory").unwrap();
+    assert!(text(memory.1).starts_with(b"The decay of Sense in men waking"));
+    assert!(
+        !s.problems.iter().any(|p| p.contains("margin note")),
+        "{:?}",
+        s.problems
+    );
+}

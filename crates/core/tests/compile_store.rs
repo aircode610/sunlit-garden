@@ -295,3 +295,33 @@ async fn nested_divisions_are_stored_with_their_parent(pool: PgPool) {
     // Top-level ordinals stay consecutive without Part 2: letter 0, Part 1 = 1, Part 3 = 2.
     assert_eq!((part("1").2, part("3").2), (1, 2));
 }
+
+#[sqlx::test(migrations = "../../migrations")]
+async fn a_compiled_margin_note_is_stored_on_its_paragraph(pool: PgPool) {
+    use sunlit_core::corpus::compile::structure::{
+        MarginNotes, Options, PassageUnit, compile_plain_text,
+    };
+    let store = PgStore::from_pool(pool.clone());
+    let (edition, _, _, _) = setup(&store, "gutenberg-4583").await;
+    // Printed before its paragraph, but planned after it: the store needs the target first.
+    let file: &[u8] = b"CHAPTER II. OF IMAGINATION\n\nThat when a thing lies still, it will lie still.\n\nMemory\n\nThe decay of Sense in men waking, is not the decay of the motion.\n";
+    let options = Options {
+        passages: PassageUnit::Paragraphs,
+        margin_notes: MarginNotes::TitleCase,
+        ..Options::default()
+    };
+    let structure = compile_plain_text(file, 0..file.len(), &options);
+
+    store_structure(&store, &edition, file, &structure)
+        .await
+        .unwrap();
+
+    let glossed: String = sqlx::query_scalar(
+        "SELECT target.text FROM passage note JOIN passage target ON target.id = note.attached_to
+         WHERE note.kind = 'margin-note' AND note.text = 'Memory'",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert!(glossed.starts_with("The decay of Sense"), "{glossed}");
+}
