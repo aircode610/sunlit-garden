@@ -239,26 +239,56 @@ fn hosts(structure: &Structure) -> Hosts {
     Hosts { by_locator, order }
 }
 
-/// All occurrences of `quote` in `file[range]`, treating any run of whitespace in either as
-/// equal to any other run. Returns byte ranges into `file`, trimmed to the quote's words.
-fn find_quote(file: &[u8], range: Range<usize>, quote: &str) -> Vec<Range<usize>> {
-    // Collapse the haystack's whitespace, remembering where each kept byte came from.
+/// The author's words in `file[range]` with `excluded` ranges (editor notes, markers, the
+/// author's own bracketed references) left out, each replaced by one space — the same text the
+/// drafters and reviewers see. Returns the bytes and, for each, where it came from in `file`
+/// (`None` for a space standing in for removed material).
+fn author_text(
+    file: &[u8],
+    range: Range<usize>,
+    excluded: &[Range<usize>],
+) -> (Vec<u8>, Vec<Option<usize>>) {
     let mut hay = Vec::new();
     let mut origin = Vec::new();
     let mut in_space = false;
-    for (i, &b) in file[range.clone()].iter().enumerate() {
+    let mut i = range.start;
+    while i < range.end {
+        if let Some(x) = excluded.iter().find(|x| x.start <= i && i < x.end) {
+            if !in_space {
+                hay.push(b' ');
+                origin.push(None);
+                in_space = true;
+            }
+            i = x.end;
+            continue;
+        }
+        let b = file[i];
         if b.is_ascii_whitespace() {
             if !in_space {
                 hay.push(b' ');
-                origin.push(range.start + i);
+                origin.push(Some(i));
                 in_space = true;
             }
         } else {
             hay.push(b);
-            origin.push(range.start + i);
+            origin.push(Some(i));
             in_space = false;
         }
+        i += 1;
     }
+    (hay, origin)
+}
+
+/// All occurrences of `quote` among the author's words in `file[range]`, treating any run of
+/// whitespace (or removed material) as equal to any other run. Returns byte ranges into `file`,
+/// trimmed to the quote's words; a range may contain excluded material the quote runs across.
+fn find_quote(
+    file: &[u8],
+    range: Range<usize>,
+    excluded: &[Range<usize>],
+    quote: &str,
+) -> Vec<Range<usize>> {
+    let (hay, origin) = author_text(file, range, excluded);
     let needle: Vec<u8> = quote
         .split_whitespace()
         .collect::<Vec<_>>()
@@ -269,7 +299,8 @@ fn find_quote(file: &[u8], range: Range<usize>, quote: &str) -> Vec<Range<usize>
     }
     (0..=hay.len() - needle.len())
         .filter(|&i| hay[i..i + needle.len()] == needle[..])
-        .map(|i| origin[i]..origin[i + needle.len() - 1] + 1)
+        // A needle never starts or ends with a space, so both ends are real bytes.
+        .filter_map(|i| Some(origin[i]?..origin[i + needle.len() - 1]? + 1))
         .collect()
 }
 
@@ -288,26 +319,23 @@ pub fn resolve(records: &mut [Record], file: &[u8], structure: &Structure) -> Ve
             problems.push(format!("{}: no author-text passage {:?}", u.id, u.locator));
             continue;
         };
-        let found = find_quote(file, range.clone(), &u.quote);
+        let found = find_quote(file, range.clone(), excluded, &u.quote);
         match found.as_slice() {
+            // Found only when editor material is counted: the quote includes words that aren't
+            // the author's.
+            [] if !find_quote(file, range.clone(), &[], &u.quote).is_empty() => {
+                problems.push(format!(
+                    "{}: quote includes material that isn't the author's words (leave the bracketed text out)",
+                    u.id
+                ))
+            }
             [] => problems.push(format!(
                 "{}: quote not found in {}: {:?}",
                 u.id, u.locator, u.quote
             )),
             [one] => {
-                if let Some(x) = excluded
-                    .iter()
-                    .find(|x| x.start < one.end && one.start < x.end)
-                {
-                    let shown = String::from_utf8_lossy(&file[x.clone()]);
-                    problems.push(format!(
-                        "{}: quote overlaps material that isn't the author's words: {shown:?}",
-                        u.id
-                    ));
-                } else {
-                    u.start = Some(one.start);
-                    u.end = Some(one.end);
-                }
+                u.start = Some(one.start);
+                u.end = Some(one.end);
             }
             many => problems.push(format!(
                 "{}: quote occurs {} times in {} (make it longer)",
@@ -442,17 +470,21 @@ pub fn check(records: &[Record], file: &[u8], structure: &Structure) -> Report {
         {
             p.push(format!("{}: span is not trimmed", u.id));
         }
-        let text = String::from_utf8_lossy(bytes);
-        let squash = |s: &str| s.split_whitespace().collect::<Vec<_>>().join(" ");
-        if squash(&text) != squash(&u.quote) {
+        // Excluded material may lie wholly inside a unit (the quote runs across it), never cut.
+        if excluded
+            .iter()
+            .any(|x| x.start < end && start < x.end && !(start <= x.start && x.end <= end))
+        {
             p.push(format!(
-                "{}: quote no longer matches the bytes at {span:?}",
+                "{}: span cuts through material that isn't the author's words",
                 u.id
             ));
         }
-        if excluded.iter().any(|x| x.start < end && start < x.end) {
+        let (words, _) = author_text(file, span.clone(), excluded);
+        let squash = |s: &str| s.split_whitespace().collect::<Vec<_>>().join(" ");
+        if squash(&String::from_utf8_lossy(&words)) != squash(&u.quote) {
             p.push(format!(
-                "{}: span overlaps material that isn't the author's words",
+                "{}: quote no longer matches the author's words at {span:?}",
                 u.id
             ));
         }

@@ -356,3 +356,26 @@ fn quoted_voices_are_retired_in_favour_of_attributed_to() {
         "{checked:?}"
     );
 }
+
+#[test]
+fn a_quote_may_run_across_an_editor_insertion() {
+    let s = structure("gutenberg-4723", BERKELEY);
+    let verdict = VERDICT_3.replace("part-1/3", "part-1/22");
+    // "...WHY YOU BELIEVE IT EXISTS [Vide sect. lviii.], OR (2.) ASSIGN ANY USE TO IT..."
+    let u = unit(
+        "part-1/22#u1",
+        "part-1/22",
+        "WHY YOU BELIEVE IT EXISTS , OR (2.) ASSIGN ANY USE TO IT",
+        "premise",
+    );
+
+    let (resolved, checked, r) = run(BERKELEY, &s, &[HEADER, &verdict, &u]);
+
+    assert_eq!((resolved, checked), (vec![], vec![]));
+    let Record::Unit(u) = &r[2] else { panic!() };
+    let bytes = String::from_utf8_lossy(&BERKELEY[u.start.unwrap()..u.end.unwrap()]);
+    assert!(
+        bytes.contains("[Vide sect. lviii.]"),
+        "the insertion lies inside the span: {bytes:?}"
+    );
+}
