@@ -237,6 +237,8 @@ struct RawHeading {
     kind: String,
     label: String,
     slug: String,
+    /// `by = "editor"`: the division is the editor's (a modern introduction), not passages.
+    by: Option<RawBy>,
 }
 
 #[derive(Deserialize)]
@@ -433,6 +435,10 @@ fn validate(raw: RawManifest) -> Result<Manifest, ManifestError> {
                             kind: h.kind,
                             label: h.label,
                             slug: h.slug,
+                            by: h.by.map(|b| match b {
+                                RawBy::Editor => Attribution::Editor,
+                                RawBy::Author => Attribution::Author,
+                            }),
                         }
                     })
                     .collect(),
