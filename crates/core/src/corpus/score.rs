@@ -364,3 +364,165 @@ fn lcs(a: &[String], b: &[String]) -> Vec<(usize, usize)> {
     }
     out
 }
+
+/// A boundary in `ours` maps to the answer key's position of the next aligned word, if that word
+/// is at most this far ahead; otherwise it lies in material the answer key doesn't have.
+const MAP_REACH: usize = 10;
+
+/// Precision / recall / F1 of predicted boundaries against the answer key's.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct Prf {
+    pub true_positives: usize,
+    pub predicted: usize,
+    pub gold: usize,
+    pub precision: f64,
+    pub recall: f64,
+    pub f1: f64,
+}
+
+impl Prf {
+    fn new(true_positives: usize, predicted: usize, gold: usize) -> Self {
+        let ratio = |a: usize, b: usize| if b == 0 { 1.0 } else { a as f64 / b as f64 };
+        let (precision, recall) = (
+            ratio(true_positives, predicted),
+            ratio(true_positives, gold),
+        );
+        let f1 = if precision + recall == 0.0 {
+            0.0
+        } else {
+            2.0 * precision * recall / (precision + recall)
+        };
+        Prf {
+            true_positives,
+            predicted,
+            gold,
+            precision,
+            recall,
+            f1,
+        }
+    }
+}
+
+/// How well `ours` reproduces the answer key's structure.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Report {
+    /// Answer-key words paired with ours.
+    pub aligned_words: usize,
+    pub gold_words: usize,
+    /// Passage starts: exact positions after mapping onto the answer key.
+    pub passages: Prf,
+    /// Our passage starts that fall in material the answer key doesn't have.
+    pub unmapped_passages: usize,
+    /// Segmentation error measures over the answer key's words (0 = perfect).
+    pub pk: f64,
+    pub window_diff: f64,
+    /// Division starts, matched by position (and order, where several start at once).
+    pub divisions: Prf,
+    /// Share of the answer key's divisions matched with the same label / the same depth.
+    pub division_labels: f64,
+    pub division_depths: f64,
+}
+
+/// Score `ours` against the answer key `gold`.
+pub fn score(ours: &Segmented, gold: &Segmented) -> Report {
+    let pairs = align(&ours.words, &gold.words);
+    // Map an ours-word position onto the answer key (next aligned word within reach).
+    let map = |i: usize| -> Option<usize> {
+        let k = pairs.partition_point(|&(a, _)| a < i);
+        pairs
+            .get(k)
+            .filter(|&&(a, _)| a - i <= MAP_REACH)
+            .map(|&(_, b)| b)
+    };
+
+    // Passages.
+    let mapped: Vec<Option<usize>> = ours.boundaries.iter().map(|&i| map(i)).collect();
+    let mut hyp: Vec<usize> = mapped.iter().flatten().copied().collect();
+    hyp.sort_unstable();
+    hyp.dedup();
+    let gold_set: std::collections::BTreeSet<usize> = gold.boundaries.iter().copied().collect();
+    let tp = hyp.iter().filter(|b| gold_set.contains(b)).count();
+    let passages = Prf::new(tp, ours.boundaries.len(), gold.boundaries.len());
+    let (pk, window_diff) = segmentation_errors(&gold.boundaries, &hyp, gold.words.len());
+
+    // Divisions: group by position; within a position, pair in reading order.
+    let ours_divs: Vec<(usize, &DivisionMark)> = ours
+        .divisions
+        .iter()
+        .filter_map(|d| map(d.at).map(|p| (p, d)))
+        .collect();
+    let mut by_pos: std::collections::BTreeMap<usize, Vec<&DivisionMark>> = Default::default();
+    for (p, d) in &ours_divs {
+        by_pos.entry(*p).or_default().push(d);
+    }
+    let (mut matched, mut labels, mut depths) = (0, 0, 0);
+    let mut gold_by_pos: std::collections::BTreeMap<usize, Vec<&DivisionMark>> = Default::default();
+    for d in &gold.divisions {
+        gold_by_pos.entry(d.at).or_default().push(d);
+    }
+    for (pos, gs) in &gold_by_pos {
+        if let Some(os) = by_pos.get(pos) {
+            for (g, o) in gs.iter().zip(os) {
+                matched += 1;
+                labels += usize::from(g.label == o.label);
+                depths += usize::from(g.depth == o.depth);
+            }
+        }
+    }
+    let share = |n: usize| {
+        if gold.divisions.is_empty() {
+            1.0
+        } else {
+            n as f64 / gold.divisions.len() as f64
+        }
+    };
+    Report {
+        aligned_words: pairs.len(),
+        gold_words: gold.words.len(),
+        passages,
+        unmapped_passages: mapped.iter().filter(|m| m.is_none()).count(),
+        pk,
+        window_diff,
+        divisions: Prf::new(matched, ours.divisions.len(), gold.divisions.len()),
+        division_labels: share(labels),
+        division_depths: share(depths),
+    }
+}
+
+/// Pk (Beeferman et al. 1999) and WindowDiff (Pevzner & Hearst 2002) over `n` words, with the
+/// window half the answer key's mean segment length. Boundaries are segment start positions.
+fn segmentation_errors(reference: &[usize], hypothesis: &[usize], n: usize) -> (f64, f64) {
+    let segments = reference.len().max(1);
+    // Ties round to even, like NLTK's reference pk / windowdiff (so results are comparable).
+    let k = ((n as f64 / segments as f64) / 2.0)
+        .round_ties_even()
+        .max(1.0) as usize;
+    if n <= k {
+        return (0.0, 0.0);
+    }
+    // prefix[i] = number of boundaries at positions 1..=i (a start at 0 isn't a break).
+    let prefix = |starts: &[usize]| {
+        let mut p = vec![0usize; n + 1];
+        for &s in starts {
+            if s > 0 && s <= n {
+                p[s] += 1;
+            }
+        }
+        for i in 1..=n {
+            p[i] += p[i - 1];
+        }
+        p
+    };
+    let (r, h) = (prefix(reference), prefix(hypothesis));
+    let (mut pk_err, mut wd_err) = (0usize, 0usize);
+    let windows = n - k;
+    for i in 0..windows {
+        let (rc, hc) = (r[i + k] - r[i], h[i + k] - h[i]);
+        pk_err += usize::from((rc > 0) != (hc > 0));
+        wd_err += usize::from(rc != hc);
+    }
+    (
+        pk_err as f64 / windows as f64,
+        wd_err as f64 / windows as f64,
+    )
+}

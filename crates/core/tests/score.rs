@@ -180,3 +180,65 @@ fn the_two_editions_align_almost_completely() {
         "{covered:.3} of the answer key's words aligned"
     );
 }
+
+#[test]
+fn the_answer_key_scores_perfectly_against_itself() {
+    use sunlit_core::corpus::score::score;
+    let gold = standard_ebooks_gold(&spine()).unwrap();
+
+    let r = score(&gold, &gold);
+
+    assert_eq!(
+        (r.passages.precision, r.passages.recall, r.passages.f1),
+        (1.0, 1.0, 1.0)
+    );
+    assert_eq!((r.pk, r.window_diff), (0.0, 0.0));
+    assert_eq!(
+        (r.divisions.f1, r.division_labels, r.division_depths),
+        (1.0, 1.0, 1.0)
+    );
+}
+
+#[test]
+fn a_misplaced_boundary_and_a_flat_part_are_counted() {
+    use sunlit_core::corpus::score::{DivisionMark, Segmented, score};
+    let text: Vec<String> = (0..20).map(|n| format!("w{n}")).collect();
+    let mark = |at, depth, label: &str| DivisionMark {
+        at,
+        depth,
+        label: label.into(),
+    };
+    let gold = Segmented {
+        words: text.clone(),
+        boundaries: vec![0, 5, 10, 15],
+        divisions: vec![mark(0, 1, "1"), mark(10, 1, "2"), mark(10, 2, "1")],
+    };
+    // One passage break misplaced (10 -> 12); the Part is not nested.
+    let ours = Segmented {
+        words: text,
+        boundaries: vec![0, 5, 12, 15],
+        divisions: vec![mark(0, 1, "1"), mark(10, 1, "2"), mark(10, 1, "1")],
+    };
+
+    let r = score(&ours, &gold);
+
+    assert_eq!(
+        (
+            r.passages.true_positives,
+            r.passages.predicted,
+            r.passages.gold
+        ),
+        (3, 4, 4)
+    );
+    assert_eq!(r.passages.f1, 0.75);
+    assert!(r.pk > 0.0 && r.window_diff > 0.0);
+    assert_eq!(
+        r.divisions.f1, 1.0,
+        "all three divisions start in the right place"
+    );
+    assert_eq!(r.division_labels, 1.0);
+    assert!(
+        (r.division_depths - 2.0 / 3.0).abs() < 1e-9,
+        "the Part is at the wrong depth"
+    );
+}
