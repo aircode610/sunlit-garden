@@ -488,10 +488,23 @@ fn wollstonecraft_and_on_liberty_do_not_get_worse() {
         include_bytes!("fixtures/gutenberg/pg3420.txt"),
         "wollstonecraft-vindication",
     );
-    assert_floors(&r, [0.968, 0.947, 0.620, 0.600, 0.600], 0.0252);
+    assert_floors(&r, [0.965, 0.954, 0.896, 0.866, 0.866], 0.0218);
     let r = score_by_paragraph(
         include_bytes!("fixtures/gutenberg/pg34901.txt"),
         "mill-on-liberty",
     );
     assert_floors(&r, [0.944, 0.992, 0.800, 0.666, 0.666], 0.0037);
+}
+
+/// Standard Ebooks' bridgehead (a summary line under a heading, here Wollstonecraft's chapter
+/// title) is part of the heading: not the book's words, not a passage.
+#[test]
+fn a_bridgehead_is_heading_material_in_the_answer_key() {
+    let xhtml = r#"<html><body><section id="chapter-1" epub:type="chapter"><h2 epub:type="z3998:ordinal">I</h2><p epub:type="se:bridgehead">The rights of mankind considered.</p><p>In the present state of society.</p></section></body></html>"#;
+    let gold = standard_ebooks_gold(&[("chapter-1.xhtml".into(), xhtml.into())]).unwrap();
+    assert_eq!(
+        gold.words,
+        ["in", "the", "present", "state", "of", "society"]
+    );
+    assert_eq!(gold.boundaries, [0]);
 }

@@ -428,12 +428,12 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
             });
             content_ranges.clear();
         }
-        // A numbered division's title: its first paragraph, one short line in capitals.
+        // A numbered division's title: its first paragraph, up to three short lines in capitals.
         let mut title_markers = Vec::new();
         if node.title.is_none()
             && heading_number(&node.label).is_some()
             && let Some(first) = content_ranges.first().cloned()
-            && looks_like_heading(&text(&first))
+            && is_title_continuation(&text(&first))
             && footnote_number(&file[first.clone()]).is_none()
             && section_number(&file[first.clone()]).is_none()
         {
