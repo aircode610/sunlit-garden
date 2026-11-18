@@ -41,6 +41,8 @@ impl Fetcher for Fixtures {
             "ccel"
         } else if url.contains("wikisource.org") {
             "wikisource"
+        } else if url.contains("archive.org") {
+            "internet-archive"
         } else {
             "gutenberg"
         };
