@@ -1125,3 +1125,58 @@ fn italic_titles_and_end_marks_are_not_passages() {
     );
     assert!(s.problems.is_empty(), "{:?}", s.problems);
 }
+
+/// Leibniz's Monadology on Wikisource: no headings, §§ numbered by the text, wiki markup
+/// (''italics'', [[links]]), Leibniz's own references in parentheses and Latta's French
+/// originals in brackets. Declared undivided, by numbered sections, wikitext, brackets = editor.
+#[test]
+fn an_undivided_wikitext_in_numbered_sections() {
+    use sunlit_core::corpus::compile::structure::{
+        Attribution, InsertionRule, Markup, PassageUnit, PlannedRole,
+    };
+    let file = b"1. The Monad is nothing but a ''simple'' substance. (''[[Theodicy]]'' 10.)\n\n2. Now where there are no parts, there can be neither extension nor form [''figure''].\n\nThey are the real atoms of [[w:Nature|nature]].\n";
+    let options = Options {
+        passages: PassageUnit::NumberedSections,
+        undivided: true,
+        markup: Markup::Wikitext,
+        insertions: vec![InsertionRule {
+            prefix: "[".into(),
+            by: Attribution::Editor,
+        }],
+        ..Options::default()
+    };
+    let s = compile_plain_text(file, 0..file.len(), &options);
+    assert!(s.problems.is_empty(), "{:?}", s.problems);
+    let text: Vec<usize> = (0..s.passages.len())
+        .filter(|&i| s.passages[i].role == PlannedRole::Text)
+        .collect();
+    let plan: Vec<(&str, Option<usize>, String)> = text
+        .iter()
+        .map(|&i| {
+            (
+                s.passages[i].locator.as_str(),
+                s.passages[i].division,
+                s.author_words(file, i),
+            )
+        })
+        .collect();
+    assert_eq!(
+        plan,
+        [
+            ("1", None, "The Monad is nothing but a simple substance. (Theodicy 10.)".to_owned()),
+            (
+                "2",
+                None,
+                "Now where there are no parts, there can be neither extension nor form . They are the real atoms of nature.".to_owned()
+            ),
+        ]
+    );
+    // Latta's bracket is the translator's; the links are not brackets.
+    assert_eq!(
+        s.passages
+            .iter()
+            .filter(|p| matches!(p.role, PlannedRole::EditorNote { .. }))
+            .count(),
+        1
+    );
+}

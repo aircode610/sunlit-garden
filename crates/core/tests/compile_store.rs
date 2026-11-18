@@ -22,9 +22,25 @@ struct Fixtures;
 impl Fetcher for Fixtures {
     async fn fetch(&self, url: &str) -> Result<Bytes, FetchError> {
         // Every pinned file is a fixture: tests/fixtures/<provider>/<file name in its URL>.
-        let name = url.rsplit('/').next().unwrap_or_default();
+        // A URL's last segment, with anything unsafe in a file name as `_` (Wikisource's
+        // "index.php?title=…&action=raw").
+        let name: String = url
+            .rsplit('/')
+            .next()
+            .unwrap_or_default()
+            .chars()
+            .map(|c| {
+                if c.is_ascii_alphanumeric() || "._-".contains(c) {
+                    c
+                } else {
+                    '_'
+                }
+            })
+            .collect();
         let provider = if url.contains("ccel.org") {
             "ccel"
+        } else if url.contains("wikisource.org") {
+            "wikisource"
         } else {
             "gutenberg"
         };

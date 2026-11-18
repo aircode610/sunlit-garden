@@ -67,7 +67,24 @@ pub struct Options {
     pub insertions: Vec<InsertionRule>,
     /// How this edition prints the author's marginal notes, if it does.
     pub margin_notes: MarginNotes,
+    /// The work has no headings: the declared range is one text (Leibniz's Monadology, cited by
+    /// its numbered sections alone). Without it, a text with no heading is a problem.
+    pub undivided: bool,
+    /// Markup in the text (wikitext): kept in the bytes, left out of the author's words.
+    pub markup: Markup,
     pub expect: Option<Expect>,
+}
+
+/// Markup a file's text carries. Passage bytes keep it; author words leave it out.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum Markup {
+    /// Plain text.
+    #[default]
+    None,
+    /// XML (CCEL's ThML): tags removed, entities decoded.
+    Xml,
+    /// MediaWiki (Wikisource): italic and bold quotes removed, `[[link|label]]` → label.
+    Wikitext,
 }
 
 /// How an edition prints the author's marginal notes (side-notes). Declared, never guessed: a
@@ -144,8 +161,8 @@ pub struct Structure {
     pub problems: Vec<String>,
     /// Non-blocking: worth a human look.
     pub warnings: Vec<String>,
-    /// The file is markup (XML): passage bytes include tags, and author words leave them out.
-    pub markup: bool,
+    /// Markup in the file: passage bytes include it, author words leave it out.
+    pub markup: Markup,
 }
 
 impl Structure {
@@ -175,11 +192,31 @@ impl Structure {
             cursor = r.end;
         }
         out.push_str(&String::from_utf8_lossy(&file[cursor..host.end]));
-        if self.markup {
-            out = super::thml::text_of(&out);
+        match self.markup {
+            Markup::None => {}
+            Markup::Xml => out = super::thml::text_of(&out),
+            Markup::Wikitext => out = wikitext_words(&out),
         }
         out.split_whitespace().collect::<Vec<_>>().join(" ")
     }
+}
+
+/// The words of wikitext: `''italic''` and `'''bold'''` quotes, `[[target|label]]` → label,
+/// `[[target]]` → target; whitespace collapsed.
+fn wikitext_words(text: &str) -> String {
+    let mut out = String::new();
+    let mut rest = text.replace("'''", "").replace("''", "");
+    while let Some(open) = rest.find("[[") {
+        out.push_str(&rest[..open]);
+        let Some(close) = rest[open..].find("]]") else {
+            break;
+        };
+        let link = &rest[open + 2..open + close];
+        out.push_str(link.rsplit('|').next().unwrap_or(link));
+        rest = rest[open + close + 2..].to_owned();
+    }
+    out.push_str(&rest);
+    out
 }
 
 /// Declared expectations (`[document.edition.expect]`): the division paths, and the text passages
@@ -357,9 +394,15 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
     // ---- 3. Title page: everything before the first heading.
     let first_heading = kinds.iter().position(|k| matches!(k, Para::Heading(_)));
     let mut units = Vec::new();
-    let title_end = first_heading.unwrap_or(paras.len());
+    // An undivided work has no title page: the declared range is the text.
+    let title_end = match first_heading {
+        None if options.undivided => 0,
+        h => h.unwrap_or(paras.len()),
+    };
     let title_bytes: usize = paras[..title_end].iter().map(|r| r.len()).sum();
-    if first_heading.is_none() {
+    if first_heading.is_some() && options.undivided {
+        problems.push("declared undivided, but headings were found".into());
+    } else if first_heading.is_none() && !options.undivided {
         problems.push("no heading recognised anywhere: structure unknown".into());
     } else if title_bytes > MAX_TITLE_PAGE_BYTES {
         problems.push(format!(
@@ -540,7 +583,7 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
             let mut sink = Sink {
                 file,
                 options,
-                division: d,
+                division: Some(d),
                 div_slug: &path,
                 title_markers: &title_markers,
                 units: &mut units,
@@ -558,6 +601,40 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
             } else {
                 plain_paragraphs(&mut sink, &content_ranges);
             }
+        }
+    }
+
+    // ---- 4b. An undivided work (declared): every paragraph, with no division.
+    if options.undivided && heading_indices.is_empty() {
+        let mut content = Vec::new();
+        for (i, r) in paras.iter().enumerate() {
+            let skipped = match kinds[i] {
+                Para::Separator => Some("separator"),
+                Para::EndMark => Some("end mark"),
+                _ => None,
+            };
+            match skipped {
+                Some(why) => units.push(Unit {
+                    kind: UnitKind::Skipped(why),
+                    range: r.clone(),
+                }),
+                None => content.push(r.clone()),
+            }
+        }
+        let mut sink = Sink {
+            file,
+            options,
+            division: None,
+            div_slug: "",
+            title_markers: &[],
+            units: &mut units,
+            passages: &mut passages,
+            problems: &mut problems,
+            warnings: &mut warnings,
+        };
+        match options.passages {
+            PassageUnit::Paragraphs => plain_paragraphs(&mut sink, &content),
+            _ => numbered_sections(&mut sink, &content),
         }
     }
 
@@ -632,7 +709,7 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
         toc,
         problems,
         warnings,
-        markup: false,
+        markup: options.markup,
     }
 }
 
@@ -640,7 +717,8 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
 struct Sink<'a> {
     file: &'a [u8],
     options: &'a Options,
-    division: usize,
+    /// `None` for an undivided work.
+    division: Option<usize>,
     div_slug: &'a str,
     /// Footnote numbers whose marker is in the division's title ("OF PROBABILITY[9].").
     title_markers: &'a [u32],
@@ -674,7 +752,7 @@ impl Sink<'_> {
             locator,
             role,
             range,
-            division: Some(self.division),
+            division: self.division,
         });
         self.passages.len() - 1
     }
@@ -684,7 +762,11 @@ impl Sink<'_> {
     fn author_text(&mut self, range: Range<usize>, host: usize, counters: &mut HostCounters) {
         let host_locator = self.passages[host].locator.clone();
         let mut cursor = range.start;
-        for bracket in brackets(self.file, range.clone()) {
+        for bracket in brackets(
+            self.file,
+            range.clone(),
+            self.options.markup == Markup::Wikitext,
+        ) {
             if let Some(piece) = trimmed(self.file, cursor..bracket.start) {
                 self.units.push(Unit {
                     kind: UnitKind::Text,
@@ -813,7 +895,7 @@ impl Sink<'_> {
                     .enumerate()
                     .rev()
                     .find(|(_, p)| {
-                        p.division == Some(self.division)
+                        p.division == self.division
                             && p.role == PlannedRole::Text
                             && file[p.range.clone()]
                                 .windows(marker.len())
@@ -871,6 +953,12 @@ impl Sink<'_> {
 fn numbered_sections(sink: &mut Sink, paras: &[Range<usize>]) {
     let file = sink.file;
     let div_slug = sink.div_slug.to_owned();
+    // Locators inside the division ("part-1/3"), or bare numbers in an undivided work ("3").
+    let prefix = if div_slug.is_empty() {
+        String::new()
+    } else {
+        format!("{div_slug}/")
+    };
     let mut expected = 1u32;
     let mut current: Option<usize> = None;
     let mut counters = HostCounters::default();
@@ -911,7 +999,7 @@ fn numbered_sections(sink: &mut Sink, paras: &[Range<usize>]) {
             });
             let Some(rest) = trimmed(file, number_range.end..r.end) else {
                 sink.problems
-                    .push(format!("{div_slug}/{n}: section has a number but no text"));
+                    .push(format!("{prefix}{n}: section has a number but no text"));
                 current = None;
                 continue;
             };
@@ -924,8 +1012,7 @@ fn numbered_sections(sink: &mut Sink, paras: &[Range<usize>]) {
                 None => (None, rest),
             };
             // The text passage first, so the heading can point at it.
-            let host =
-                sink.push_passage(format!("{div_slug}/{n}"), PlannedRole::Text, text.clone());
+            let host = sink.push_passage(format!("{prefix}{n}"), PlannedRole::Text, text.clone());
             if let Some(h) = heading {
                 counters.bare_markers += count_bare_markers(&file[h.clone()]);
                 sink.units.push(Unit {
@@ -933,7 +1020,7 @@ fn numbered_sections(sink: &mut Sink, paras: &[Range<usize>]) {
                     range: h.clone(),
                 });
                 sink.push_passage(
-                    format!("{div_slug}/{n}/heading"),
+                    format!("{prefix}{n}/heading"),
                     PlannedRole::EditorHeading { of: host },
                     h,
                 );
@@ -955,7 +1042,7 @@ fn numbered_sections(sink: &mut Sink, paras: &[Range<usize>]) {
             };
             if counters.note_paragraphs > 0 {
                 sink.problems
-                    .push(format!("{div_slug}/{number}: text continues after a note"));
+                    .push(format!("{prefix}{number}: text continues after a note"));
             }
             sink.passages[host].range.end = r.end;
             sink.author_text(r.clone(), host, &mut counters);
@@ -967,6 +1054,12 @@ fn numbered_sections(sink: &mut Sink, paras: &[Range<usize>]) {
 /// Unnumbered prose: each paragraph is a passage, `<division>/1`, `<division>/2`, …
 fn plain_paragraphs(sink: &mut Sink, paras: &[Range<usize>]) {
     let div_slug = sink.div_slug.to_owned();
+    // Locators inside the division ("part-1/3"), or bare numbers in an undivided work ("3").
+    let prefix = if div_slug.is_empty() {
+        String::new()
+    } else {
+        format!("{div_slug}/")
+    };
     let mut k = 0;
     let mut current: Option<usize> = None;
     let mut counters = HostCounters::default();
@@ -1004,11 +1097,11 @@ fn plain_paragraphs(sink: &mut Sink, paras: &[Range<usize>]) {
         sink.close_host(current, &counters);
         counters = HostCounters::default();
         k += 1;
-        let host = sink.push_passage(format!("{div_slug}/{k}"), PlannedRole::Text, r.clone());
+        let host = sink.push_passage(format!("{prefix}{k}"), PlannedRole::Text, r.clone());
         sink.author_text(r.clone(), host, &mut counters);
         for (n, note) in margin_notes.drain(..).enumerate() {
             sink.push_passage(
-                format!("{div_slug}/{k}/margin-{}", n + 1),
+                format!("{prefix}{k}/margin-{}", n + 1),
                 PlannedRole::MarginNote { on: host },
                 note,
             );
@@ -1105,12 +1198,28 @@ fn attribution(options: &Options, bytes: &[u8]) -> Option<Attribution> {
 }
 
 /// Every `[…]` group in `range` (balanced, not nested; unbalanced brackets are left as text and
-/// caught by review).
-fn brackets(file: &[u8], range: Range<usize>) -> Vec<Range<usize>> {
+/// caught by review). In wikitext, `[[…]]` is a link, never a bracket group.
+fn brackets(file: &[u8], range: Range<usize>, wikilinks: bool) -> Vec<Range<usize>> {
     let mut out = Vec::new();
     let mut open = None;
-    for (i, &b) in file[range.clone()].iter().enumerate() {
+    let mut in_link = false;
+    let bytes = &file[range.clone()];
+    for (i, &b) in bytes.iter().enumerate() {
         let at = range.start + i;
+        if wikilinks {
+            let next = bytes.get(i + 1).copied();
+            let prev = i.checked_sub(1).map(|p| bytes[p]);
+            if b == b'[' && (next == Some(b'[') || prev == Some(b'[')) {
+                in_link = true;
+                continue;
+            }
+            if b == b']' && in_link {
+                if next != Some(b']') {
+                    in_link = false;
+                }
+                continue;
+            }
+        }
         match (b, open) {
             (b'[', None) => open = Some(at),
             (b']', Some(start)) => {
@@ -1142,7 +1251,7 @@ fn is_bare_marker(bytes: &[u8]) -> bool {
 }
 
 fn count_bare_markers(bytes: &[u8]) -> usize {
-    brackets(bytes, 0..bytes.len())
+    brackets(bytes, 0..bytes.len(), false)
         .into_iter()
         .filter(|r| is_bare_marker(&bytes[r.clone()]))
         .count()
