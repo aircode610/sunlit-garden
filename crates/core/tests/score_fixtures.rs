@@ -16,11 +16,18 @@
 //! Tuning: Hobbes' *Leviathan* as Gutenberg #3207 and as Standard Ebooks at commit
 //! 063b8afc4dbd19a897208ee38f2c735ceaf675b5 of github.com/standardebooks/thomas-hobbes_leviathan
 //! (titles on the heading line: "CHAPTER I. OF SENSE"; the list of illustrations left out).
+//! Tuning, for contents lists of heading-like entries followed by front matter: Wollstonecraft's
+//! *Vindication of the Rights of Woman* as Gutenberg #3420 and as Standard Ebooks at commit
+//! 77dde7fcc672bca3d23d7aec1583bdc2d38b9939 of
+//! github.com/standardebooks/mary-wollstonecraft_a-vindication-of-the-rights-of-woman; Mill's *On
+//! Liberty* as Gutenberg #34901 and as Standard Ebooks at commit
+//! e894861f43d884e155780e69c60d2c192751fdde of github.com/standardebooks/john-stuart-mill_on-liberty
+//! (both transcribed by Standard Ebooks from these Gutenberg ebooks).
 //! Pinned by SHA-256 so a fixture can't change silently.
 
 use sunlit_core::Sha256;
 
-const PINNED: [(&str, &str); 238] = [
+const PINNED: [(&str, &str); 264] = [
     (
         "gutenberg/pg9662.txt",
         "647459bc720d0fe09f85ac17b8d7edc2557ff89ba4467151407a4d48228be2cb",
@@ -972,6 +979,110 @@ const PINNED: [(&str, &str); 238] = [
     (
         "standard-ebooks/hobbes-leviathan/part-4.xhtml",
         "bd7746141d52530ec6eb0792f46a6e5f370fdbd46469cac9a37deaeca882ae87",
+    ),
+    (
+        "gutenberg/pg3420.txt",
+        "7d79652f43541759d8ff0ce467372fa4a534d3f9dc32013e01ca99ea04b286a8",
+    ),
+    (
+        "standard-ebooks/wollstonecraft-vindication/content.opf",
+        "32ec70a1a786ea5d75d4962242911fbdce2112bec3211d62d4dd49a471167537",
+    ),
+    (
+        "standard-ebooks/wollstonecraft-vindication/chapter-1.xhtml",
+        "a389abbde0b0a4e83811721598f8f84576bcad2655abf0dc8d9d7ec1690e4717",
+    ),
+    (
+        "standard-ebooks/wollstonecraft-vindication/chapter-10.xhtml",
+        "d795617b25f972f71308045568d1675c5145906f1e3ffe3711acbdca5faf2f66",
+    ),
+    (
+        "standard-ebooks/wollstonecraft-vindication/chapter-11.xhtml",
+        "af91bd04195750652ab53e3e9f53960e06c9ede6e9f372f6a1579b7cf2d233f2",
+    ),
+    (
+        "standard-ebooks/wollstonecraft-vindication/chapter-12.xhtml",
+        "0394afc24bfa6bc162dfe534a6c1aea6fa1d14caef1bc6ea1122266c20010bea",
+    ),
+    (
+        "standard-ebooks/wollstonecraft-vindication/chapter-13.xhtml",
+        "92c8e29ebe5fc4d312cce06b1987105debddb2e8abc40e0cb18b56ab74338b6e",
+    ),
+    (
+        "standard-ebooks/wollstonecraft-vindication/chapter-2.xhtml",
+        "ae8cbbdd31c479ad7b2e91dab26236a588ada5999fd4754ca241d75307c95826",
+    ),
+    (
+        "standard-ebooks/wollstonecraft-vindication/chapter-3.xhtml",
+        "70cc7ae419fed14d0f4a07fc7dc9858bbf75a025fadb26906e429f84beafbf44",
+    ),
+    (
+        "standard-ebooks/wollstonecraft-vindication/chapter-4.xhtml",
+        "05fe3a5fd513c0d969fd85a59b19593bcfb824b9d1950f1621791eb59a8cf0af",
+    ),
+    (
+        "standard-ebooks/wollstonecraft-vindication/chapter-5.xhtml",
+        "92455e0c7b02f425fcaac62840b08b6514bb513c396a6158b9dfee8617aebbe6",
+    ),
+    (
+        "standard-ebooks/wollstonecraft-vindication/chapter-6.xhtml",
+        "5e72dd4549fc673667fad87f5bcb1ba9180f12cf912b2b832def8ed71481ebcc",
+    ),
+    (
+        "standard-ebooks/wollstonecraft-vindication/chapter-7.xhtml",
+        "2cfebcc597c5f8387308f9fb696fed4053bce048784e682f917536146fcf9d02",
+    ),
+    (
+        "standard-ebooks/wollstonecraft-vindication/chapter-8.xhtml",
+        "342343faf16a652c38ca7fe7ec35784b0fe02f3dfb5f08c198b39b44e5bb305a",
+    ),
+    (
+        "standard-ebooks/wollstonecraft-vindication/chapter-9.xhtml",
+        "7523a827d85e8bf2fc74fc508222e4e1c1aa24e8d4f017daa6ae5552a9a5e08d",
+    ),
+    (
+        "standard-ebooks/wollstonecraft-vindication/dedication.xhtml",
+        "21c53df423841f16eb2c684b76b512b7fe777745a8265939b0af26ad19b96a12",
+    ),
+    (
+        "standard-ebooks/wollstonecraft-vindication/introduction.xhtml",
+        "bca9977a320c39b6a5d8632e1bb7dad91ab820adc330b9df39661c66ab113f9d",
+    ),
+    (
+        "gutenberg/pg34901.txt",
+        "9ecc51191d7ba36f99b0f17b2f60ed54c3929577856f47f0616d8f198422b657",
+    ),
+    (
+        "standard-ebooks/mill-on-liberty/content.opf",
+        "9aae0f5d7c696a2dbec98c638911aa857469b851052dc1cdf0f1e2283c5e9807",
+    ),
+    (
+        "standard-ebooks/mill-on-liberty/chapter-1.xhtml",
+        "94643418341b249bc8a5be7efd33119ed1798e92f54698ded1441e1b7a729614",
+    ),
+    (
+        "standard-ebooks/mill-on-liberty/chapter-2.xhtml",
+        "6e6af95c2537cc434b35326e34ff2bc6dbb0b7ef562dc0d1c4d3afcba83f6529",
+    ),
+    (
+        "standard-ebooks/mill-on-liberty/chapter-3.xhtml",
+        "d4d8304314039c6b6ebd9823eec28ee824be433cbc2ee97a18fa64aa40129075",
+    ),
+    (
+        "standard-ebooks/mill-on-liberty/chapter-4.xhtml",
+        "06c928e398c9a69b9d0385cda10f152fc3f2fdfad9e84431cf2ca1b8eb79e7f7",
+    ),
+    (
+        "standard-ebooks/mill-on-liberty/chapter-5.xhtml",
+        "a6acb9041f08aacbe8de7ceb1fedacbc9f493a83eae6e05106b24bd849b2cc52",
+    ),
+    (
+        "standard-ebooks/mill-on-liberty/dedication.xhtml",
+        "062d3d49632a77a94f1fe6aa37c881f111947ee7f77de75c5f17ff07ca355f4a",
+    ),
+    (
+        "standard-ebooks/mill-on-liberty/introduction.xhtml",
+        "e125f16d4e7ab9a34ba2b04449bf54dbe354acabac56277857b2cf06530d6dd9",
     ),
 ];
 
