@@ -366,3 +366,44 @@ fn nesting_across_files_and_front_matter_are_read_from_the_answer_key() {
     let sections = d[book1 + 2..].iter().take_while(|x| x.depth > 2).count();
     assert_eq!(sections, 7);
 }
+
+/// The held-out score: a regression floor only. **Never change the compiler to raise it** — fix
+/// failures on a tuning book with the same pattern, then see whether this number moves.
+#[test]
+fn the_held_out_treatise_does_not_get_worse() {
+    use sunlit_core::corpus::compile::structure::{Options, PassageUnit, compile_plain_text};
+    use sunlit_core::corpus::score::{score, segment};
+    let file: &[u8] = include_bytes!("fixtures/gutenberg/pg4705.txt");
+    // As an import would declare it: the Treatise is cited by paragraph (T 1.1.1.1).
+    let options = Options {
+        passages: PassageUnit::Paragraphs,
+        ..Options::default()
+    };
+    let s = compile_plain_text(
+        file,
+        sunlit_core::corpus::gutenberg::body_range(file).unwrap(),
+        &options,
+    );
+    let r = score(
+        &segment(file, &s),
+        &standard_ebooks_gold(&treatise_spine()).unwrap(),
+    );
+
+    for (name, value, floor) in [
+        ("passage precision", r.passages.precision, 0.982),
+        ("passage recall", r.passages.recall, 0.975),
+        ("division F1", r.divisions.f1, 0.945),
+        ("division labels", r.division_labels, 0.009),
+        ("division nesting", r.division_depths, 0.018),
+    ] {
+        assert!(
+            value >= floor - 1e-9,
+            "{name} dropped to {value:.4} (floor {floor})"
+        );
+    }
+    assert!(
+        r.window_diff <= 0.0143 + 1e-9,
+        "WindowDiff rose to {:.4}",
+        r.window_diff
+    );
+}
