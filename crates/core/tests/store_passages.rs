@@ -364,3 +364,34 @@ async fn insertions_nest_inside_their_host_and_keep_their_attribution(pool: PgPo
         assert!(host.start_byte <= nested.start_byte && nested.end_byte <= host.end_byte);
     }
 }
+
+#[sqlx::test(migrations = "../../migrations")]
+async fn a_margin_note_is_stored_on_the_paragraph_it_glosses(pool: PgPool) {
+    // Hobbes' marginal notes are printed before the paragraph they gloss, outside its bytes.
+    let store = PgStore::from_pool(pool);
+    let edition = berkeley_edition(&store).await;
+    let paragraph = store
+        .ensure_passage(&passage(
+            &edition,
+            0,
+            "part-1/3",
+            PassageRole::Text,
+            (1010, 2000),
+            SECTION_3,
+        ))
+        .await
+        .unwrap();
+    let note = store
+        .ensure_passage(&passage(
+            &edition,
+            1,
+            "part-1/3/margin-1",
+            PassageRole::MarginNote { on: paragraph.id },
+            (1000, 1006),
+            "Memory",
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(note.role, PassageRole::MarginNote { on: paragraph.id });
+}
