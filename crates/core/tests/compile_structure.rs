@@ -471,8 +471,20 @@ fn declared_expectations_are_hard_checks() {
             ("part-1".to_string(), 156),
         ]
         .into(),
+        text_passages_total: Some(186),
     });
     assert_eq!(compile(BERKELEY, &options).problems, Vec::<String>::new());
+
+    // The total counts passages with no division too (an undivided work).
+    options.expect.as_mut().unwrap().text_passages_total = Some(187);
+    let problems = compile(BERKELEY, &options).problems;
+    assert!(
+        problems
+            .iter()
+            .any(|p| p.contains("186") && p.contains("187")),
+        "{problems:?}"
+    );
+    options.expect.as_mut().unwrap().text_passages_total = Some(186);
 
     options
         .expect
@@ -791,7 +803,11 @@ fn titles_on_the_heading_line_and_chapters_numbered_through_the_parts() {
     assert_eq!(d.iter().filter(|x| x.kind == "introduction").count(), 1);
     // The contents list ends where the body's "THE INTRODUCTION" repeats its "INTRODUCTION".
     let intro = find("introduction", "Introduction");
-    let first = s.passages.iter().find(|p| p.division == intro).unwrap();
+    let first = s
+        .passages
+        .iter()
+        .find(|p| p.division == Some(intro))
+        .unwrap();
     assert!(file[first.range.clone()].starts_with(b"Nature (the art whereby God"));
     let parts: Vec<(&str, Option<&str>)> = d
         .iter()

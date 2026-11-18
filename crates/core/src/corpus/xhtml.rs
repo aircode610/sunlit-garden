@@ -7,6 +7,7 @@
 //! skipped.
 
 use std::fmt;
+use std::ops::Range;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Token {
@@ -46,6 +47,12 @@ fn err<T>(at: usize, message: impl Into<String>) -> Result<T, XhtmlError> {
 /// Read the whole document. Fails on the first problem; on success every start tag was closed by
 /// a matching end tag.
 pub fn tokenize(src: &str) -> Result<Vec<Token>, XhtmlError> {
+    Ok(tokenize_spans(src)?.into_iter().map(|(_, t)| t).collect())
+}
+
+/// As [`tokenize`], with the bytes of `src` each token came from: the whole tag for start and
+/// end tags (a self-closing tag's start and end share it), the raw undecoded text for text.
+pub fn tokenize_spans(src: &str) -> Result<Vec<(Range<usize>, Token)>, XhtmlError> {
     let b = src.as_bytes();
     let mut tokens = Vec::new();
     let mut open: Vec<String> = Vec::new();
@@ -53,7 +60,7 @@ pub fn tokenize(src: &str) -> Result<Vec<Token>, XhtmlError> {
     while i < b.len() {
         if b[i] != b'<' {
             let end = src[i..].find('<').map_or(b.len(), |n| i + n);
-            tokens.push(Token::Text(decode(&src[i..end], i)?));
+            tokens.push((i..end, Token::Text(decode(&src[i..end], i)?)));
             i = end;
             continue;
         }
@@ -74,7 +81,7 @@ pub fn tokenize(src: &str) -> Result<Vec<Token>, XhtmlError> {
             let n = find(stripped, ">", i)?;
             let name = stripped[..n].trim().to_owned();
             match open.pop() {
-                Some(top) if top == name => tokens.push(Token::End { name }),
+                Some(top) if top == name => tokens.push((i..i + 2 + n + 1, Token::End { name })),
                 Some(top) => return err(i, format!("</{name}> closes <{top}>")),
                 None => return err(i, format!("</{name}> with nothing open")),
             }
@@ -87,12 +94,16 @@ pub fn tokenize(src: &str) -> Result<Vec<Token>, XhtmlError> {
                 None => (inner, false),
             };
             let (name, attrs) = parse_tag(inner, i)?;
-            tokens.push(Token::Start {
-                name: name.clone(),
-                attrs,
-            });
+            let span = i..i + n + 1;
+            tokens.push((
+                span.clone(),
+                Token::Start {
+                    name: name.clone(),
+                    attrs,
+                },
+            ));
             if self_closing {
-                tokens.push(Token::End { name });
+                tokens.push((span, Token::End { name }));
             } else {
                 open.push(name);
             }
@@ -140,7 +151,7 @@ fn parse_tag(inner: &str, at: usize) -> Result<(String, Vec<(String, String)>), 
 }
 
 /// Decode XML's five named entities and numeric character references; refuse any other `&…;`.
-fn decode(text: &str, at: usize) -> Result<String, XhtmlError> {
+pub(crate) fn decode(text: &str, at: usize) -> Result<String, XhtmlError> {
     let mut out = String::with_capacity(text.len());
     let mut rest = text;
     while let Some(amp) = rest.find('&') {

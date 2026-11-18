@@ -91,12 +91,15 @@ pub struct EditionEntry {
 }
 
 /// Where an edition's text sits inside its document.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RangeSpec {
     /// Between Project Gutenberg's START/END markers (the default for Gutenberg files).
     GutenbergBody,
     /// Explicit byte offsets, e.g. for one work inside a multi-work volume.
     Bytes { start: i64, end: i64 },
+    /// One element of an XML file, by its `id` (a ThML `divN`: one work in a CCEL volume),
+    /// without the elements in `except` (another work nested inside it).
+    Element { id: String, except: Vec<String> },
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -279,13 +282,18 @@ struct RawExpect {
     divisions: Option<Vec<String>>,
     #[serde(default)]
     text_passages: BTreeMap<String, usize>,
+    text_passages_total: Option<usize>,
 }
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct RawRange {
-    start: i64,
-    end: i64,
+    start: Option<i64>,
+    end: Option<i64>,
+    /// `range = { div = "iii" }`: the XML element with this id.
+    div: Option<String>,
+    /// With `div`: elements inside it that are another work (`except = ["iii.ii.viii"]`).
+    except: Option<Vec<String>>,
 }
 
 // ---- Stage 2: validation ----------------------------------------------------------------
@@ -394,13 +402,31 @@ fn validate(raw: RawManifest) -> Result<Manifest, ManifestError> {
                 problems.push(format!("{ctx}: work {:?} is not listed", e.work));
             }
             let range = match (e.range, d.provider.as_str()) {
-                (Some(RawRange { start, end }), _) if start >= 0 && start < end => {
-                    Some(RangeSpec::Bytes { start, end })
-                }
+                (
+                    Some(RawRange {
+                        start: Some(start),
+                        end: Some(end),
+                        div: None,
+                        except: None,
+                    }),
+                    _,
+                ) if start >= 0 && start < end => Some(RangeSpec::Bytes { start, end }),
+                (
+                    Some(RawRange {
+                        start: None,
+                        end: None,
+                        div: Some(id),
+                        except,
+                    }),
+                    _,
+                ) if !id.is_empty() => Some(RangeSpec::Element {
+                    id,
+                    except: except.unwrap_or_default(),
+                }),
                 (Some(r), _) => {
                     problems.push(format!(
-                        "{ctx}: range needs 0 <= start < end (got {}..{})",
-                        r.start, r.end
+                        "{ctx}: range needs either 0 <= start < end or div = \"<id>\" (got {:?}..{:?}, div {:?})",
+                        r.start, r.end, r.div
                     ));
                     None
                 }
@@ -456,6 +482,7 @@ fn validate(raw: RawManifest) -> Result<Manifest, ManifestError> {
                 expect: e.expect.map(|x| Expect {
                     divisions: x.divisions,
                     text_passages: x.text_passages,
+                    text_passages_total: x.text_passages_total,
                 }),
             };
             if let (Some(work), Some(slug), Some(range)) = (work, slug, range) {

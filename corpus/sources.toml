@@ -47,6 +47,28 @@ wikidata = "Q7104"
 born = 1723
 died = 1789
 
+[[thinker]]
+slug = "anselm-of-canterbury"
+name = "Anselm of Canterbury"
+wikidata = "Q43939"
+born = 1033
+died = 1109
+
+[[thinker]]
+slug = "gaunilo-of-marmoutiers"
+name = "Gaunilo of Marmoutiers"
+wikidata = "Q785241"
+born = 994
+died = 1083
+
+# Dates approximate (c. 240 – c. 320).
+[[thinker]]
+slug = "lactantius"
+name = "Lactantius"
+wikidata = "Q209102"
+born = 240
+died = 317
+
 # ------------------------------------------------------------------------------- works
 
 [[work]]
@@ -81,6 +103,49 @@ title = "The System of Nature"
 wikidata = "Q1111930"
 first_year = 1770
 original_language = "fr"
+
+[[work]]
+thinker = "anselm-of-canterbury"
+slug = "proslogion"
+title = "Proslogion"
+wikidata = "Q646518"
+first_year = 1078
+original_language = "la"
+
+# Gaunilo's reply to the Proslogion ("Liber pro insipiente"), c. 1079.
+[[work]]
+thinker = "gaunilo-of-marmoutiers"
+slug = "on-behalf-of-the-fool"
+title = "On Behalf of the Fool"
+wikidata = "Q42192235"
+first_year = 1079
+original_language = "la"
+
+# Anselm's answer to Gaunilo (no Wikidata item yet).
+[[work]]
+thinker = "anselm-of-canterbury"
+slug = "reply-to-gaunilo"
+title = "Reply to Gaunilo"
+first_year = 1079
+original_language = "la"
+
+# Written c. 303–311.
+[[work]]
+thinker = "lactantius"
+slug = "divine-institutes"
+title = "The Divine Institutes"
+wikidata = "Q42189049"
+first_year = 311
+original_language = "la"
+
+# Holds the "Epicurean riddle" of evil (ch. 13). Written c. 313.
+[[work]]
+thinker = "lactantius"
+slug = "on-the-anger-of-god"
+title = "On the Anger of God"
+wikidata = "Q42188497"
+first_year = 313
+original_language = "la"
 
 # --------------------------------------------------------------------------- documents
 
@@ -269,3 +334,356 @@ by = "editor"
 [document.edition.expect]
 divisions = ["part-2", "part-2/chapter-1", "part-2/chapter-2", "part-2/chapter-3", "part-2/chapter-4", "part-2/chapter-5", "part-2/chapter-6", "part-2/chapter-7", "part-2/chapter-8", "part-2/chapter-9", "part-2/chapter-10", "part-2/chapter-11", "part-2/chapter-12", "part-2/chapter-13", "part-2/chapter-14"]
 text_passages = { "part-2/chapter-1" = 36, "part-2/chapter-2" = 29, "part-2/chapter-3" = 32, "part-2/chapter-4" = 64, "part-2/chapter-5" = 42, "part-2/chapter-6" = 27, "part-2/chapter-7" = 32, "part-2/chapter-8" = 35, "part-2/chapter-9" = 27, "part-2/chapter-10" = 23, "part-2/chapter-11" = 24, "part-2/chapter-12" = 20, "part-2/chapter-13" = 35, "part-2/chapter-14" = 16 }
+
+# CCEL editions: the texts are public domain in the US, but CCEL's editions are licensed for
+# personal, educational or non-profit use; permission to republish was requested 2026-11-18
+# (no hosting until CCEL replies). ThML XML: editions are elements, chosen by id.
+
+# Anselm, Basic Writings (S. N. Deane's translation, 1903; Open Court 1926). Deane's
+# introduction (ii) and the other works aren't imported.
+[[document]]
+provider = "ccel"
+provider_id = "anselm/basic_works"
+url = "https://www.ccel.org/ccel/a/anselm/basic_works.xml"
+licence = "ccel-personal-educational-nonprofit"
+media_type = "application/xml"
+sha256 = "7fc7dbf6838c7cc9f395310e130e7f27957b2d52d09ce74ef43facd476f04a22" # reviewed 2026-11-18
+
+[[document.edition]]
+work = "anselm-of-canterbury/proslogion"
+slug = "ccel-anselm-proslogion"
+title = "Proslogium"
+language = "en"
+translator = "Sidney Norton Deane"
+published_year = 1903
+range = { div = "iii" }
+
+# From the ThML tree; paragraphs counted independently (Python, ElementTree) and by the compiler: equal.
+[document.edition.expect]
+divisions = [
+  "preface",
+  "chapter-1",
+  "chapter-2",
+  "chapter-3",
+  "chapter-4",
+  "chapter-5",
+  "chapter-6",
+  "chapter-7",
+  "chapter-8",
+  "chapter-9",
+  "chapter-10",
+  "chapter-11",
+  "chapter-12",
+  "chapter-13",
+  "chapter-14",
+  "chapter-15",
+  "chapter-16",
+  "chapter-17",
+  "chapter-18",
+  "chapter-19",
+  "chapter-20",
+  "chapter-21",
+  "chapter-22",
+  "chapter-23",
+  "chapter-24",
+  "chapter-25",
+  "chapter-26",
+]
+text_passages = { "preface" = 3, "chapter-1" = 7, "chapter-2" = 4, "chapter-3" = 2, "chapter-4" = 4, "chapter-5" = 1, "chapter-6" = 2, "chapter-7" = 4, "chapter-8" = 2, "chapter-9" = 8, "chapter-10" = 2, "chapter-11" = 4, "chapter-12" = 1, "chapter-13" = 4, "chapter-14" = 5, "chapter-15" = 1, "chapter-16" = 2, "chapter-17" = 1, "chapter-18" = 5, "chapter-19" = 2, "chapter-20" = 1, "chapter-21" = 1, "chapter-22" = 2, "chapter-23" = 2, "chapter-24" = 1, "chapter-25" = 10, "chapter-26" = 3 }
+text_passages_total = 84
+
+# Gaunilo's text is cited by its eight numbered sections.
+[[document.edition]]
+work = "gaunilo-of-marmoutiers/on-behalf-of-the-fool"
+slug = "ccel-gaunilo-on-behalf-of-the-fool"
+title = "In Behalf of the Fool"
+language = "en"
+translator = "Sidney Norton Deane"
+published_year = 1903
+range = { div = "v.i" }
+passages = "numbered-sections"
+
+# From the ThML tree; paragraphs counted independently (Python, ElementTree) and by the compiler: equal.
+[document.edition.expect]
+divisions = []
+text_passages_total = 8
+
+[[document.edition]]
+work = "anselm-of-canterbury/reply-to-gaunilo"
+slug = "ccel-anselm-apologetic"
+title = "Anselm's Apologetic"
+language = "en"
+translator = "Sidney Norton Deane"
+published_year = 1903
+range = { div = "v.ii" }
+
+# From the ThML tree; paragraphs counted independently (Python, ElementTree) and by the compiler: equal.
+[document.edition.expect]
+divisions = [
+  "chapter-1",
+  "chapter-2",
+  "chapter-3",
+  "chapter-4",
+  "chapter-5",
+  "chapter-6",
+  "chapter-7",
+  "chapter-8",
+  "chapter-9",
+  "chapter-10",
+]
+text_passages = { "chapter-1" = 10, "chapter-2" = 4, "chapter-3" = 5, "chapter-4" = 8, "chapter-5" = 11, "chapter-6" = 3, "chapter-7" = 5, "chapter-8" = 6, "chapter-9" = 4, "chapter-10" = 3 }
+text_passages_total = 60
+
+# Ante-Nicene Fathers vol. 7 (ed. Roberts, Donaldson, Coxe; Lactantius translated by William
+# Fletcher, 1886). Footnotes are the editors'.
+[[document]]
+provider = "ccel"
+provider_id = "schaff/anf07"
+url = "https://www.ccel.org/ccel/s/schaff/anf07.xml"
+licence = "ccel-personal-educational-nonprofit"
+media_type = "application/xml"
+sha256 = "2a06bbed738de15a688512d4f51c9f28b6543e33284cfa2c28d55632952e8d83" # reviewed 2026-11-18
+
+# CCEL nests the Epitome (a work of its own) inside the Institutes' element.
+[[document.edition]]
+work = "lactantius/divine-institutes"
+slug = "ccel-anf07-divine-institutes"
+title = "The Divine Institutes"
+language = "en"
+translator = "William Fletcher"
+published_year = 1886
+range = { div = "iii.ii", except = ["iii.ii.viii"] }
+
+# From the ThML tree; paragraphs counted independently (Python, ElementTree) and by the compiler: equal.
+[document.edition.expect]
+divisions = [
+  "book-1",
+  "book-1/preface-of-what-great-value-the-knowledge-of-the-truth-is-and-always-has-been",
+  "book-1/chapter-1",
+  "book-1/chapter-2",
+  "book-1/chapter-3",
+  "book-1/chapter-4",
+  "book-1/chapter-5",
+  "book-1/chapter-6",
+  "book-1/chapter-7",
+  "book-1/chapter-8",
+  "book-1/chapter-9",
+  "book-1/chapter-10",
+  "book-1/chapter-11",
+  "book-1/chapter-12",
+  "book-1/chapter-13",
+  "book-1/chapter-14",
+  "book-1/chapter-15",
+  "book-1/chapter-16",
+  "book-1/chapter-17",
+  "book-1/chapter-18",
+  "book-1/chapter-19",
+  "book-1/chapter-20",
+  "book-1/chapter-21",
+  "book-1/chapter-22",
+  "book-1/chapter-23",
+  "book-2",
+  "book-2/chapter-1",
+  "book-2/chapter-2",
+  "book-2/chapter-3",
+  "book-2/chapter-4",
+  "book-2/chapter-5",
+  "book-2/chapter-6",
+  "book-2/chapter-7",
+  "book-2/chapter-8",
+  "book-2/chapter-9",
+  "book-2/chapter-10",
+  "book-2/chapter-11",
+  "book-2/chapter-12",
+  "book-2/chapter-13",
+  "book-2/chapter-14",
+  "book-2/chapter-15",
+  "book-2/chapter-16",
+  "book-2/chapter-17",
+  "book-2/chapter-18",
+  "book-2/chapter-19",
+  "book-2/chapter-20",
+  "book-3",
+  "book-3/chapter-1",
+  "book-3/chapter-2",
+  "book-3/chapter-3",
+  "book-3/chapter-4",
+  "book-3/chapter-5",
+  "book-3/chapter-6",
+  "book-3/chapter-7",
+  "book-3/chapter-8",
+  "book-3/chapter-9",
+  "book-3/chapter-10",
+  "book-3/chapter-11",
+  "book-3/chapter-12",
+  "book-3/chapter-13",
+  "book-3/chapter-14",
+  "book-3/chapter-15",
+  "book-3/chapter-16",
+  "book-3/chapter-17",
+  "book-3/chapter-18",
+  "book-3/chapter-19",
+  "book-3/chapter-20",
+  "book-3/chapter-21",
+  "book-3/chapter-22",
+  "book-3/chapter-23",
+  "book-3/chapter-24",
+  "book-3/chapter-25",
+  "book-3/chapter-26",
+  "book-3/chapter-27",
+  "book-3/chapter-28",
+  "book-3/chapter-29",
+  "book-3/chapter-30",
+  "book-4",
+  "book-4/chapter-1",
+  "book-4/chapter-2",
+  "book-4/chapter-3",
+  "book-4/chapter-4",
+  "book-4/chapter-5",
+  "book-4/chapter-6",
+  "book-4/chapter-7",
+  "book-4/chapter-8",
+  "book-4/chapter-9",
+  "book-4/chapter-10",
+  "book-4/chapter-11",
+  "book-4/chapter-12",
+  "book-4/chapter-13",
+  "book-4/chapter-14",
+  "book-4/chapter-15",
+  "book-4/chapter-16",
+  "book-4/chapter-17",
+  "book-4/chapter-18",
+  "book-4/chapter-19",
+  "book-4/chapter-20",
+  "book-4/chapter-21",
+  "book-4/chapter-22",
+  "book-4/chapter-23",
+  "book-4/chapter-24",
+  "book-4/chapter-25",
+  "book-4/chapter-26",
+  "book-4/chapter-27",
+  "book-4/chapter-28",
+  "book-4/chapter-29",
+  "book-4/chapter-30",
+  "book-5",
+  "book-5/chapter-1",
+  "book-5/chapter-2",
+  "book-5/chapter-3",
+  "book-5/chapter-4",
+  "book-5/chapter-5",
+  "book-5/chapter-6",
+  "book-5/chapter-7",
+  "book-5/chapter-8",
+  "book-5/chapter-9",
+  "book-5/chapter-10",
+  "book-5/chap-xi-of-the-cruelty-of-the-heathens-against-the-christians",
+  "book-5/chapter-12",
+  "book-5/chapter-13",
+  "book-5/chapter-14",
+  "book-5/chapter-15",
+  "book-5/chapter-16",
+  "book-5/chapter-17",
+  "book-5/chapter-18",
+  "book-5/chapter-19",
+  "book-5/chapter-20",
+  "book-5/chapter-21",
+  "book-5/chapter-22",
+  "book-5/chapter-23",
+  "book-5/chapter-24",
+  "book-6",
+  "book-6/chapter-1",
+  "book-6/chapter-2",
+  "book-6/chapter-3",
+  "book-6/chapter-4",
+  "book-6/chapter-5",
+  "book-6/chapter-6",
+  "book-6/chapter-7",
+  "book-6/chapter-8",
+  "book-6/chapter-9",
+  "book-6/chapter-10",
+  "book-6/chapter-11",
+  "book-6/chapter-12",
+  "book-6/chapter-13",
+  "book-6/chapter-14",
+  "book-6/chapter-15",
+  "book-6/chapter-16",
+  "book-6/chapter-17",
+  "book-6/chapter-18",
+  "book-6/chapter-19",
+  "book-6/chapter-20",
+  "book-6/chapter-21",
+  "book-6/chapter-22",
+  "book-6/chapter-23",
+  "book-6/chapter-24",
+  "book-6/chapter-25",
+  "book-7",
+  "book-7/chapter-1",
+  "book-7/chapter-2",
+  "book-7/chapter-3",
+  "book-7/chapter-4",
+  "book-7/chapter-5",
+  "book-7/chapter-6",
+  "book-7/chapter-7",
+  "book-7/chapter-8",
+  "book-7/chapter-9",
+  "book-7/chapter-10",
+  "book-7/chapter-11",
+  "book-7/chapter-12",
+  "book-7/chapter-13",
+  "book-7/chapter-14",
+  "book-7/chapter-15",
+  "book-7/chapter-16",
+  "book-7/chapter-17",
+  "book-7/chapter-18",
+  "book-7/chapter-19",
+  "book-7/chapter-20",
+  "book-7/chapter-21",
+  "book-7/chapter-22",
+  "book-7/chapter-23",
+  "book-7/chapter-24",
+  "book-7/chapter-25",
+  "book-7/chapter-26",
+  "book-7/chapter-27",
+]
+text_passages = { "book-1/preface-of-what-great-value-the-knowledge-of-the-truth-is-and-always-has-been" = 2, "book-1/chapter-1" = 4, "book-1/chapter-2" = 2, "book-1/chapter-3" = 4, "book-1/chapter-4" = 2, "book-1/chapter-5" = 8, "book-1/chapter-6" = 11, "book-1/chapter-7" = 11, "book-1/chapter-8" = 4, "book-1/chapter-9" = 4, "book-1/chapter-10" = 5, "book-1/chapter-11" = 9, "book-1/chapter-12" = 2, "book-1/chapter-13" = 15, "book-1/chapter-14" = 2, "book-1/chapter-15" = 8, "book-1/chapter-16" = 1, "book-1/chapter-17" = 4, "book-1/chapter-18" = 2, "book-1/chapter-19" = 1, "book-1/chapter-20" = 5, "book-1/chapter-21" = 12, "book-1/chapter-22" = 3, "book-1/chapter-23" = 1, "book-2/chapter-1" = 5, "book-2/chapter-2" = 5, "book-2/chapter-3" = 9, "book-2/chapter-4" = 10, "book-2/chapter-5" = 6, "book-2/chapter-6" = 1, "book-2/chapter-7" = 5, "book-2/chapter-8" = 4, "book-2/chapter-9" = 11, "book-2/chapter-10" = 5, "book-2/chapter-11" = 7, "book-2/chapter-12" = 6, "book-2/chapter-13" = 3, "book-2/chapter-14" = 2, "book-2/chapter-15" = 3, "book-2/chapter-16" = 1, "book-2/chapter-17" = 7, "book-2/chapter-18" = 4, "book-2/chapter-19" = 1, "book-2/chapter-20" = 1, "book-3/chapter-1" = 3, "book-3/chapter-2" = 2, "book-3/chapter-3" = 2, "book-3/chapter-4" = 1, "book-3/chapter-5" = 1, "book-3/chapter-6" = 3, "book-3/chapter-7" = 1, "book-3/chapter-8" = 5, "book-3/chapter-9" = 1, "book-3/chapter-10" = 1, "book-3/chapter-11" = 2, "book-3/chapter-12" = 4, "book-3/chapter-13" = 2, "book-3/chapter-14" = 7, "book-3/chapter-15" = 4, "book-3/chapter-16" = 7, "book-3/chapter-17" = 14, "book-3/chapter-18" = 6, "book-3/chapter-19" = 3, "book-3/chapter-20" = 3, "book-3/chapter-21" = 2, "book-3/chapter-22" = 1, "book-3/chapter-23" = 3, "book-3/chapter-24" = 3, "book-3/chapter-25" = 3, "book-3/chapter-26" = 3, "book-3/chapter-27" = 4, "book-3/chapter-28" = 3, "book-3/chapter-29" = 5, "book-3/chapter-30" = 2, "book-4/chapter-1" = 3, "book-4/chapter-2" = 1, "book-4/chapter-3" = 4, "book-4/chapter-4" = 3, "book-4/chapter-5" = 2, "book-4/chapter-6" = 7, "book-4/chapter-7" = 3, "book-4/chapter-8" = 3, "book-4/chapter-9" = 1, "book-4/chapter-10" = 3, "book-4/chapter-11" = 3, "book-4/chapter-12" = 2, "book-4/chapter-13" = 4, "book-4/chapter-14" = 2, "book-4/chapter-15" = 16, "book-4/chapter-16" = 3, "book-4/chapter-17" = 5, "book-4/chapter-18" = 12, "book-4/chapter-19" = 6, "book-4/chapter-20" = 4, "book-4/chapter-21" = 1, "book-4/chapter-22" = 1, "book-4/chapter-23" = 2, "book-4/chapter-24" = 1, "book-4/chapter-25" = 2, "book-4/chapter-26" = 5, "book-4/chapter-27" = 5, "book-4/chapter-28" = 4, "book-4/chapter-29" = 2, "book-4/chapter-30" = 8, "book-5/chapter-1" = 8, "book-5/chapter-2" = 3, "book-5/chapter-3" = 3, "book-5/chapter-4" = 2, "book-5/chapter-5" = 19, "book-5/chapter-6" = 2, "book-5/chapter-7" = 2, "book-5/chapter-8" = 2, "book-5/chapter-9" = 7, "book-5/chapter-10" = 15, "book-5/chap-xi-of-the-cruelty-of-the-heathens-against-the-christians" = 4, "book-5/chapter-12" = 3, "book-5/chapter-13" = 1, "book-5/chapter-14" = 3, "book-5/chapter-15" = 2, "book-5/chapter-16" = 3, "book-5/chapter-17" = 1, "book-5/chapter-18" = 7, "book-5/chapter-19" = 3, "book-5/chapter-20" = 6, "book-5/chapter-21" = 2, "book-5/chapter-22" = 2, "book-5/chapter-23" = 4, "book-5/chapter-24" = 1, "book-6/chapter-1" = 2, "book-6/chapter-2" = 3, "book-6/chapter-3" = 3, "book-6/chapter-4" = 6, "book-6/chapter-5" = 5, "book-6/chapter-6" = 6, "book-6/chapter-7" = 2, "book-6/chapter-8" = 2, "book-6/chapter-9" = 4, "book-6/chapter-10" = 4, "book-6/chapter-11" = 6, "book-6/chapter-12" = 6, "book-6/chapter-13" = 2, "book-6/chapter-14" = 2, "book-6/chapter-15" = 3, "book-6/chapter-16" = 2, "book-6/chapter-17" = 4, "book-6/chapter-18" = 6, "book-6/chapter-19" = 1, "book-6/chapter-20" = 5, "book-6/chapter-21" = 2, "book-6/chapter-22" = 1, "book-6/chapter-23" = 5, "book-6/chapter-24" = 6, "book-6/chapter-25" = 3, "book-7/chapter-1" = 6, "book-7/chapter-2" = 4, "book-7/chapter-3" = 11, "book-7/chapter-4" = 3, "book-7/chapter-5" = 9, "book-7/chapter-6" = 2, "book-7/chapter-7" = 2, "book-7/chapter-8" = 2, "book-7/chapter-9" = 4, "book-7/chapter-10" = 2, "book-7/chapter-11" = 2, "book-7/chapter-12" = 8, "book-7/chapter-13" = 3, "book-7/chapter-14" = 4, "book-7/chapter-15" = 3, "book-7/chapter-16" = 7, "book-7/chapter-17" = 2, "book-7/chapter-18" = 6, "book-7/chapter-19" = 7, "book-7/chapter-20" = 12, "book-7/chapter-21" = 2, "book-7/chapter-22" = 8, "book-7/chapter-23" = 3, "book-7/chapter-24" = 15, "book-7/chapter-25" = 1, "book-7/chapter-26" = 6, "book-7/chapter-27" = 9 }
+text_passages_total = 776
+
+[[document.edition]]
+work = "lactantius/on-the-anger-of-god"
+slug = "ccel-anf07-on-the-anger-of-god"
+title = "A Treatise on the Anger of God"
+language = "en"
+translator = "William Fletcher"
+published_year = 1886
+range = { div = "iii.iii" }
+
+# From the ThML tree; paragraphs counted independently (Python, ElementTree) and by the compiler: equal.
+[document.edition.expect]
+divisions = [
+  "chapter-1",
+  "chapter-2",
+  "chapter-3",
+  "chapter-4",
+  "chapter-5",
+  "chapter-6",
+  "chapter-7",
+  "chapter-8",
+  "chapter-9",
+  "chapter-10",
+  "chapter-11",
+  "chapter-12",
+  "chapter-13",
+  "chapter-14",
+  "chapter-15",
+  "chapter-16",
+  "chapter-17",
+  "chapter-18",
+  "chapter-19",
+  "chapter-20",
+  "chapter-21",
+  "chapter-22",
+  "chapter-23",
+]
+text_passages = { "chapter-1" = 2, "chapter-2" = 4, "chapter-3" = 1, "chapter-4" = 3, "chapter-5" = 3, "chapter-6" = 1, "chapter-7" = 6, "chapter-8" = 4, "chapter-9" = 2, "chapter-10" = 14, "chapter-11" = 4, "chapter-12" = 1, "chapter-13" = 5, "chapter-14" = 1, "chapter-15" = 2, "chapter-16" = 2, "chapter-17" = 4, "chapter-18" = 3, "chapter-19" = 2, "chapter-20" = 4, "chapter-21" = 2, "chapter-22" = 6, "chapter-23" = 21 }
+text_passages_total = 97
+

@@ -11,6 +11,7 @@
 pub mod paragraphs;
 pub mod store;
 pub mod structure;
+pub mod thml;
 
 use std::fmt;
 use std::ops::Range;
@@ -155,10 +156,14 @@ pub fn check_coverage(file: &[u8], compiled: &Compiled) -> Vec<Problem> {
     problems
 }
 
-/// A gap between units is fine if it's only whitespace; otherwise that text is uncovered.
+/// A gap between units is fine if it's only whitespace (Unicode's, so a no-break space counts);
+/// otherwise that text is uncovered.
 fn report_gap(file: &[u8], gap: Range<usize>, problems: &mut Vec<Problem>) {
     let bytes = &file[gap.clone()];
-    if bytes.iter().any(|b| !b.is_ascii_whitespace()) {
+    if !String::from_utf8_lossy(bytes)
+        .chars()
+        .all(char::is_whitespace)
+    {
         let snippet: String = String::from_utf8_lossy(bytes)
             .trim()
             .chars()
@@ -177,6 +182,9 @@ pub fn compile_edition(
     file: &[u8],
     edition: &EditionEntry,
 ) -> Result<structure::Structure, String> {
+    if let RangeSpec::Element { id, except } = &edition.range {
+        return Ok(thml::compile_thml(file, id, except, &edition.compile));
+    }
     let body = match edition.range {
         RangeSpec::GutenbergBody => gutenberg::body_range(file).map_err(|e| e.to_string())?,
         RangeSpec::Bytes { start, end } if end as usize <= file.len() => {
@@ -188,6 +196,7 @@ pub fn compile_edition(
                 file.len()
             ));
         }
+        RangeSpec::Element { .. } => unreachable!("compiled as ThML above"),
     };
     Ok(structure::compile_plain_text(file, body, &edition.compile))
 }

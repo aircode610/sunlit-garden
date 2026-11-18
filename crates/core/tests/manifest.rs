@@ -284,3 +284,25 @@ fn mirror_prefixes_are_https_and_end_in_a_slash_and_one_per_provider() {
         );
     }
 }
+
+#[test]
+fn an_edition_can_be_one_element_of_an_xml_file() {
+    use sunlit_core::corpus::manifest::{Manifest, RangeSpec};
+    let ccel = HUME.replace("provider = \"gutenberg\"", "provider = \"ccel\"");
+    let anchor = "title = \"Dialogues Concerning Natural Religion\"\nlanguage = \"en\"\n";
+    let by_id = ccel.replace(anchor, &format!("{anchor}range = {{ div = \"iii\" }}\n"));
+    let m = Manifest::parse(&by_id).unwrap();
+    assert_eq!(
+        m.documents[0].editions[0].range,
+        RangeSpec::Element {
+            id: "iii".into(),
+            except: vec![]
+        }
+    );
+    // Either bytes or an element, never both.
+    let both = ccel.replace(
+        anchor,
+        &format!("{anchor}range = {{ start = 1, end = 5, div = \"iii\" }}\n"),
+    );
+    assert!(errors(&both).iter().any(|e| e.contains("range")));
+}

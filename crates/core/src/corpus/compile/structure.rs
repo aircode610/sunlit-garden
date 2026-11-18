@@ -53,6 +53,9 @@ pub struct Expect {
     pub divisions: Option<Vec<String>>,
     /// Number of author-text passages per division (e.g. `part-1` → 156 sections).
     pub text_passages: BTreeMap<String, usize>,
+    /// Author-text passages in the whole edition, including any with no division (Gaunilo's
+    /// eight sections).
+    pub text_passages_total: Option<usize>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -125,8 +128,9 @@ pub struct PlannedPassage {
     pub locator: String,
     pub role: PlannedRole,
     pub range: Range<usize>,
-    /// Index into `Compiled::divisions`.
-    pub division: usize,
+    /// Index into `Compiled::divisions`, or `None` for a work with no divisions (Gaunilo's
+    /// reply, cited by its numbered sections alone).
+    pub division: Option<usize>,
 }
 
 /// Everything the compiler learned about one edition.
@@ -140,6 +144,8 @@ pub struct Structure {
     pub problems: Vec<String>,
     /// Non-blocking: worth a human look.
     pub warnings: Vec<String>,
+    /// The file is markup (XML): passage bytes include tags, and author words leave them out.
+    pub markup: bool,
 }
 
 impl Structure {
@@ -169,7 +175,54 @@ impl Structure {
             cursor = r.end;
         }
         out.push_str(&String::from_utf8_lossy(&file[cursor..host.end]));
+        if self.markup {
+            out = super::thml::text_of(&out);
+        }
         out.split_whitespace().collect::<Vec<_>>().join(" ")
+    }
+}
+
+/// Declared expectations (`[document.edition.expect]`): the division paths, and the text passages
+/// in each named division.
+pub(super) fn check_expectations(
+    options: &Options,
+    paths: &[String],
+    passages: &[PlannedPassage],
+    problems: &mut Vec<String>,
+) {
+    if let Some(want) = options.expect.as_ref().and_then(|e| e.text_passages_total) {
+        let have = passages
+            .iter()
+            .filter(|p| p.role == PlannedRole::Text)
+            .count();
+        if have != want {
+            problems.push(format!(
+                "expected {want} text passages in all, found {have}"
+            ));
+        }
+    }
+    if let Some(expect) = &options.expect {
+        let found: Vec<String> = paths.to_vec();
+        if let Some(want) = &expect.divisions
+            && *want != found
+        {
+            problems.push(format!("expected divisions {want:?}, found {found:?}"));
+        }
+        for (slug, &want) in &expect.text_passages {
+            let Some(d) = paths.iter().position(|p| p == slug) else {
+                problems.push(format!("expected division {slug:?} not found"));
+                continue;
+            };
+            let have = passages
+                .iter()
+                .filter(|p| p.division == Some(d) && p.role == PlannedRole::Text)
+                .count();
+            if have != want {
+                problems.push(format!(
+                    "division {slug}: expected {want} text passages, found {have}"
+                ));
+            }
+        }
     }
 }
 
@@ -560,29 +613,7 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
     }
 
     // ---- 7. Declared expectations.
-    if let Some(expect) = &options.expect {
-        let found: Vec<String> = paths.clone();
-        if let Some(want) = &expect.divisions
-            && *want != found
-        {
-            problems.push(format!("expected divisions {want:?}, found {found:?}"));
-        }
-        for (slug, &want) in &expect.text_passages {
-            let Some(d) = paths.iter().position(|p| p == slug) else {
-                problems.push(format!("expected division {slug:?} not found"));
-                continue;
-            };
-            let have = passages
-                .iter()
-                .filter(|p| p.division == d && p.role == PlannedRole::Text)
-                .count();
-            if have != want {
-                problems.push(format!(
-                    "division {slug}: expected {want} text passages, found {have}"
-                ));
-            }
-        }
-    }
+    check_expectations(options, &paths, &passages, &mut problems);
 
     units.sort_by_key(|u| u.range.start);
     let compiled = Compiled {
@@ -601,6 +632,7 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
         toc,
         problems,
         warnings,
+        markup: false,
     }
 }
 
@@ -642,7 +674,7 @@ impl Sink<'_> {
             locator,
             role,
             range,
-            division: self.division,
+            division: Some(self.division),
         });
         self.passages.len() - 1
     }
@@ -781,7 +813,7 @@ impl Sink<'_> {
                     .enumerate()
                     .rev()
                     .find(|(_, p)| {
-                        p.division == self.division
+                        p.division == Some(self.division)
                             && p.role == PlannedRole::Text
                             && file[p.range.clone()]
                                 .windows(marker.len())
@@ -1194,7 +1226,7 @@ const HEADING_WORDS: [(&str, &str); 6] = [
 
 /// A line that starts with a heading word and a number, in any case and whatever follows
 /// ("CHAP. I. Nature and her laws.", "PART I--Laws of Nature"): its kind and number.
-fn numbered_entry(line: &str) -> Option<(&'static str, u32)> {
+pub(super) fn numbered_entry(line: &str) -> Option<(&'static str, u32)> {
     let n = normalise(line);
     HEADING_WORDS.iter().find_map(|&(word, kind)| {
         let rest = n.strip_prefix(word)?.trim_start();
@@ -1277,7 +1309,7 @@ fn known_heading(text: &str) -> Option<Known> {
 }
 
 /// A printed title as text: Gutenberg's _italic_ underscores and a final full stop removed.
-fn title_text(printed: &str) -> String {
+pub(super) fn title_text(printed: &str) -> String {
     let t = printed.replace('_', "");
     let t = t.split_whitespace().collect::<Vec<_>>().join(" ");
     t.trim_end_matches('.').trim().to_owned()
@@ -1407,7 +1439,7 @@ fn is_separator(text: &str) -> bool {
 }
 
 /// Uppercase, whitespace collapsed: for comparing heading lines.
-fn normalise(text: &str) -> String {
+pub(super) fn normalise(text: &str) -> String {
     text.split_whitespace()
         .collect::<Vec<_>>()
         .join(" ")
@@ -1415,7 +1447,7 @@ fn normalise(text: &str) -> String {
 }
 
 /// "OF THE PRINCIPLES OF HUMAN KNOWLEDGE" → "of-the-principles-of-human-knowledge" (ASCII only).
-fn slugify(text: &str) -> String {
+pub(super) fn slugify(text: &str) -> String {
     let mut slug = String::new();
     for word in text
         .split(|c: char| !c.is_ascii_alphanumeric())

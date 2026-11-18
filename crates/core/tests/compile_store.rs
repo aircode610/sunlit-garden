@@ -21,10 +21,15 @@ struct Fixtures;
 
 impl Fetcher for Fixtures {
     async fn fetch(&self, url: &str) -> Result<Bytes, FetchError> {
-        // Every pinned Gutenberg file is a fixture: tests/fixtures/gutenberg/pg<id>.txt.
+        // Every pinned file is a fixture: tests/fixtures/<provider>/<file name in its URL>.
         let name = url.rsplit('/').next().unwrap_or_default();
+        let provider = if url.contains("ccel.org") {
+            "ccel"
+        } else {
+            "gutenberg"
+        };
         let path = format!(
-            "{}/tests/fixtures/gutenberg/{name}",
+            "{}/tests/fixtures/{provider}/{name}",
             env!("CARGO_MANIFEST_DIR")
         );
         std::fs::read(&path)
