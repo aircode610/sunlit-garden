@@ -166,7 +166,9 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
     // ---- 1. Contents list: the paragraphs after a CONTENTS heading, up to the next separator
     // or heading, become TOC entries (one per line).
     let mut toc: Vec<String> = Vec::new();
-    let contents_heading = paras.iter().position(|r| normalise(&text(r)) == "CONTENTS");
+    let contents_heading = paras
+        .iter()
+        .position(|r| normalise(&text(r)).trim_end_matches('.') == "CONTENTS");
     let mut toc_paragraphs = Vec::new();
     if let Some(c) = contents_heading {
         for (i, r) in paras.iter().enumerate().skip(c + 1) {
@@ -175,6 +177,19 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
             }
             toc_paragraphs.push(i);
             toc.extend(text(r).lines().map(normalise).filter(|l| !l.is_empty()));
+        }
+        // A contents list that starts with a heading-like line ("PART I.") looks empty by that
+        // rule: it then ends where that first heading appears again, which is where the body
+        // starts.
+        if toc_paragraphs.is_empty() {
+            let id = |i: usize| known_heading(&text(&paras[i])).map(|k| (k.kind, k.slug));
+            let first = (c + 1..paras.len()).find(|&i| id(i).is_some());
+            if let Some(body) = first.and_then(|f| (f + 1..paras.len()).find(|&i| id(i) == id(f))) {
+                for (i, r) in paras.iter().enumerate().take(body).skip(c + 1) {
+                    toc_paragraphs.push(i);
+                    toc.extend(text(r).lines().map(normalise).filter(|l| !l.is_empty()));
+                }
+            }
         }
     }
 
@@ -198,8 +213,10 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
             Para::Separator
         } else if let Some(o) = options.headings.iter().find(|o| normalise(&o.text) == n) {
             Para::Heading(division(&o.kind, &o.label, &o.slug, r.clone()))
-        } else if let Some((kind, label, slug)) = known_heading(&t) {
-            Para::Heading(division(&kind, &label, &slug, r.clone()))
+        } else if let Some(k) = known_heading(&t) {
+            let mut node = division(&k.kind, &k.label, &k.slug, r.clone());
+            node.title = k.title;
+            Para::Heading(node)
         } else if contents_heading.is_some_and(|c| i > c) && toc.contains(&n) {
             // Listed in the book's own contents: a heading, even without a known heading word.
             let slug = slugify(&n);
@@ -972,17 +989,42 @@ fn without_brackets(bytes: &[u8]) -> Vec<u8> {
 
 /// `PART 4`, `PART IV`, `BOOK II`, `CHAPTER IX`, `SECTION 3`, or a standalone known heading word.
 /// Returns (kind, label, slug).
-fn known_heading(text: &str) -> Option<(String, String, String)> {
-    let n = normalise(text);
-    if text.trim().lines().count() != 1 {
+/// A recognised heading: its kind, printed number or word, locator slug and title, if printed.
+struct Known {
+    kind: String,
+    label: String,
+    slug: String,
+    title: Option<String>,
+}
+
+/// A heading paragraph: a heading word and number on the first line ("PART I.", "CHAP. I."),
+/// optionally followed by up to two short lines of title ("Of the PROPRIETY of ACTION."); or a
+/// plain heading word alone ("INTRODUCTION", "CONTENTS.").
+fn known_heading(text: &str) -> Option<Known> {
+    let lines: Vec<&str> = text.trim().lines().map(str::trim).collect();
+    if lines.is_empty() || lines.len() > 3 || lines.iter().any(|l| l.len() > 80) {
         return None;
     }
-    for kind in ["PART", "BOOK", "CHAPTER", "SECTION"] {
-        if let Some(rest) = n.strip_prefix(kind).and_then(|r| r.strip_prefix(' ')) {
+    let first = normalise(lines[0]);
+    let kinds = [
+        ("PART", "part"),
+        ("BOOK", "book"),
+        ("CHAPTER", "chapter"),
+        ("CHAP.", "chapter"),
+        ("SECTION", "section"),
+        ("SECT.", "section"),
+    ];
+    for (word, kind) in kinds {
+        if let Some(rest) = first.strip_prefix(word).and_then(|r| r.strip_prefix(' ')) {
             let number = rest.trim_end_matches('.');
             let value = number.parse::<u32>().ok().or_else(|| roman(number))?;
-            let lower = kind.to_lowercase();
-            return Some((lower.clone(), number.to_owned(), format!("{lower}-{value}")));
+            let title = (lines.len() > 1).then(|| title_text(&lines[1..].join(" ")));
+            return Some(Known {
+                kind: kind.into(),
+                label: number.to_owned(),
+                slug: format!("{kind}-{value}"),
+                title,
+            });
         }
     }
     let words = [
@@ -996,10 +1038,24 @@ fn known_heading(text: &str) -> Option<(String, String, String)> {
         "EPILOGUE",
         "INDEX",
     ];
-    words.iter().find(|w| n == **w).map(|w| {
+    let word = first.trim_end_matches('.');
+    (lines.len() == 1).then_some(())?;
+    words.iter().find(|w| word == **w).map(|w| {
         let lower = w.to_lowercase();
-        (lower.clone(), title_case(w), lower)
+        Known {
+            kind: lower.clone(),
+            label: title_case(w),
+            slug: lower,
+            title: None,
+        }
     })
+}
+
+/// A printed title as text: Gutenberg's _italic_ underscores and a final full stop removed.
+fn title_text(printed: &str) -> String {
+    let t = printed.replace('_', "");
+    let t = t.split_whitespace().collect::<Vec<_>>().join(" ");
+    t.trim_end_matches('.').trim().to_owned()
 }
 
 /// Roman numerals I–MMMM (validated by round-tripping through the canonical form).

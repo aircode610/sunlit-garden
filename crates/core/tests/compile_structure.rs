@@ -669,3 +669,47 @@ fn the_passage_unit_can_be_declared_per_edition() {
     assert_eq!(e("gutenberg-4583"), PassageUnit::Paragraphs);
     assert_eq!(e("gutenberg-4723"), PassageUnit::Auto, "default");
 }
+
+/// Headings as Smith's Moral Sentiments (Gutenberg #67363) prints them: "CONTENTS." with a full
+/// stop, abbreviated "CHAP. I.", and the title on the next line of the heading paragraph
+/// ("PART I." / "Of the PROPRIETY of ACTION."). Its contents list also contains heading-like
+/// lines ("PART I."): the list ends where its first heading appears again, in the body.
+#[test]
+fn headings_with_a_full_stop_an_abbreviation_or_a_title_underneath() {
+    use sunlit_core::corpus::compile::structure::PassageUnit;
+    let file: &[u8] = include_bytes!("fixtures/gutenberg/pg67363.txt");
+    let options = Options {
+        passages: PassageUnit::Paragraphs,
+        ..Options::default()
+    };
+    let s = compile_plain_text(file, body_range(file).unwrap(), &options);
+    let d = &s.compiled.divisions;
+
+    assert!(!s.toc.is_empty(), "the contents list is found");
+    let parts: Vec<&str> = d
+        .iter()
+        .filter(|x| x.kind == "part" && x.parent.is_none())
+        .map(|x| x.label.as_str())
+        .collect();
+    // The 1777 text: six Parts (Smith added a seventh in 1790).
+    assert_eq!(parts, ["I", "II", "III", "IV", "V", "VI"]);
+    let part1 = d
+        .iter()
+        .position(|x| x.kind == "part" && x.label == "I")
+        .unwrap();
+    assert_eq!(
+        d[part1].title.as_deref(),
+        Some("Of the PROPRIETY of ACTION")
+    );
+    let chap1 = d.iter().position(|x| x.kind == "chapter").unwrap();
+    assert_eq!(
+        (d[chap1].label.as_str(), d[chap1].title.as_deref()),
+        ("I", Some("Of SYMPATHY"))
+    );
+    // Part I > Section I > Chap. I.
+    let sect1 = d[chap1].parent.unwrap();
+    assert_eq!(
+        (d[sect1].kind.as_str(), d[sect1].parent),
+        ("section", Some(part1))
+    );
+}
