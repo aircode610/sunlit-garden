@@ -11,8 +11,8 @@
 use std::ops::Range;
 
 use super::structure::{
-    Options, PassageUnit, PlannedPassage, PlannedRole, Structure, check_expectations, normalise,
-    numbered_entry, slugify, title_text,
+    Markup, Options, PassageUnit, PlannedPassage, PlannedRole, Structure, check_expectations,
+    normalise, numbered_entry, slugify, title_text,
 };
 use super::{Compiled, DivisionNode, Unit, UnitKind, check_coverage};
 use crate::corpus::xhtml::{Token, decode, tokenize_spans};
@@ -43,7 +43,7 @@ pub fn compile_thml(file: &[u8], id: &str, except: &[String], options: &Options)
         toc: Vec::new(),
         problems: Vec::new(),
         warnings: Vec::new(),
-        markup: true,
+        markup: Markup::Xml,
     };
     let Ok(src) = std::str::from_utf8(file) else {
         s.problems.push("file is not UTF-8".into());

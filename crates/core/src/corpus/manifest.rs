@@ -18,7 +18,7 @@ use std::fmt;
 use serde::Deserialize;
 
 use super::compile::structure::{
-    Attribution, Expect, HeadingOverride, InsertionRule, MarginNotes, Options, PassageUnit,
+    Attribution, Expect, HeadingOverride, InsertionRule, MarginNotes, Markup, Options, PassageUnit,
 };
 use crate::values::{Sha256, Slug, WikidataId};
 
@@ -226,6 +226,12 @@ struct RawEdition {
     /// Title Case paragraphs; default: none.
     #[serde(default)]
     margin_notes: RawMarginNotes,
+    /// `undivided = true`: a work with no headings (cited by its numbered sections alone).
+    #[serde(default)]
+    undivided: bool,
+    /// `markup = "wikitext"`: the text carries MediaWiki markup (Wikisource).
+    #[serde(default)]
+    markup: RawMarkup,
     #[serde(default)]
     heading: Vec<RawHeading>,
     #[serde(default)]
@@ -249,6 +255,14 @@ struct RawHeading {
 struct RawInsertion {
     prefix: String,
     by: RawBy,
+}
+
+#[derive(Deserialize, Clone, Copy, Default)]
+#[serde(rename_all = "kebab-case")]
+enum RawMarkup {
+    #[default]
+    None,
+    Wikitext,
 }
 
 #[derive(Deserialize, Clone, Copy, Default)]
@@ -437,6 +451,11 @@ fn validate(raw: RawManifest) -> Result<Manifest, ManifestError> {
                 }
             };
             let compile = Options {
+                undivided: e.undivided,
+                markup: match e.markup {
+                    RawMarkup::None => Markup::None,
+                    RawMarkup::Wikitext => Markup::Wikitext,
+                },
                 margin_notes: match e.margin_notes {
                     RawMarginNotes::None => MarginNotes::None,
                     RawMarginNotes::TitleCase => MarginNotes::TitleCase,
