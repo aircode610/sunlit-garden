@@ -236,3 +236,131 @@ pub fn segment(file: &[u8], structure: &Structure) -> Segmented {
     out.divisions = divisions;
     out
 }
+
+/// Gaps up to this many cells (len a × len b) get an exact longest-common-subsequence pass.
+const LCS_CELLS: usize = 4_000_000;
+
+/// Pair equal words of `a` and `b`, in order (both indices strictly increase): patience diff.
+/// Words that occur exactly once in both are anchors (the longest run of them in order); the
+/// gaps between anchors are aligned the same way, and small gaps exactly (LCS). Large stretches
+/// on one side only (an index, a translator's notes) simply stay unpaired.
+pub fn align(a: &[String], b: &[String]) -> Vec<(usize, usize)> {
+    let mut pairs = Vec::new();
+    // Ranges still to align: (a_start, a_end, b_start, b_end).
+    let mut todo = vec![(0, a.len(), 0, b.len())];
+    while let Some((mut a0, mut a1, mut b0, mut b1)) = todo.pop() {
+        // Common prefix and suffix match directly.
+        while a0 < a1 && b0 < b1 && a[a0] == b[b0] {
+            pairs.push((a0, b0));
+            a0 += 1;
+            b0 += 1;
+        }
+        while a0 < a1 && b0 < b1 && a[a1 - 1] == b[b1 - 1] {
+            a1 -= 1;
+            b1 -= 1;
+            pairs.push((a1, b1));
+        }
+        if a0 == a1 || b0 == b1 {
+            continue;
+        }
+        let anchors = unique_anchors(&a[a0..a1], &b[b0..b1]);
+        if anchors.is_empty() {
+            if (a1 - a0) * (b1 - b0) <= LCS_CELLS {
+                pairs.extend(
+                    lcs(&a[a0..a1], &b[b0..b1])
+                        .into_iter()
+                        .map(|(i, j)| (a0 + i, b0 + j)),
+                );
+            }
+            continue;
+        }
+        // Align between consecutive anchors (and before the first / after the last).
+        let (mut pa, mut pb) = (a0, b0);
+        for (i, j) in anchors {
+            let (i, j) = (a0 + i, b0 + j);
+            todo.push((pa, i, pb, j));
+            pairs.push((i, j));
+            pa = i + 1;
+            pb = j + 1;
+        }
+        todo.push((pa, a1, pb, b1));
+    }
+    pairs.sort_unstable();
+    pairs
+}
+
+/// Words occurring exactly once in `a` and once in `b`, paired, reduced to the longest run that
+/// increases in both (longest increasing subsequence by `b` position, patience sorting).
+fn unique_anchors(a: &[String], b: &[String]) -> Vec<(usize, usize)> {
+    use std::collections::HashMap;
+    let mut count: HashMap<&str, (usize, usize, usize)> = HashMap::new(); // (in a, in b, a pos)
+    for (i, w) in a.iter().enumerate() {
+        let e = count.entry(w).or_default();
+        e.0 += 1;
+        e.2 = i;
+    }
+    let mut candidates: Vec<(usize, usize)> = Vec::new();
+    let mut in_b: HashMap<&str, (usize, usize)> = HashMap::new(); // (count, b pos)
+    for (j, w) in b.iter().enumerate() {
+        let e = in_b.entry(w).or_default();
+        e.0 += 1;
+        e.1 = j;
+    }
+    for (w, (n_b, j)) in &in_b {
+        if *n_b == 1
+            && let Some(&(1, _, i)) = count.get(w)
+        {
+            candidates.push((i, *j));
+        }
+    }
+    candidates.sort_unstable();
+    // Longest increasing subsequence of the b positions.
+    let mut tails: Vec<usize> = Vec::new(); // index into candidates of the smallest tail per length
+    let mut prev: Vec<Option<usize>> = vec![None; candidates.len()];
+    for (k, &(_, j)) in candidates.iter().enumerate() {
+        let len = tails.partition_point(|&t| candidates[t].1 < j);
+        prev[k] = len.checked_sub(1).map(|l| tails[l]);
+        if len == tails.len() {
+            tails.push(k);
+        } else {
+            tails[len] = k;
+        }
+    }
+    let mut out = Vec::new();
+    let mut k = tails.last().copied();
+    while let Some(i) = k {
+        out.push(candidates[i]);
+        k = prev[i];
+    }
+    out.reverse();
+    out
+}
+
+/// Exact longest common subsequence (dynamic programming), for small gaps.
+fn lcs(a: &[String], b: &[String]) -> Vec<(usize, usize)> {
+    let (n, m) = (a.len(), b.len());
+    let mut t = vec![0u32; (n + 1) * (m + 1)];
+    let at = |i: usize, j: usize| i * (m + 1) + j;
+    for i in (0..n).rev() {
+        for j in (0..m).rev() {
+            t[at(i, j)] = if a[i] == b[j] {
+                t[at(i + 1, j + 1)] + 1
+            } else {
+                t[at(i + 1, j)].max(t[at(i, j + 1)])
+            };
+        }
+    }
+    let (mut i, mut j, mut out) = (0, 0, Vec::new());
+    while i < n && j < m {
+        if a[i] == b[j] {
+            out.push((i, j));
+            i += 1;
+            j += 1;
+        } else if t[at(i + 1, j)] >= t[at(i, j + 1)] {
+            i += 1;
+        } else {
+            j += 1;
+        }
+    }
+    out
+}

@@ -123,3 +123,60 @@ fn a_compiled_edition_becomes_the_same_shape() {
     assert!(seg.divisions.iter().all(|d| d.depth == 1));
     assert_eq!(seg.divisions[0].label, "1");
 }
+
+fn w(s: &str) -> Vec<String> {
+    s.split_whitespace().map(str::to_owned).collect()
+}
+
+#[test]
+fn alignment_pairs_the_same_words_in_order() {
+    use sunlit_core::corpus::score::align;
+    // Spelling differs ("shew"/"show"), b has an extra note, a has an extra word.
+    let a = w("it is easy to shew that we have been a great deal too liberal");
+    let b = w("it is easy to show that 1 we have been a great deal too liberal in our concession");
+
+    let pairs = align(&a, &b);
+
+    assert!(
+        pairs.windows(2).all(|p| p[0].0 < p[1].0 && p[0].1 < p[1].1),
+        "monotone"
+    );
+    assert!(
+        pairs.iter().all(|&(i, j)| a[i] == b[j]),
+        "only equal words are paired"
+    );
+    assert_eq!(
+        pairs.len(),
+        13,
+        "every shared word except the spelling variant"
+    );
+}
+
+#[test]
+fn the_two_editions_align_almost_completely() {
+    use sunlit_core::corpus::score::{align, segment};
+    let ours = segment(GUTENBERG_9662, &compiled_9662());
+    let gold = standard_ebooks_gold(&spine()).unwrap();
+
+    let pairs = align(&ours.words, &gold.words);
+
+    assert!(
+        pairs.windows(2).all(|p| p[0].0 < p[1].0 && p[0].1 < p[1].1),
+        "monotone"
+    );
+    assert!(
+        pairs.iter().all(|&(i, j)| ours.words[i] == gold.words[j]),
+        "only equal words are paired"
+    );
+    let covered = pairs.len() as f64 / gold.words.len() as f64;
+    println!(
+        "aligned {} of {} answer-key words ({covered:.4}); ours has {}",
+        pairs.len(),
+        gold.words.len(),
+        ours.words.len()
+    );
+    assert!(
+        covered > 0.9,
+        "{covered:.3} of the answer key's words aligned"
+    );
+}
