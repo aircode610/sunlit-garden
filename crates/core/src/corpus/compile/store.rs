@@ -82,13 +82,19 @@ pub async fn store_structure<S: Store>(
     }
 
     let mut division_ids: Vec<DivisionId> = Vec::with_capacity(structure.compiled.divisions.len());
-    for (i, d) in structure.compiled.divisions.iter().enumerate() {
+    let divisions = &structure.compiled.divisions;
+    for (i, d) in divisions.iter().enumerate() {
+        // Parents come before their children in reading order, so their ids already exist.
+        let siblings_before = divisions[..i]
+            .iter()
+            .filter(|x| x.parent == d.parent)
+            .count();
         let new = NewDivision {
             edition: edition.id,
-            parent: None,
+            parent: d.parent.map(|p| division_ids[p]),
             kind: d.kind.clone(),
             label: d.label.clone(),
-            ordinal: i as i32,
+            ordinal: siblings_before as i32,
             start_byte: d.range.start as i64,
             end_byte: d.range.end as i64,
         };

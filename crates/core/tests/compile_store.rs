@@ -264,3 +264,34 @@ fn normalisation_v1_collapses_whitespace_and_lowercases() {
     );
     let _ = Slug::parse("x"); // keep the import used across cfgs
 }
+
+#[sqlx::test(migrations = "../../migrations")]
+async fn nested_divisions_are_stored_with_their_parent(pool: PgPool) {
+    let store = PgStore::from_pool(pool.clone());
+    let (edition, file, mut structure, _) = setup(&store, "gutenberg-4583").await;
+    // Make Part 2 a child of Part 1 (as Parts are of Sections in other books).
+    let divs = &structure.compiled.divisions;
+    let p1 = divs.iter().position(|d| d.slug == "part-1").unwrap();
+    let p2 = divs.iter().position(|d| d.slug == "part-2").unwrap();
+    structure.compiled.divisions[p2].parent = Some(p1);
+
+    store_structure(&store, &edition, file, &structure)
+        .await
+        .unwrap();
+
+    let rows: Vec<(String, Option<String>, i32)> = sqlx::query_as(
+        "SELECT d.label, p.label, d.ordinal FROM division d LEFT JOIN division p ON p.id = d.parent_id ORDER BY d.start_byte",
+    )
+    .fetch_all(&pool)
+    .await
+    .unwrap();
+    let part = |label: &str| rows.iter().find(|r| r.0 == label).unwrap().clone();
+    assert_eq!(
+        part("2"),
+        ("2".into(), Some("1".into()), 0),
+        "child of Part 1, first among its siblings"
+    );
+    assert_eq!(part("3").1, None);
+    // Top-level ordinals stay consecutive without Part 2: letter 0, Part 1 = 1, Part 3 = 2.
+    assert_eq!((part("1").2, part("3").2), (1, 2));
+}
