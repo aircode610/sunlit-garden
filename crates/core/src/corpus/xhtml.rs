@@ -151,7 +151,7 @@ fn parse_tag(inner: &str, at: usize) -> Result<(String, Vec<(String, String)>), 
 }
 
 /// Decode XML's five named entities and numeric character references; refuse any other `&…;`.
-fn decode(text: &str, at: usize) -> Result<String, XhtmlError> {
+pub(crate) fn decode(text: &str, at: usize) -> Result<String, XhtmlError> {
     let mut out = String::with_capacity(text.len());
     let mut rest = text;
     while let Some(amp) = rest.find('&') {

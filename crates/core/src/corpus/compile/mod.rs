@@ -11,6 +11,7 @@
 pub mod paragraphs;
 pub mod store;
 pub mod structure;
+pub mod thml;
 
 use std::fmt;
 use std::ops::Range;
