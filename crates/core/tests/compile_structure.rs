@@ -471,8 +471,20 @@ fn declared_expectations_are_hard_checks() {
             ("part-1".to_string(), 156),
         ]
         .into(),
+        text_passages_total: Some(186),
     });
     assert_eq!(compile(BERKELEY, &options).problems, Vec::<String>::new());
+
+    // The total counts passages with no division too (an undivided work).
+    options.expect.as_mut().unwrap().text_passages_total = Some(187);
+    let problems = compile(BERKELEY, &options).problems;
+    assert!(
+        problems
+            .iter()
+            .any(|p| p.contains("186") && p.contains("187")),
+        "{problems:?}"
+    );
+    options.expect.as_mut().unwrap().text_passages_total = Some(186);
 
     options
         .expect

@@ -53,6 +53,9 @@ pub struct Expect {
     pub divisions: Option<Vec<String>>,
     /// Number of author-text passages per division (e.g. `part-1` → 156 sections).
     pub text_passages: BTreeMap<String, usize>,
+    /// Author-text passages in the whole edition, including any with no division (Gaunilo's
+    /// eight sections).
+    pub text_passages_total: Option<usize>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -187,6 +190,17 @@ pub(super) fn check_expectations(
     passages: &[PlannedPassage],
     problems: &mut Vec<String>,
 ) {
+    if let Some(want) = options.expect.as_ref().and_then(|e| e.text_passages_total) {
+        let have = passages
+            .iter()
+            .filter(|p| p.role == PlannedRole::Text)
+            .count();
+        if have != want {
+            problems.push(format!(
+                "expected {want} text passages in all, found {have}"
+            ));
+        }
+    }
     if let Some(expect) = &options.expect {
         let found: Vec<String> = paths.to_vec();
         if let Some(want) = &expect.divisions

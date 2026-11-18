@@ -282,6 +282,7 @@ struct RawExpect {
     divisions: Option<Vec<String>>,
     #[serde(default)]
     text_passages: BTreeMap<String, usize>,
+    text_passages_total: Option<usize>,
 }
 
 #[derive(Deserialize)]
@@ -481,6 +482,7 @@ fn validate(raw: RawManifest) -> Result<Manifest, ManifestError> {
                 expect: e.expect.map(|x| Expect {
                     divisions: x.divisions,
                     text_passages: x.text_passages,
+                    text_passages_total: x.text_passages_total,
                 }),
             };
             if let (Some(work), Some(slug), Some(range)) = (work, slug, range) {
