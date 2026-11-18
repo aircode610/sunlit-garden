@@ -6,7 +6,6 @@
 //! edition (Standard Ebooks); the compiled edition is aligned to it word by word, and its
 //! boundaries are scored against the answer key's.
 
-use super::compile::DivisionNode;
 use super::compile::structure::{PlannedRole, Structure};
 use super::xhtml::{Token, XhtmlError, tokenize};
 
@@ -187,7 +186,7 @@ pub fn standard_ebooks_gold(spine: &[(String, String)]) -> Result<Segmented, Xht
 
 /// Our compiler's view of an edition in the same shape: the words of every author-text passage
 /// in order, a boundary where each (non-empty) passage starts, and a mark at the first passage
-/// inside each division, its depth taken from the division tree.
+/// inside each division, its depth from the parent chain.
 pub fn segment(file: &[u8], structure: &Structure) -> Segmented {
     let mut out = Segmented::default();
     // Byte position of each passage's first word, to place divisions.
@@ -203,37 +202,26 @@ pub fn segment(file: &[u8], structure: &Structure) -> Segmented {
             starts.push((p.range.start, at));
         }
     }
-    fn walk(
-        nodes: &[DivisionNode],
-        depth: usize,
-        starts: &[(usize, usize)],
-        end: usize,
-        out: &mut Vec<DivisionMark>,
-    ) {
-        for node in nodes {
-            // First passage that starts inside the division; an empty division marks where the
-            // next passage begins.
-            let at = starts
-                .iter()
-                .find(|(b, _)| *b >= node.range.start)
-                .map_or(end, |&(_, w)| w);
-            out.push(DivisionMark {
-                at,
-                depth,
-                label: label(&node.label),
-            });
-            walk(&node.children, depth + 1, starts, end, out);
+    let end = out.words.len();
+    for (i, node) in structure.compiled.divisions.iter().enumerate() {
+        // First passage that starts inside the division; an empty division marks where the
+        // next passage begins.
+        let at = starts
+            .iter()
+            .find(|(b, _)| *b >= node.range.start)
+            .map_or(end, |&(_, w)| w);
+        let mut depth = 1;
+        let mut up = structure.compiled.divisions[i].parent;
+        while let Some(p) = up {
+            depth += 1;
+            up = structure.compiled.divisions[p].parent;
         }
+        out.divisions.push(DivisionMark {
+            at,
+            depth,
+            label: label(&node.label),
+        });
     }
-    let mut divisions = Vec::new();
-    walk(
-        &structure.compiled.divisions,
-        1,
-        &starts,
-        out.words.len(),
-        &mut divisions,
-    );
-    out.divisions = divisions;
     out
 }
 

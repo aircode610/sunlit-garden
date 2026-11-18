@@ -45,7 +45,8 @@ pub struct Unit {
     pub range: Range<usize>,
 }
 
-/// A node of the edition's own structure ("Part 1", "Introduction").
+/// A node of the edition's own structure ("Part 1", "Introduction"). Divisions are kept as a flat
+/// list in reading order; nesting is a `parent` pointer, as in the database.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DivisionNode {
     /// `part`, `introduction`, `preface`, `letter`, …
@@ -55,7 +56,9 @@ pub struct DivisionNode {
     /// The locator segment for passages inside it: `part-1`, `introduction`.
     pub slug: String,
     pub range: Range<usize>,
-    pub children: Vec<DivisionNode>,
+    /// The enclosing division (index into `Compiled::divisions`), or `None` at top level; e.g.
+    /// "Part I" inside "Section IV".
+    pub parent: Option<usize>,
 }
 
 /// The compiled structure of one edition.

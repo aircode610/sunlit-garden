@@ -129,15 +129,9 @@ fn a_compiled_edition_becomes_the_same_shape() {
         seg.boundaries.windows(2).all(|w| w[0] < w[1]),
         "boundaries ascend"
     );
-    let nodes = |ds: &[sunlit_core::corpus::compile::DivisionNode]| -> usize {
-        fn count(ds: &[sunlit_core::corpus::compile::DivisionNode]) -> usize {
-            ds.iter().map(|d| 1 + count(&d.children)).sum()
-        }
-        count(ds)
-    };
-    assert_eq!(seg.divisions.len(), nodes(&structure.compiled.divisions));
-    // Today's compiler doesn't nest Parts inside Sections: every division is top level.
-    assert!(seg.divisions.iter().all(|d| d.depth == 1));
+    assert_eq!(seg.divisions.len(), structure.compiled.divisions.len());
+    // Parts nest inside their Section.
+    assert!(seg.divisions.iter().any(|d| d.depth == 2));
     assert_eq!(seg.divisions[0].label, "1");
 }
 
@@ -304,7 +298,7 @@ fn the_compiler_does_not_get_worse_on_the_enquiry() {
         ("passage recall", r.passages.recall, 1.0),
         ("division F1", r.divisions.f1, 0.941),
         ("division labels", r.division_labels, 0.96),
-        ("division nesting", r.division_depths, 0.44),
+        ("division nesting", r.division_depths, 0.96),
     ];
     for (name, value, floor) in floors {
         assert!(

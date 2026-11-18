@@ -483,3 +483,55 @@ fn declared_expectations_are_hard_checks() {
         "{problems:?}"
     );
 }
+
+/// Hume's Enquiry (Gutenberg #9662): Sections I–XII, some with Parts I, II (III). The Parts nest
+/// inside their Section, and their passages are addressed through it.
+#[test]
+fn parts_nest_inside_the_section_they_follow() {
+    let file: &[u8] = include_bytes!("fixtures/gutenberg/pg9662.txt");
+    let body = sunlit_core::corpus::gutenberg::body_range(file).unwrap();
+    let s = compile_plain_text(file, body, &Options::default());
+    let divs = &s.compiled.divisions;
+
+    let section = |n: &str| {
+        divs.iter()
+            .position(|d| d.kind == "section" && d.slug == format!("section-{n}"))
+            .unwrap()
+    };
+    let children = |p: usize| -> Vec<&str> {
+        divs.iter()
+            .filter(|d| d.parent == Some(p))
+            .map(|d| d.slug.as_str())
+            .collect()
+    };
+    assert_eq!(children(section("4")), ["part-1", "part-2"]);
+    assert_eq!(children(section("10")), ["part-1", "part-2"]);
+    assert_eq!(children(section("12")), ["part-1", "part-2", "part-3"]);
+    assert!(children(section("6")).is_empty());
+    assert!(
+        divs.iter()
+            .filter(|d| d.kind == "section")
+            .all(|d| d.parent.is_none()),
+        "sections are top level"
+    );
+
+    // Passages are addressed through their Section, so the locators are unique again.
+    assert!(
+        s.passages
+            .iter()
+            .any(|p| p.locator == "section-10/part-1/1"),
+        "{:?}",
+        s.passages
+            .iter()
+            .map(|p| &p.locator)
+            .take(5)
+            .collect::<Vec<_>>()
+    );
+    assert!(
+        !s.problems
+            .iter()
+            .any(|p| p.contains("two divisions with locator")),
+        "{:?}",
+        s.problems
+    );
+}
