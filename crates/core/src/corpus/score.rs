@@ -153,10 +153,10 @@ pub fn standard_ebooks_gold(spine: &[(String, String)]) -> Result<Segmented, Xht
                     }
                     if name == "p" && in_p > 0 {
                         in_p -= 1;
-                        if in_p == 0 {
-                            if let Some(start) = p_start.take().filter(|&s| s < out.words.len()) {
-                                out.boundaries.push(start);
-                            }
+                        if in_p == 0
+                            && let Some(start) = p_start.take().filter(|&s| s < out.words.len())
+                        {
+                            out.boundaries.push(start);
                         }
                     }
                 }
