@@ -10,13 +10,14 @@
 //! Standard Ebooks at commit 9328a06ded0768ed522c82d96a085352cb4ecdd1 of
 //! github.com/standardebooks/adam-smith_the-theory-of-moral-sentiments ("CHAP. I. _Of Sympathy_").
 //! Despite its title page, the Gutenberg text is the 1777 one: it lacks the Part VI Smith added in
-//! 1790 ("Of the Character of Virtue"), so those 8 Standard Ebooks files are left out; its "Part
+//! 1790 ("Of the Character of Virtue") and his Advertisement to the Sixth Edition, so those 9
+//! Standard Ebooks files are left out; its "Part
 //! VI" is Standard Ebooks' Part VII, and Part III differs by Smith's 1790 revision.
 //! Pinned by SHA-256 so a fixture can't change silently.
 
 use sunlit_core::Sha256;
 
-const PINNED: [(&str, &str); 183] = [
+const PINNED: [(&str, &str); 182] = [
     (
         "gutenberg/pg9662.txt",
         "647459bc720d0fe09f85ac17b8d7edc2557ff89ba4467151407a4d48228be2cb",
@@ -704,10 +705,6 @@ const PINNED: [(&str, &str); 183] = [
     (
         "standard-ebooks/smith-moral-sentiments/part-7.xhtml",
         "b7df8c4c3857fb5ab12f4a0dc006de05a505685fc1ec76dbd33175cec238f094",
-    ),
-    (
-        "standard-ebooks/smith-moral-sentiments/preface.xhtml",
-        "a67334bb5e2219afdae46e49a15cfa16d12a431d5415da8cf3e4cae2a656e672",
     ),
     (
         "standard-ebooks/smith-moral-sentiments/section-1-1.xhtml",
