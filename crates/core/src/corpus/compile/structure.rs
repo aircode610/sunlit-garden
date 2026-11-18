@@ -55,9 +55,23 @@ pub struct Expect {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Options {
     pub headings: Vec<HeadingOverride>,
+    /// What one passage is (declared per edition when the text can't tell).
+    pub passages: PassageUnit,
     /// Who wrote each bracket style. A bracket in author text matching no rule is a problem.
     pub insertions: Vec<InsertionRule>,
     pub expect: Option<Expect>,
+}
+
+/// What one citable passage is. Books differ in ways the page doesn't show: Berkeley's numbered
+/// sections are the citation unit (PHK 1.3, continuation paragraphs included), while Hume's
+/// Enquiry is cited by paragraph (EHU 10.1) and its printed numbers are Selby-Bigge's.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum PassageUnit {
+    /// Numbered sections if a division's content starts numbered, otherwise paragraphs.
+    #[default]
+    Auto,
+    Paragraphs,
+    NumberedSections,
 }
 
 /// Whose words a planned passage is.
@@ -302,7 +316,29 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
         }
         divisions.push(node.clone());
         paths.push(path.clone());
-        let content_ranges: Vec<Range<usize>> = content.iter().map(|&i| paras[i].clone()).collect();
+        let mut content_ranges: Vec<Range<usize>> =
+            content.iter().map(|&i| paras[i].clone()).collect();
+        // A numbered division's title: its first paragraph, one short line in capitals.
+        let mut title_markers = Vec::new();
+        if heading_number(&node.label).is_some()
+            && let Some(first) = content_ranges.first().cloned()
+            && looks_like_heading(&text(&first))
+            && footnote_number(&file[first.clone()]).is_none()
+            && section_number(&file[first.clone()]).is_none()
+        {
+            let printed = text(&first);
+            title_markers = bracket_numbers(printed.as_bytes());
+            let title = String::from_utf8_lossy(&without_brackets(printed.as_bytes())).into_owned();
+            let title = title.split_whitespace().collect::<Vec<_>>().join(" ");
+            let title = title.trim_end_matches('.').trim().to_owned();
+            divisions[d].title = Some(title.clone());
+            node.title = Some(title);
+            units.push(Unit {
+                kind: UnitKind::DivisionHeading,
+                range: first,
+            });
+            content_ranges.remove(0);
+        }
         if content_ranges.is_empty() {
             problems.push(format!("division {:?} has no text", node.slug));
         } else {
@@ -311,12 +347,18 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
                 options,
                 division: d,
                 div_slug: &path,
+                title_markers: &title_markers,
                 units: &mut units,
                 passages: &mut passages,
                 problems: &mut problems,
                 warnings: &mut warnings,
             };
-            if is_numbered(file, &content_ranges) {
+            let numbered = match options.passages {
+                PassageUnit::Auto => is_numbered(file, &content_ranges),
+                PassageUnit::Paragraphs => false,
+                PassageUnit::NumberedSections => true,
+            };
+            if numbered {
                 numbered_sections(&mut sink, &content_ranges);
             } else {
                 plain_paragraphs(&mut sink, &content_ranges);
@@ -401,10 +443,19 @@ struct Sink<'a> {
     options: &'a Options,
     division: usize,
     div_slug: &'a str,
+    /// Footnote numbers whose marker is in the division's title ("OF PROBABILITY[9].").
+    title_markers: &'a [u32],
     units: &'a mut Vec<Unit>,
     passages: &'a mut Vec<PlannedPassage>,
     problems: &'a mut Vec<String>,
     warnings: &'a mut Vec<String>,
+}
+
+/// Where a footnote paragraph belongs: the text passage with its marker, or the division's title.
+#[derive(Debug, Clone, Copy)]
+enum NoteHost {
+    Passage(usize),
+    Title(u32),
 }
 
 /// Per-host counters, so locators are unique: `…/note-1`, `…/marker-1`, `…/author-note-1`.
@@ -550,14 +601,15 @@ impl Sink<'_> {
     fn footnote(
         &mut self,
         r: &Range<usize>,
-        open: &mut Option<usize>,
+        open: &mut Option<NoteHost>,
         counters: &mut HostCounters,
     ) -> bool {
         let file = self.file;
         let host = match footnote_number(&file[r.clone()]) {
             Some(n) => {
                 let marker = format!("[{n}]");
-                self.passages
+                let passage = self
+                    .passages
                     .iter()
                     .enumerate()
                     .rev()
@@ -568,14 +620,37 @@ impl Sink<'_> {
                                 .windows(marker.len())
                                 .any(|w| w == marker.as_bytes())
                     })
-                    .map(|(i, _)| i)
+                    .map(|(i, _)| NoteHost::Passage(i));
+                passage.or_else(|| {
+                    self.title_markers
+                        .contains(&n)
+                        .then_some(NoteHost::Title(n))
+                })
             }
             None => open.filter(|_| indented(file, r)),
         };
         *open = host;
-        let Some(host) = host else { return false };
-        self.note_paragraph(r.clone(), host, counters);
-        true
+        match host {
+            None => false,
+            Some(NoteHost::Passage(host)) => {
+                self.note_paragraph(r.clone(), host, counters);
+                true
+            }
+            Some(NoteHost::Title(n)) => {
+                // Notes attach to passages; a note on a heading has nowhere to go yet.
+                if footnote_number(&file[r.clone()]).is_some() {
+                    self.problems.push(format!(
+                        "{}: footnote on a heading ([{n}]) can't be stored yet",
+                        self.div_slug
+                    ));
+                }
+                self.units.push(Unit {
+                    kind: UnitKind::EditorNote,
+                    range: r.clone(),
+                });
+                true
+            }
+        }
     }
 
     /// Bare editor markers must match editor note paragraphs one-to-one within a host.
@@ -602,7 +677,7 @@ fn numbered_sections(sink: &mut Sink, paras: &[Range<usize>]) {
     let mut counters = HostCounters::default();
     let mut number = 0u32;
 
-    let mut footnote: Option<usize> = None;
+    let mut footnote: Option<NoteHost> = None;
     for r in paras {
         let bytes = &file[r.clone()];
         if sink.footnote(r, &mut footnote, &mut counters) {
@@ -696,7 +771,7 @@ fn plain_paragraphs(sink: &mut Sink, paras: &[Range<usize>]) {
     let mut k = 0;
     let mut current: Option<usize> = None;
     let mut counters = HostCounters::default();
-    let mut footnote: Option<usize> = None;
+    let mut footnote: Option<NoteHost> = None;
     for r in paras {
         if sink.footnote(r, &mut footnote, &mut counters) {
             continue;
@@ -722,6 +797,24 @@ fn plain_paragraphs(sink: &mut Sink, paras: &[Range<usize>]) {
         current = Some(host);
     }
     sink.close_host(current, &counters);
+}
+
+/// The numbers of bracketed footnote markers in a text ("OF PROBABILITY[9]." → [9]).
+fn bracket_numbers(bytes: &[u8]) -> Vec<u32> {
+    let mut out = Vec::new();
+    let mut rest = bytes;
+    while let Some(open) = rest.iter().position(|&b| b == b'[') {
+        rest = &rest[open + 1..];
+        let close = rest.iter().position(|&b| b == b']').unwrap_or(0);
+        if close > 0 && rest[..close].iter().all(u8::is_ascii_digit) {
+            out.extend(
+                std::str::from_utf8(&rest[..close])
+                    .ok()
+                    .and_then(|d| d.parse::<u32>().ok()),
+            );
+        }
+    }
+    out
 }
 
 /// The number of a footnote paragraph, which starts "[n] " ("[7] Nothing is more useful…").
@@ -1055,5 +1148,6 @@ fn division(kind: &str, label: &str, slug: &str, range: Range<usize>) -> Divisio
         slug: slug.into(),
         range,
         parent: None,
+        title: None,
     }
 }

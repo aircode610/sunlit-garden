@@ -17,7 +17,9 @@ use std::fmt;
 
 use serde::Deserialize;
 
-use super::compile::structure::{Attribution, Expect, HeadingOverride, InsertionRule, Options};
+use super::compile::structure::{
+    Attribution, Expect, HeadingOverride, InsertionRule, Options, PassageUnit,
+};
 use crate::values::{Sha256, Slug, WikidataId};
 
 /// A validated source list.
@@ -214,6 +216,9 @@ struct RawEdition {
     translator: Option<String>,
     published_year: Option<i16>,
     range: Option<RawRange>,
+    /// `passages = "paragraphs"` / `"numbered-sections"`; default: decided from the text.
+    #[serde(default)]
+    passages: RawPassages,
     #[serde(default)]
     heading: Vec<RawHeading>,
     #[serde(default)]
@@ -235,6 +240,15 @@ struct RawHeading {
 struct RawInsertion {
     prefix: String,
     by: RawBy,
+}
+
+#[derive(Deserialize, Clone, Copy, Default)]
+#[serde(rename_all = "kebab-case")]
+enum RawPassages {
+    #[default]
+    Auto,
+    Paragraphs,
+    NumberedSections,
 }
 
 /// `by = "editor"` or `by = "author"`; anything else fails to parse.
@@ -383,6 +397,11 @@ fn validate(raw: RawManifest) -> Result<Manifest, ManifestError> {
                 }
             };
             let compile = Options {
+                passages: match e.passages {
+                    RawPassages::Auto => PassageUnit::Auto,
+                    RawPassages::Paragraphs => PassageUnit::Paragraphs,
+                    RawPassages::NumberedSections => PassageUnit::NumberedSections,
+                },
                 headings: e
                     .heading
                     .into_iter()

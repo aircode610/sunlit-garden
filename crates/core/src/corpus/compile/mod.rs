@@ -59,6 +59,9 @@ pub struct DivisionNode {
     /// The enclosing division (index into `Compiled::divisions`), or `None` at top level; e.g.
     /// "Part I" inside "Section IV".
     pub parent: Option<usize>,
+    /// The division's own title, if printed under its number ("SECTION X." / "OF MIRACLES."):
+    /// part of the heading, not a passage. (Not stored yet: needs a column.)
+    pub title: Option<String>,
 }
 
 /// The compiled structure of one edition.

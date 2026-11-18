@@ -32,6 +32,7 @@ fn berkeley_options() -> Options {
             },
         ],
         expect: None,
+        ..Options::default()
     }
 }
 
@@ -49,6 +50,7 @@ fn hume_options() -> Options {
             by: Attribution::Author,
         }],
         expect: None,
+        ..Options::default()
     }
 }
 
@@ -599,4 +601,71 @@ fn footnote_paragraphs_are_notes_on_the_passage_with_their_marker() {
             .iter()
             .any(|p| p.contains("note style not declared"))
     );
+}
+
+/// A numbered division's title ("SECTION X." then "OF MIRACLES.") is part of its heading, not a
+/// passage. A footnote on a title can't be attached yet (notes attach to passages): a problem.
+#[test]
+fn a_numbered_divisions_title_is_part_of_its_heading() {
+    use sunlit_core::corpus::compile::structure::{PassageUnit, PlannedRole};
+    let file: &[u8] = include_bytes!("fixtures/gutenberg/pg9662.txt");
+    // The Enquiry is cited by paragraph (EHU 10.1); its printed numbers are Selby-Bigge's.
+    let options = Options {
+        passages: PassageUnit::Paragraphs,
+        ..Options::default()
+    };
+    let s = compile_plain_text(file, body_range(file).unwrap(), &options);
+    let section = |n: &str| {
+        s.compiled
+            .divisions
+            .iter()
+            .find(|d| d.slug == format!("section-{n}"))
+            .unwrap()
+    };
+
+    assert_eq!(section("10").title.as_deref(), Some("OF MIRACLES"));
+    assert_eq!(section("6").title.as_deref(), Some("OF PROBABILITY"));
+    let texts = (0..s.passages.len())
+        .filter(|&i| s.passages[i].role == PlannedRole::Text)
+        .count();
+    assert_eq!(
+        texts, 256,
+        "one text passage per paragraph of the book, as in the answer key"
+    );
+    assert!(
+        s.problems
+            .iter()
+            .any(|p| p.contains("footnote on a heading")),
+        "{:?}",
+        s.problems
+            .iter()
+            .filter(|p| !p.contains("not declared"))
+            .collect::<Vec<_>>()
+    );
+    assert!(
+        !s.problems.iter().any(|p| p.contains("in no unit")),
+        "everything still covered"
+    );
+}
+
+#[test]
+fn the_passage_unit_can_be_declared_per_edition() {
+    use sunlit_core::corpus::compile::structure::PassageUnit;
+    use sunlit_core::corpus::manifest::Manifest;
+    let toml = include_str!("../../../corpus/sources.toml").replace(
+        "slug = \"gutenberg-4583\"\n",
+        "slug = \"gutenberg-4583\"\npassages = \"paragraphs\"\n",
+    );
+    let m = Manifest::parse(&toml).unwrap();
+    let e = |slug: &str| {
+        m.documents
+            .iter()
+            .flat_map(|d| &d.editions)
+            .find(|e| e.slug.as_str() == slug)
+            .unwrap()
+            .compile
+            .passages
+    };
+    assert_eq!(e("gutenberg-4583"), PassageUnit::Paragraphs);
+    assert_eq!(e("gutenberg-4723"), PassageUnit::Auto, "default");
 }
