@@ -6,14 +6,17 @@
 //! Ebooks at commit b5ff98172e8a15ac2c79669d88018222fc89021e of
 //! github.com/standardebooks/david-hume_a-treatise-of-human-nature (text files of the spine; the
 //! epigraph, endnotes and Standard Ebooks' own pages left out).
-//! Tuning: Adam Smith's *Theory of Moral Sentiments* (6th edition, 1790) as Gutenberg #67363 and as
+//! Tuning: Adam Smith's *Theory of Moral Sentiments* as Gutenberg #67363 and as
 //! Standard Ebooks at commit 9328a06ded0768ed522c82d96a085352cb4ecdd1 of
 //! github.com/standardebooks/adam-smith_the-theory-of-moral-sentiments ("CHAP. I. _Of Sympathy_").
+//! Despite its title page, the Gutenberg text is the 1777 one: it lacks the Part VI Smith added in
+//! 1790 ("Of the Character of Virtue"), so those 8 Standard Ebooks files are left out; its "Part
+//! VI" is Standard Ebooks' Part VII, and Part III differs by Smith's 1790 revision.
 //! Pinned by SHA-256 so a fixture can't change silently.
 
 use sunlit_core::Sha256;
 
-const PINNED: [(&str, &str); 191] = [
+const PINNED: [(&str, &str); 183] = [
     (
         "gutenberg/pg9662.txt",
         "647459bc720d0fe09f85ac17b8d7edc2557ff89ba4467151407a4d48228be2cb",
@@ -647,18 +650,6 @@ const PINNED: [(&str, &str); 191] = [
         "fc9b874e43373e033708e0f9c826bc898710094a460465e5516d49dc3126623f",
     ),
     (
-        "standard-ebooks/smith-moral-sentiments/chapter-6-2-1.xhtml",
-        "e4d286eea7ad07f1abe77dc5982573c84e5e473e69cf62fbd31445a1beaa653c",
-    ),
-    (
-        "standard-ebooks/smith-moral-sentiments/chapter-6-2-2.xhtml",
-        "5d7d4a8022afbcaa3094dcb273afe13fbe44e5703615f388bfaebb2ef9447957",
-    ),
-    (
-        "standard-ebooks/smith-moral-sentiments/chapter-6-2-3.xhtml",
-        "6a48f54dede56170a05bdf805b96802571e46e83c6b2478be83ea3b5d872019d",
-    ),
-    (
         "standard-ebooks/smith-moral-sentiments/chapter-7-2-1.xhtml",
         "38fb17bccee226705e695964ec45e2b330cb02df8603716a86391e12fbba6f95",
     ),
@@ -711,10 +702,6 @@ const PINNED: [(&str, &str); 191] = [
         "eeab5594a8da2105cc63e5fe2d378fd2db02ebbb5dfe8b651c09c17ca7cc3771",
     ),
     (
-        "standard-ebooks/smith-moral-sentiments/part-6.xhtml",
-        "3ba69fc3743a9645f4aa08c45e58b1ac18c65501a513d0a1e7ee2097ea632094",
-    ),
-    (
         "standard-ebooks/smith-moral-sentiments/part-7.xhtml",
         "b7df8c4c3857fb5ab12f4a0dc006de05a505685fc1ec76dbd33175cec238f094",
     ),
@@ -745,22 +732,6 @@ const PINNED: [(&str, &str); 191] = [
     (
         "standard-ebooks/smith-moral-sentiments/section-2-3.xhtml",
         "ed971f5e14785e6e747624f2e5ef79c21a960afd8df162fa554b52af1847432e",
-    ),
-    (
-        "standard-ebooks/smith-moral-sentiments/section-6-1.xhtml",
-        "35e99707296f57937e90f7ca2fc926d0925250b9dfd2e12ca4878822dbc65d17",
-    ),
-    (
-        "standard-ebooks/smith-moral-sentiments/section-6-2.xhtml",
-        "0b554d12b81e99066133be23645c5de0e93c409e6fb4b53d1f1f05e6ecd4dc01",
-    ),
-    (
-        "standard-ebooks/smith-moral-sentiments/section-6-3.xhtml",
-        "795c3227f06203ca7300fac96a6c97701c02b36f021b1c75f587c007f3f58247",
-    ),
-    (
-        "standard-ebooks/smith-moral-sentiments/section-6-conclusion.xhtml",
-        "7c55d6bd29f4f8f0551a44144b6028c962354a2e0570a4aa3e9e739737f5ec6f",
     ),
     (
         "standard-ebooks/smith-moral-sentiments/section-7-1.xhtml",
