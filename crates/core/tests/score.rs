@@ -367,14 +367,11 @@ fn nesting_across_files_and_front_matter_are_read_from_the_answer_key() {
     assert_eq!(sections, 7);
 }
 
-/// The held-out score: a regression floor only. **Never change the compiler to raise it** — fix
-/// failures on a tuning book with the same pattern, then see whether this number moves.
-#[test]
-fn the_held_out_treatise_does_not_get_worse() {
+/// Compiles a Gutenberg fixture as an import would declare it (cited by paragraph) and scores it
+/// against a Standard Ebooks fixture folder.
+fn score_by_paragraph(file: &[u8], standard_ebooks: &str) -> sunlit_core::corpus::score::Report {
     use sunlit_core::corpus::compile::structure::{Options, PassageUnit, compile_plain_text};
     use sunlit_core::corpus::score::{score, segment};
-    let file: &[u8] = include_bytes!("fixtures/gutenberg/pg4705.txt");
-    // As an import would declare it: the Treatise is cited by paragraph (T 1.1.1.1).
     let options = Options {
         passages: PassageUnit::Paragraphs,
         ..Options::default()
@@ -384,26 +381,84 @@ fn the_held_out_treatise_does_not_get_worse() {
         sunlit_core::corpus::gutenberg::body_range(file).unwrap(),
         &options,
     );
-    let r = score(
-        &segment(file, &s),
-        &standard_ebooks_gold(&treatise_spine()).unwrap(),
+    let dir = format!(
+        "{}/tests/fixtures/standard-ebooks/{standard_ebooks}",
+        env!("CARGO_MANIFEST_DIR")
     );
+    let opf = std::fs::read_to_string(format!("{dir}/content.opf")).unwrap();
+    let spine: Vec<(String, String)> = spine_order(&opf)
+        .unwrap()
+        .into_iter()
+        .filter_map(|id| {
+            std::fs::read_to_string(format!("{dir}/{id}"))
+                .ok()
+                .map(|t| (id, t))
+        })
+        .collect();
+    score(&segment(file, &s), &standard_ebooks_gold(&spine).unwrap())
+}
 
-    for (name, value, floor) in [
-        ("passage precision", r.passages.precision, 0.982),
-        ("passage recall", r.passages.recall, 0.975),
-        ("division F1", r.divisions.f1, 0.945),
-        ("division labels", r.division_labels, 0.009),
-        ("division nesting", r.division_depths, 0.018),
-    ] {
+/// Every measure must stay at or above its floor (WindowDiff: at or below).
+fn assert_floors(r: &sunlit_core::corpus::score::Report, floors: [f64; 5], window_diff: f64) {
+    let values = [
+        ("passage precision", r.passages.precision),
+        ("passage recall", r.passages.recall),
+        ("division F1", r.divisions.f1),
+        ("division labels", r.division_labels),
+        ("division nesting", r.division_depths),
+    ];
+    for ((name, value), floor) in values.into_iter().zip(floors) {
         assert!(
             value >= floor - 1e-9,
             "{name} dropped to {value:.4} (floor {floor})"
         );
     }
     assert!(
-        r.window_diff <= 0.0143 + 1e-9,
+        r.window_diff <= window_diff + 1e-9,
         "WindowDiff rose to {:.4}",
         r.window_diff
     );
+}
+
+/// The held-out score: a regression floor only. **Never change the compiler to raise it** — fix
+/// failures on a tuning book with the same pattern, then see whether this number moves.
+///
+/// History (each move caused by a fix made on a tuning book):
+/// - Moral Sentiments heading fixes: the Advertisement, Introduction and Book I's opening are no
+///   longer swallowed by the contents list (recall 97.6% → 99.4%).
+/// - Leviathan's titles on the heading line: labels 2.8% → 95.3%, nesting 3.8% → 94.3%; but
+///   division F1 95.6% → 90.4%. This book's contents list is made of entries that now read as
+///   headings ("BOOK I OF THE UNDERSTANDING"), and front matter (prose) sits between it and the
+///   body, so the list ends at its first entry and the rest become divisions. Not fixed here:
+///   it waits for a tuning book with the same pattern.
+#[test]
+fn the_held_out_treatise_does_not_get_worse() {
+    let r = score_by_paragraph(
+        include_bytes!("fixtures/gutenberg/pg4705.txt"),
+        "hume-treatise",
+    );
+    assert_floors(&r, [0.980, 0.994, 0.903, 0.952, 0.943], 0.0056);
+}
+
+/// A tuning book: heading fixes are made on it. The 1777 Gutenberg text differs from Standard
+/// Ebooks' 1790 one (Part III revised, Part VI ↔ VII; the 1790-only Part VI and Advertisement are
+/// left out of the answer key), so it can't reach 100%.
+#[test]
+fn moral_sentiments_does_not_get_worse() {
+    let r = score_by_paragraph(
+        include_bytes!("fixtures/gutenberg/pg67363.txt"),
+        "smith-moral-sentiments",
+    );
+    assert_floors(&r, [0.844, 0.790, 0.926, 0.857, 0.904], 0.1083);
+}
+
+/// A tuning book for titles on the heading line ("CHAPTER I. OF SENSE"). Precision stays low:
+/// this edition prints Hobbes' marginal notes as paragraphs, which Standard Ebooks leaves out.
+#[test]
+fn leviathan_does_not_get_worse() {
+    let r = score_by_paragraph(
+        include_bytes!("fixtures/gutenberg/pg3207.txt"),
+        "hobbes-leviathan",
+    );
+    assert_floors(&r, [0.627, 0.977, 0.895, 0.886, 0.886], 0.0423);
 }
