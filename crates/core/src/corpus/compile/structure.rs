@@ -274,6 +274,16 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
         if node.kind == "contents" {
             continue;
         }
+        // A back-of-book index is the publisher's apparatus: covered, but never passages.
+        if node.kind == "index" {
+            for &i in &content {
+                units.push(Unit {
+                    kind: UnitKind::Skipped("index"),
+                    range: paras[i].clone(),
+                });
+            }
+            continue;
+        }
         node.range = paras[start].start..content.last().map_or(paras[start].end, |&i| paras[i].end);
         let d = divisions.len();
         node.parent = nest(&mut open, &divisions, &node, d);
@@ -813,6 +823,7 @@ fn known_heading(text: &str) -> Option<(String, String, String)> {
         "ADVERTISEMENT",
         "PROLOGUE",
         "EPILOGUE",
+        "INDEX",
     ];
     words.iter().find(|w| n == **w).map(|w| {
         let lower = w.to_lowercase();

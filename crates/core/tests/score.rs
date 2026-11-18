@@ -294,9 +294,9 @@ fn the_compiler_does_not_get_worse_on_the_enquiry() {
     );
 
     let floors = [
-        ("passage precision", r.passages.precision, 0.488),
+        ("passage precision", r.passages.precision, 0.775),
         ("passage recall", r.passages.recall, 1.0),
-        ("division F1", r.divisions.f1, 0.941),
+        ("division F1", r.divisions.f1, 0.96),
         ("division labels", r.division_labels, 0.96),
         ("division nesting", r.division_depths, 0.96),
     ];

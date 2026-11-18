@@ -535,3 +535,28 @@ fn parts_nest_inside_the_section_they_follow() {
         s.problems
     );
 }
+
+/// A back-of-book index is the publisher's apparatus, not the author's text: like a contents
+/// list it's skipped (still covered), never passages.
+#[test]
+fn a_back_of_book_index_is_skipped_not_text() {
+    let file: &[u8] = include_bytes!("fixtures/gutenberg/pg9662.txt");
+    let s = compile_plain_text(file, body_range(file).unwrap(), &Options::default());
+
+    assert!(
+        !s.passages.iter().any(|p| p.locator.starts_with("index")),
+        "index entries became passages"
+    );
+    assert!(!s.compiled.divisions.iter().any(|d| d.slug == "index"));
+    let skipped = s
+        .compiled
+        .units
+        .iter()
+        .filter(|u| u.kind == UnitKind::Skipped("index"))
+        .count();
+    assert!(skipped > 100, "{skipped} index paragraphs skipped");
+    assert!(
+        !s.problems.iter().any(|p| p.contains("in no unit")),
+        "everything still covered"
+    );
+}
