@@ -6,12 +6,15 @@ use sunlit_core::corpus::manifest::Manifest;
 
 const SOURCES: &str = include_str!("../../../corpus/sources.toml");
 
-fn fixture(provider_id: &str) -> &'static [u8] {
-    match provider_id {
-        "4723" => include_bytes!("fixtures/gutenberg/pg4723.txt"),
-        "4583" => include_bytes!("fixtures/gutenberg/pg4583.txt"),
-        other => panic!("no fixture for Gutenberg #{other}: add it to tests/fixtures"),
-    }
+/// The pinned file of Gutenberg #`provider_id`, kept in tests/fixtures/gutenberg.
+fn fixture(provider_id: &str) -> Vec<u8> {
+    let path = format!(
+        "{}/tests/fixtures/gutenberg/pg{provider_id}.txt",
+        env!("CARGO_MANIFEST_DIR")
+    );
+    std::fs::read(&path).unwrap_or_else(|_| {
+        panic!("no fixture for Gutenberg #{provider_id}: add it to tests/fixtures")
+    })
 }
 
 #[test]
@@ -20,12 +23,12 @@ fn every_edition_in_the_source_list_compiles_without_problems() {
     for document in &manifest.documents {
         let file = fixture(&document.provider_id);
         assert_eq!(
-            Some(sunlit_core::Sha256::of(file)),
+            Some(sunlit_core::Sha256::of(&file)),
             document.sha256,
             "fixture differs from the pin"
         );
         for edition in &document.editions {
-            let s = compile_edition(file, edition).unwrap();
+            let s = compile_edition(&file, edition).unwrap();
             assert_eq!(
                 s.problems,
                 Vec::<String>::new(),

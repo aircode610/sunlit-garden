@@ -21,11 +21,15 @@ struct Fixtures;
 
 impl Fetcher for Fixtures {
     async fn fetch(&self, url: &str) -> Result<Bytes, FetchError> {
-        match url {
-            u if u.ends_with("pg4723.txt") => Ok(Bytes::from_static(BERKELEY)),
-            u if u.ends_with("pg4583.txt") => Ok(Bytes::from_static(HUME)),
-            other => Err(FetchError(format!("no fixture for {other}"))),
-        }
+        // Every pinned Gutenberg file is a fixture: tests/fixtures/gutenberg/pg<id>.txt.
+        let name = url.rsplit('/').next().unwrap_or_default();
+        let path = format!(
+            "{}/tests/fixtures/gutenberg/{name}",
+            env!("CARGO_MANIFEST_DIR")
+        );
+        std::fs::read(&path)
+            .map(Bytes::from)
+            .map_err(|_| FetchError(format!("no fixture for {url}")))
     }
 }
 
