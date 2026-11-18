@@ -6,6 +6,8 @@
 //! edition (Standard Ebooks); the compiled edition is aligned to it word by word, and its
 //! boundaries are scored against the answer key's.
 
+use super::compile::DivisionNode;
+use super::compile::structure::{PlannedRole, Structure};
 use super::xhtml::{Token, XhtmlError, tokenize};
 
 /// A text as words, with its passage and division boundaries as word positions.
@@ -181,4 +183,56 @@ pub fn standard_ebooks_gold(spine: &[(String, String)]) -> Result<Segmented, Xht
         }
     }
     Ok(out)
+}
+
+/// Our compiler's view of an edition in the same shape: the words of every author-text passage
+/// in order, a boundary where each (non-empty) passage starts, and a mark at the first passage
+/// inside each division, its depth taken from the division tree.
+pub fn segment(file: &[u8], structure: &Structure) -> Segmented {
+    let mut out = Segmented::default();
+    // Byte position of each passage's first word, to place divisions.
+    let mut starts: Vec<(usize, usize)> = Vec::new(); // (byte start, word index)
+    for (i, p) in structure.passages.iter().enumerate() {
+        if p.role != PlannedRole::Text {
+            continue;
+        }
+        let at = out.words.len();
+        out.words.extend(words(&structure.author_words(file, i)));
+        if out.words.len() > at {
+            out.boundaries.push(at);
+            starts.push((p.range.start, at));
+        }
+    }
+    fn walk(
+        nodes: &[DivisionNode],
+        depth: usize,
+        starts: &[(usize, usize)],
+        end: usize,
+        out: &mut Vec<DivisionMark>,
+    ) {
+        for node in nodes {
+            // First passage that starts inside the division; an empty division marks where the
+            // next passage begins.
+            let at = starts
+                .iter()
+                .find(|(b, _)| *b >= node.range.start)
+                .map_or(end, |&(_, w)| w);
+            out.push(DivisionMark {
+                at,
+                depth,
+                label: label(&node.label),
+            });
+            walk(&node.children, depth + 1, starts, end, out);
+        }
+    }
+    let mut divisions = Vec::new();
+    walk(
+        &structure.compiled.divisions,
+        1,
+        &starts,
+        out.words.len(),
+        &mut divisions,
+    );
+    out.divisions = divisions;
+    out
 }

@@ -74,3 +74,52 @@ fn the_answer_key_has_the_books_sections_and_parts() {
         "a passage starts where the Part starts"
     );
 }
+
+const GUTENBERG_9662: &[u8] = include_bytes!("fixtures/gutenberg/pg9662.txt");
+
+fn compiled_9662() -> sunlit_core::corpus::compile::structure::Structure {
+    use sunlit_core::corpus::compile::structure::{Options, compile_plain_text};
+    let body = sunlit_core::corpus::gutenberg::body_range(GUTENBERG_9662).unwrap();
+    compile_plain_text(GUTENBERG_9662, body, &Options::default())
+}
+
+#[test]
+fn a_compiled_edition_becomes_the_same_shape() {
+    use sunlit_core::corpus::compile::structure::PlannedRole;
+    use sunlit_core::corpus::score::{segment, words};
+    let structure = compiled_9662();
+
+    let seg = segment(GUTENBERG_9662, &structure);
+
+    let texts: Vec<usize> = (0..structure.passages.len())
+        .filter(|&i| structure.passages[i].role == PlannedRole::Text)
+        .collect();
+    let expected: Vec<String> = texts
+        .iter()
+        .flat_map(|&i| words(&structure.author_words(GUTENBERG_9662, i)).collect::<Vec<_>>())
+        .collect();
+    assert_eq!(seg.words, expected);
+    let non_empty = texts
+        .iter()
+        .filter(|&&i| {
+            words(&structure.author_words(GUTENBERG_9662, i))
+                .next()
+                .is_some()
+        })
+        .count();
+    assert_eq!(seg.boundaries.len(), non_empty);
+    assert!(
+        seg.boundaries.windows(2).all(|w| w[0] < w[1]),
+        "boundaries ascend"
+    );
+    let nodes = |ds: &[sunlit_core::corpus::compile::DivisionNode]| -> usize {
+        fn count(ds: &[sunlit_core::corpus::compile::DivisionNode]) -> usize {
+            ds.iter().map(|d| 1 + count(&d.children)).sum()
+        }
+        count(ds)
+    };
+    assert_eq!(seg.divisions.len(), nodes(&structure.compiled.divisions));
+    // Today's compiler doesn't nest Parts inside Sections: every division is top level.
+    assert!(seg.divisions.iter().all(|d| d.depth == 1));
+    assert_eq!(seg.divisions[0].label, "1");
+}
