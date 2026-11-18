@@ -80,3 +80,30 @@ fn every_standard_ebooks_fixture_reads_cleanly() {
     // The fixture is pinned, so the count is exact: 268 <p> (paragraphs and hgroup titles).
     assert_eq!(paragraphs, 268);
 }
+
+/// Every token knows the bytes it came from, so a front-end can cite the untouched file: a
+/// start tag's span is the tag, a text token's span is the raw (undecoded) text, and a
+/// self-closing tag's start and end share its span.
+#[test]
+fn every_token_carries_its_byte_span() {
+    use sunlit_core::corpus::xhtml::tokenize_spans;
+    let src = r#"<p id="a">A &amp; B<pb n="8"/>c</p>"#;
+    let spans: Vec<(&str, Token)> = tokenize_spans(src)
+        .unwrap()
+        .into_iter()
+        .map(|(r, t)| (&src[r], t))
+        .collect();
+    let raw: Vec<&str> = spans.iter().map(|(s, _)| *s).collect();
+    assert_eq!(
+        raw,
+        [
+            r#"<p id="a">"#,
+            "A &amp; B",
+            r#"<pb n="8"/>"#,
+            r#"<pb n="8"/>"#,
+            "c",
+            "</p>"
+        ]
+    );
+    assert_eq!(spans[1].1, Token::Text("A & B".into()));
+}
