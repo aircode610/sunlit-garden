@@ -59,7 +59,21 @@ pub struct Options {
     pub passages: PassageUnit,
     /// Who wrote each bracket style. A bracket in author text matching no rule is a problem.
     pub insertions: Vec<InsertionRule>,
+    /// How this edition prints the author's marginal notes, if it does.
+    pub margin_notes: MarginNotes,
     pub expect: Option<Expect>,
+}
+
+/// How an edition prints the author's marginal notes (side-notes). Declared, never guessed: a
+/// short paragraph in Title Case could be anything in an edition that doesn't print notes.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum MarginNotes {
+    /// No marginal notes in this edition.
+    #[default]
+    None,
+    /// As separate paragraphs of up to three lines, every word capitalised, each before the
+    /// paragraph it glosses (Gutenberg's Leviathan: "Apparitions Or Visions").
+    TitleCase,
 }
 
 /// What one citable passage is. Books differ in ways the page doesn't show: Berkeley's numbered
@@ -93,6 +107,10 @@ pub enum PlannedRole {
     },
     /// The author's own note or reference on the passage at this index.
     AuthorNote {
+        on: usize,
+    },
+    /// The author's marginal note glossing the passage at this index.
+    MarginNote {
         on: usize,
     },
 }
@@ -355,8 +373,14 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
             content_ranges.remove(0);
         }
         // Heading material after a heading that already carries its title: a lone short line
-        // before the sub-divisions ("Consisting of three Sections.").
+        // before the sub-divisions ("Consisting of three Sections."), so the next heading is of
+        // another kind (a chapter whose only text is one short line keeps it).
+        let next_kind = heading_indices.get(h + 1).and_then(|&i| match &kinds[i] {
+            Para::Heading(next) => Some(next.kind.clone()),
+            _ => None,
+        });
         if node.title.is_some()
+            && next_kind.is_some_and(|k| k != node.kind)
             && let [only] = &content_ranges[..]
             && text(only).trim().lines().count() == 1
             && text(only).trim().len() <= 80
@@ -828,8 +852,21 @@ fn plain_paragraphs(sink: &mut Sink, paras: &[Range<usize>]) {
     let mut current: Option<usize> = None;
     let mut counters = HostCounters::default();
     let mut footnote: Option<NoteHost> = None;
+    // Margin notes printed before the paragraph they gloss, waiting for it. They're planned
+    // after it: the store needs an attachment's target first.
+    let mut margin_notes: Vec<Range<usize>> = Vec::new();
     for r in paras {
         if sink.footnote(r, &mut footnote, &mut counters) {
+            continue;
+        }
+        if sink.options.margin_notes == MarginNotes::TitleCase
+            && is_title_case_note(&String::from_utf8_lossy(&sink.file[r.clone()]))
+        {
+            sink.units.push(Unit {
+                kind: UnitKind::MarginNote,
+                range: r.clone(),
+            });
+            margin_notes.push(r.clone());
             continue;
         }
         if is_whole_bracket(&sink.file[r.clone()]) {
@@ -850,9 +887,39 @@ fn plain_paragraphs(sink: &mut Sink, paras: &[Range<usize>]) {
         k += 1;
         let host = sink.push_passage(format!("{div_slug}/{k}"), PlannedRole::Text, r.clone());
         sink.author_text(r.clone(), host, &mut counters);
+        for (n, note) in margin_notes.drain(..).enumerate() {
+            sink.push_passage(
+                format!("{div_slug}/{k}/margin-{}", n + 1),
+                PlannedRole::MarginNote { on: host },
+                note,
+            );
+        }
         current = Some(host);
     }
     sink.close_host(current, &counters);
+    if !margin_notes.is_empty() {
+        sink.problems.push(format!(
+            "{div_slug}: {} margin note(s) with no paragraph after them",
+            margin_notes.len()
+        ));
+    }
+}
+
+/// A marginal note as Title Case editions print it: up to three lines, every word capitalised,
+/// not all capitals (that's a heading).
+fn is_title_case_note(text: &str) -> bool {
+    let t = text.trim();
+    let words: Vec<&str> = t
+        .split_whitespace()
+        .map(|w| w.trim_start_matches(|c: char| !c.is_alphanumeric()))
+        .filter(|w| w.chars().next().is_some_and(char::is_alphabetic))
+        .collect();
+    (1..=3).contains(&t.lines().count())
+        && !words.is_empty()
+        && words
+            .iter()
+            .all(|w| w.chars().next().is_some_and(char::is_uppercase))
+        && t.chars().any(char::is_lowercase)
 }
 
 /// The numbers of bracketed footnote markers in a text ("OF PROBABILITY[9]." → [9]).

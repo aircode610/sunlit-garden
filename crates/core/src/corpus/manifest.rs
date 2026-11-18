@@ -18,7 +18,7 @@ use std::fmt;
 use serde::Deserialize;
 
 use super::compile::structure::{
-    Attribution, Expect, HeadingOverride, InsertionRule, Options, PassageUnit,
+    Attribution, Expect, HeadingOverride, InsertionRule, MarginNotes, Options, PassageUnit,
 };
 use crate::values::{Sha256, Slug, WikidataId};
 
@@ -397,6 +397,7 @@ fn validate(raw: RawManifest) -> Result<Manifest, ManifestError> {
                 }
             };
             let compile = Options {
+                margin_notes: MarginNotes::None,
                 passages: match e.passages {
                     RawPassages::Auto => PassageUnit::Auto,
                     RawPassages::Paragraphs => PassageUnit::Paragraphs,

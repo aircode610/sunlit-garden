@@ -170,7 +170,8 @@ fn berkeley_editor_material_is_attached_and_never_author_text() {
             PlannedRole::EditorHeading { of }
             | PlannedRole::EditorNote { on: of }
             | PlannedRole::EditorMarker { in_: of }
-            | PlannedRole::AuthorNote { on: of } => {
+            | PlannedRole::AuthorNote { on: of }
+            | PlannedRole::MarginNote { on: of } => {
                 let target = &s.passages[of];
                 assert!(
                     matches!(target.role, PlannedRole::Text),
@@ -837,4 +838,76 @@ fn prose_starting_with_part_and_a_number_is_not_a_heading() {
     let d = &s.compiled.divisions;
     assert_eq!(d.len(), 1, "{d:?}");
     assert_eq!(d[0].title.as_deref(), Some("OF SENSE"));
+}
+
+/// In an edition declared to print marginal notes in Title Case, each such paragraph is a
+/// margin note on the paragraph after it, not a paragraph of the text.
+#[test]
+fn title_case_paragraphs_are_margin_notes_on_the_next_paragraph_when_declared() {
+    use sunlit_core::corpus::compile::structure::{MarginNotes, PassageUnit, PlannedRole};
+    let file = b"CHAPTER II. OF IMAGINATION\n\nThat when a thing lies still, it will lie still for ever.\n\nMemory\n\nThe decay of Sense in men waking, is not the decay of the motion.\n";
+    let options = Options {
+        passages: PassageUnit::Paragraphs,
+        margin_notes: MarginNotes::TitleCase,
+        ..Options::default()
+    };
+    let s = compile_plain_text(file, 0..file.len(), &options);
+    let roles: Vec<(String, PlannedRole)> = s
+        .passages
+        .iter()
+        .map(|p| {
+            (
+                String::from_utf8_lossy(&file[p.range.clone()]).into_owned(),
+                p.role,
+            )
+        })
+        .collect();
+    let decay = roles
+        .iter()
+        .position(|(t, _)| t.starts_with("The decay"))
+        .unwrap();
+    assert_eq!(roles[decay].1, PlannedRole::Text);
+    let memory = roles
+        .iter()
+        .find(|(t, _)| t == "Memory")
+        .expect("the note is a passage");
+    assert_eq!(memory.1, PlannedRole::MarginNote { on: decay });
+    let note = s
+        .passages
+        .iter()
+        .find(|p| &file[p.range.clone()] == b"Memory")
+        .unwrap();
+    assert_eq!(
+        note.locator,
+        format!("{}/margin-1", s.passages[decay].locator)
+    );
+    assert_eq!(
+        roles
+            .iter()
+            .filter(|(_, r)| *r == PlannedRole::Text)
+            .count(),
+        2
+    );
+}
+
+/// Without the declaration nothing is a margin note; with it, a note with no paragraph after it
+/// in its division is a problem (what would it gloss?).
+#[test]
+fn margin_notes_need_the_declaration_and_a_paragraph_after_them() {
+    use sunlit_core::corpus::compile::structure::{MarginNotes, PassageUnit, PlannedRole};
+    let file = b"CHAPTER I. OF SENSE\n\nMemory\n\nThe decay of Sense in men waking.\n\nDreams\n\nCHAPTER II. OF IMAGINATION\n\nThat when a thing lies still.\n";
+    let mut options = Options {
+        passages: PassageUnit::Paragraphs,
+        ..Options::default()
+    };
+    let s = compile_plain_text(file, 0..file.len(), &options);
+    assert!(s.passages.iter().all(|p| p.role == PlannedRole::Text));
+    assert!(s.problems.is_empty(), "{:?}", s.problems);
+
+    options.margin_notes = MarginNotes::TitleCase;
+    let s = compile_plain_text(file, 0..file.len(), &options);
+    assert_eq!(
+        s.problems,
+        ["chapter-1: 1 margin note(s) with no paragraph after them"]
+    );
 }
