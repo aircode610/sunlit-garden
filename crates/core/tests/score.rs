@@ -317,3 +317,52 @@ fn the_compiler_does_not_get_worse_on_the_enquiry() {
         r.window_diff
     );
 }
+
+// ---- The held-out pair: Hume's Treatise. Score it; never tune the compiler on it. -------------
+
+const TREATISE: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/standard-ebooks/hume-treatise"
+);
+
+fn treatise_spine() -> Vec<(String, String)> {
+    let opf = std::fs::read_to_string(format!("{TREATISE}/content.opf")).unwrap();
+    spine_order(&opf)
+        .unwrap()
+        .into_iter()
+        .filter_map(|id| {
+            std::fs::read_to_string(format!("{TREATISE}/{id}"))
+                .ok()
+                .map(|t| (id, t))
+        })
+        .collect()
+}
+
+#[test]
+fn nesting_across_files_and_front_matter_are_read_from_the_answer_key() {
+    let gold = standard_ebooks_gold(&treatise_spine()).unwrap();
+    let d = &gold.divisions;
+
+    let top: Vec<&str> = d
+        .iter()
+        .filter(|x| x.depth == 1)
+        .map(|x| x.label.as_str())
+        .collect();
+    assert_eq!(
+        top,
+        ["advertisement", "introduction", "1", "2", "3", "appendix"]
+    );
+    // Book I holds Parts I-IV; Book I Part I holds Sections I-VII (nesting via data-parent).
+    let book1 = d
+        .iter()
+        .position(|x| x.depth == 1 && x.label == "1")
+        .unwrap();
+    let parts = d[book1 + 1..]
+        .iter()
+        .take_while(|x| x.depth > 1)
+        .filter(|x| x.depth == 2)
+        .count();
+    assert_eq!(parts, 4);
+    let sections = d[book1 + 2..].iter().take_while(|x| x.depth > 2).count();
+    assert_eq!(sections, 7);
+}
