@@ -236,6 +236,10 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
 
     // ---- 4. Divisions: from each heading to the next. Contents is skipped, not a division.
     let mut divisions: Vec<DivisionNode> = Vec::new();
+    // Each division's full locator path ("section-4/part-1"), parallel to `divisions`.
+    let mut paths: Vec<String> = Vec::new();
+    // Open numbered divisions, outermost first, for nesting (see `nest`).
+    let mut open: Vec<usize> = Vec::new();
     let mut passages: Vec<PlannedPassage> = Vec::new();
     let heading_indices: Vec<usize> = (0..paras.len())
         .filter(|&i| matches!(kinds[i], Para::Heading(_)))
@@ -272,10 +276,22 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
         }
         node.range = paras[start].start..content.last().map_or(paras[start].end, |&i| paras[i].end);
         let d = divisions.len();
-        if divisions.iter().any(|existing| existing.slug == node.slug) {
-            problems.push(format!("two divisions with locator {:?}", node.slug));
+        node.parent = nest(&mut open, &divisions, &node, d);
+        let path = match node.parent {
+            Some(p) => format!("{}/{}", paths[p], node.slug),
+            None => node.slug.clone(),
+        };
+        if paths.contains(&path) {
+            problems.push(format!("two divisions with locator {path:?}"));
+        }
+        // A nested division ends where its parent does, at the latest: extend the parents.
+        let mut up = node.parent;
+        while let Some(p) = up {
+            divisions[p].range.end = divisions[p].range.end.max(node.range.end);
+            up = divisions[p].parent;
         }
         divisions.push(node.clone());
+        paths.push(path.clone());
         let content_ranges: Vec<Range<usize>> = content.iter().map(|&i| paras[i].clone()).collect();
         if content_ranges.is_empty() {
             problems.push(format!("division {:?} has no text", node.slug));
@@ -284,7 +300,7 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
                 file,
                 options,
                 division: d,
-                div_slug: &node.slug,
+                div_slug: &path,
                 units: &mut units,
                 passages: &mut passages,
                 problems: &mut problems,
@@ -326,14 +342,14 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
 
     // ---- 7. Declared expectations.
     if let Some(expect) = &options.expect {
-        let found: Vec<String> = divisions.iter().map(|d| d.slug.clone()).collect();
+        let found: Vec<String> = paths.clone();
         if let Some(want) = &expect.divisions
             && *want != found
         {
             problems.push(format!("expected divisions {want:?}, found {found:?}"));
         }
         for (slug, &want) in &expect.text_passages {
-            let Some(d) = divisions.iter().position(|d| &d.slug == slug) else {
+            let Some(d) = paths.iter().position(|p| p == slug) else {
                 problems.push(format!("expected division {slug:?} not found"));
                 continue;
             };
@@ -908,12 +924,47 @@ fn title_case(text: &str) -> String {
         .join(" ")
 }
 
+/// Where a new division goes in the tree. `open` holds the open numbered divisions, outermost
+/// first. A heading of a kind already open closes back to that level and becomes its sibling
+/// (Section V after Section IV's Parts); a different kind numbered 1 nests inside the innermost
+/// open numbered division (Part I after Section IV); anything else — an unnumbered heading
+/// (Introduction, Index) or a new kind not starting at 1 — starts again at the top level.
+fn nest(
+    open: &mut Vec<usize>,
+    divisions: &[DivisionNode],
+    node: &DivisionNode,
+    index: usize,
+) -> Option<usize> {
+    let number = heading_number(&node.label);
+    let parent = if let Some(level) = open.iter().position(|&o| divisions[o].kind == node.kind) {
+        open.truncate(level);
+        open.last().copied()
+    } else if number == Some(1) && !open.is_empty() {
+        open.last().copied()
+    } else {
+        open.clear();
+        None
+    };
+    if number.is_some() {
+        open.push(index);
+    } else {
+        open.clear();
+    }
+    parent
+}
+
+/// A heading's number, if its label is one ("4", "IV", "IV.").
+fn heading_number(label: &str) -> Option<u32> {
+    let l = label.trim().trim_end_matches('.');
+    l.parse().ok().or_else(|| roman(l))
+}
+
 fn division(kind: &str, label: &str, slug: &str, range: Range<usize>) -> DivisionNode {
     DivisionNode {
         kind: kind.into(),
         label: label.into(),
         slug: slug.into(),
         range,
-        children: vec![],
+        parent: None,
     }
 }
