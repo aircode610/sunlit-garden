@@ -911,3 +911,28 @@ fn margin_notes_need_the_declaration_and_a_paragraph_after_them() {
         ["chapter-1: 1 margin note(s) with no paragraph after them"]
     );
 }
+
+#[test]
+fn margin_notes_are_declared_per_edition() {
+    use sunlit_core::corpus::compile::structure::MarginNotes;
+    use sunlit_core::corpus::manifest::Manifest;
+    let toml = include_str!("../../../corpus/sources.toml").replace(
+        "slug = \"gutenberg-4583\"\n",
+        "slug = \"gutenberg-4583\"\nmargin_notes = \"title-case\"\n",
+    );
+    let m = Manifest::parse(&toml).unwrap();
+    let e = |slug: &str| {
+        m.documents
+            .iter()
+            .flat_map(|d| &d.editions)
+            .find(|e| e.slug.as_str() == slug)
+            .unwrap()
+            .compile
+            .margin_notes
+    };
+    assert_eq!(e("gutenberg-4583"), MarginNotes::TitleCase);
+    assert_eq!(e("gutenberg-4723"), MarginNotes::None, "default");
+    // An unknown style is refused, not ignored.
+    let bad = toml.replace("\"title-case\"", "\"italic\"");
+    assert!(Manifest::parse(&bad).is_err());
+}

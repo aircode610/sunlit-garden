@@ -219,6 +219,10 @@ struct RawEdition {
     /// `passages = "paragraphs"` / `"numbered-sections"`; default: decided from the text.
     #[serde(default)]
     passages: RawPassages,
+    /// `margin_notes = "title-case"` if the edition prints the author's marginal notes as
+    /// Title Case paragraphs; default: none.
+    #[serde(default)]
+    margin_notes: RawMarginNotes,
     #[serde(default)]
     heading: Vec<RawHeading>,
     #[serde(default)]
@@ -240,6 +244,14 @@ struct RawHeading {
 struct RawInsertion {
     prefix: String,
     by: RawBy,
+}
+
+#[derive(Deserialize, Clone, Copy, Default)]
+#[serde(rename_all = "kebab-case")]
+enum RawMarginNotes {
+    #[default]
+    None,
+    TitleCase,
 }
 
 #[derive(Deserialize, Clone, Copy, Default)]
@@ -397,7 +409,10 @@ fn validate(raw: RawManifest) -> Result<Manifest, ManifestError> {
                 }
             };
             let compile = Options {
-                margin_notes: MarginNotes::None,
+                margin_notes: match e.margin_notes {
+                    RawMarginNotes::None => MarginNotes::None,
+                    RawMarginNotes::TitleCase => MarginNotes::TitleCase,
+                },
                 passages: match e.passages {
                     RawPassages::Auto => PassageUnit::Auto,
                     RawPassages::Paragraphs => PassageUnit::Paragraphs,
