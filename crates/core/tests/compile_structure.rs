@@ -762,3 +762,79 @@ fn a_title_printed_in_the_heading_is_not_replaced() {
         .collect();
     assert_eq!(titles, [Some("Of Sympathy"), Some("Of Pleasure")]);
 }
+
+/// Headings as Hobbes' Leviathan (Gutenberg #3207) prints them: the title on the heading line
+/// ("CHAPTER I. OF SENSE", "CHAPTER XL OF THE RIGHTS …" without a full stop), wrapping over a
+/// blank line into a paragraph in capitals; chapters numbered through the Parts; a contents list
+/// headed "CONTENTS OF THE CHAPTERS" whose entries include "INTRODUCTION", and the body's
+/// "THE INTRODUCTION".
+#[test]
+fn titles_on_the_heading_line_and_chapters_numbered_through_the_parts() {
+    use sunlit_core::corpus::compile::structure::PassageUnit;
+    let file: &[u8] = include_bytes!("fixtures/gutenberg/pg3207.txt");
+    let options = Options {
+        passages: PassageUnit::Paragraphs,
+        ..Options::default()
+    };
+    let s = compile_plain_text(file, body_range(file).unwrap(), &options);
+    let d = &s.compiled.divisions;
+    let find = |kind: &str, label: &str| {
+        d.iter()
+            .position(|x| x.kind == kind && x.label == label)
+            .unwrap_or_else(|| panic!("{kind} {label}"))
+    };
+
+    assert!(!s.toc.is_empty(), "the contents list is found");
+    assert_eq!(d.iter().filter(|x| x.kind == "introduction").count(), 1);
+    // The contents list ends where the body's "THE INTRODUCTION" repeats its "INTRODUCTION".
+    let intro = find("introduction", "Introduction");
+    let first = s.passages.iter().find(|p| p.division == intro).unwrap();
+    assert!(file[first.range.clone()].starts_with(b"Nature (the art whereby God"));
+    let parts: Vec<(&str, Option<&str>)> = d
+        .iter()
+        .filter(|x| x.kind == "part")
+        .map(|x| (x.label.as_str(), x.title.as_deref()))
+        .collect();
+    assert_eq!(parts[0], ("I", Some("OF MAN")));
+    assert_eq!(parts.len(), 4);
+    let chap1 = find("chapter", "I");
+    assert_eq!(d[chap1].title.as_deref(), Some("OF SENSE"));
+    assert_eq!(d[chap1].parent, Some(find("part", "I")));
+    // Chapter XVII opens Part II: chapters were inside Parts before, so it goes inside Part II.
+    assert_eq!(d[find("chapter", "XVII")].parent, Some(find("part", "II")));
+    assert_eq!(d[find("chapter", "XLVII")].parent, Some(find("part", "IV")));
+    let xl = d[find("chapter", "XL")].title.as_deref().unwrap();
+    assert!(
+        xl.starts_with("OF THE RIGHTS OF THE KINGDOME OF GOD"),
+        "{xl}"
+    );
+    let vi = d[find("chapter", "VI")].title.as_deref().unwrap();
+    assert!(
+        vi.starts_with("OF THE INTERIOUR BEGINNINGS OF VOLUNTARY MOTIONS COMMONLY CALLED"),
+        "{vi}"
+    );
+    assert!(vi.ends_with("BY WHICH THEY ARE EXPRESSED"), "{vi}");
+    assert!(
+        !s.problems
+            .iter()
+            .any(|p| p.contains("has no text") || p.contains("two divisions")),
+        "{:?}",
+        s.problems
+    );
+}
+
+/// A title on the heading line needs the line in capitals: prose that happens to start with a
+/// heading word and a number is not a heading.
+#[test]
+fn prose_starting_with_part_and_a_number_is_not_a_heading() {
+    use sunlit_core::corpus::compile::structure::PassageUnit;
+    let file = b"CHAPTER I. OF SENSE\n\nConcerning the thoughts of man.\n\nPart II of this work treats of the commonwealth.\n";
+    let options = Options {
+        passages: PassageUnit::Paragraphs,
+        ..Options::default()
+    };
+    let s = compile_plain_text(file, 0..file.len(), &options);
+    let d = &s.compiled.divisions;
+    assert_eq!(d.len(), 1, "{d:?}");
+    assert_eq!(d[0].title.as_deref(), Some("OF SENSE"));
+}

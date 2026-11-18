@@ -166,30 +166,28 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
     // ---- 1. Contents list: the paragraphs after a CONTENTS heading, up to the next separator
     // or heading, become TOC entries (one per line).
     let mut toc: Vec<String> = Vec::new();
-    let contents_heading = paras
-        .iter()
-        .position(|r| normalise(&text(r)).trim_end_matches('.') == "CONTENTS");
+    let contents_heading = paras.iter().position(|r| is_contents_heading(&text(r)));
     let mut toc_paragraphs = Vec::new();
     if let Some(c) = contents_heading {
-        for (i, r) in paras.iter().enumerate().skip(c + 1) {
-            if is_separator(&text(r)) || known_heading(&text(r)).is_some() {
-                break;
-            }
+        // The list runs to the first separator or heading-like line. If that line is an entry
+        // of the list ("PART I.", "INTRODUCTION"), the same heading appears again where the body
+        // starts, with no prose in between (a contents list has none): the list runs to there.
+        let id = |i: usize| known_heading(&text(&paras[i])).map(|k| (k.kind, k.slug));
+        let stop = (c + 1..paras.len())
+            .find(|&i| is_separator(&text(&paras[i])) || id(i).is_some())
+            .unwrap_or(paras.len());
+        let repeat = (stop < paras.len() && id(stop).is_some())
+            .then(|| (stop + 1..paras.len()).find(|&i| id(i) == id(stop)))
+            .flatten()
+            .filter(|&body| !(stop + 1..body).any(|i| is_prose(&text(&paras[i]))));
+        for (i, r) in paras
+            .iter()
+            .enumerate()
+            .take(repeat.unwrap_or(stop))
+            .skip(c + 1)
+        {
             toc_paragraphs.push(i);
             toc.extend(text(r).lines().map(normalise).filter(|l| !l.is_empty()));
-        }
-        // A contents list that starts with a heading-like line ("PART I.") looks empty by that
-        // rule: it then ends where that first heading appears again, which is where the body
-        // starts.
-        if toc_paragraphs.is_empty() {
-            let id = |i: usize| known_heading(&text(&paras[i])).map(|k| (k.kind, k.slug));
-            let first = (c + 1..paras.len()).find(|&i| id(i).is_some());
-            if let Some(body) = first.and_then(|f| (f + 1..paras.len()).find(|&i| id(i) == id(f))) {
-                for (i, r) in paras.iter().enumerate().take(body).skip(c + 1) {
-                    toc_paragraphs.push(i);
-                    toc.extend(text(r).lines().map(normalise).filter(|l| !l.is_empty()));
-                }
-            }
         }
     }
 
@@ -340,6 +338,22 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
         paths.push(path.clone());
         let mut content_ranges: Vec<Range<usize>> =
             content.iter().map(|&i| paras[i].clone()).collect();
+        // A title printed on the heading line may wrap over a blank line into a paragraph in
+        // capitals ("CHAPTER VI. OF THE INTERIOUR BEGINNINGS OF VOLUNTARY MOTIONS" /
+        // "COMMONLY CALLED THE PASSIONS. …").
+        if known_heading(&text(&paras[start])).is_some_and(|k| k.title_on_heading_line)
+            && let Some(first) = content_ranges.first().cloned()
+            && is_title_continuation(&text(&first))
+        {
+            let title = format!("{} {}", node.title.as_deref().unwrap_or(""), text(&first));
+            node.title = Some(title_text(&title));
+            divisions[d].title = node.title.clone();
+            units.push(Unit {
+                kind: UnitKind::DivisionHeading,
+                range: first,
+            });
+            content_ranges.remove(0);
+        }
         // Heading material after a heading that already carries its title: a lone short line
         // before the sub-divisions ("Consisting of three Sections.").
         if node.title.is_some()
@@ -1020,11 +1034,15 @@ struct Known {
     label: String,
     slug: String,
     title: Option<String>,
+    /// The title starts on the heading's own line ("CHAPTER I. OF SENSE").
+    title_on_heading_line: bool,
 }
 
 /// A heading paragraph: a heading word and number on the first line ("PART I.", "CHAP. I."),
-/// optionally followed by up to six short lines of title ("Of the PROPRIETY of ACTION."); or a
-/// plain heading word alone ("INTRODUCTION", "CONTENTS.").
+/// optionally followed by up to six short lines of title ("Of the PROPRIETY of ACTION."). The
+/// title may start on the first line if that line is all capitals ("CHAPTER I. OF SENSE"), so
+/// prose ("Part I of this book…") is never a heading. Or a plain heading word alone
+/// ("INTRODUCTION", "CONTENTS.", "THE INTRODUCTION").
 fn known_heading(text: &str) -> Option<Known> {
     let lines: Vec<&str> = text.trim().lines().map(str::trim).collect();
     if lines.is_empty() || lines.len() > 7 || lines.iter().any(|l| l.len() > 80) {
@@ -1041,14 +1059,23 @@ fn known_heading(text: &str) -> Option<Known> {
     ];
     for (word, kind) in kinds {
         if let Some(rest) = first.strip_prefix(word).and_then(|r| r.strip_prefix(' ')) {
-            let number = rest.trim_end_matches('.');
+            let (number, same_line) = rest.split_once(' ').unwrap_or((rest, ""));
+            let number = number.trim_end_matches('.');
             let value = number.parse::<u32>().ok().or_else(|| roman(number))?;
-            let title = (lines.len() > 1).then(|| title_text(&lines[1..].join(" ")));
+            if !same_line.is_empty() && lines[0].chars().any(|c| c.is_lowercase()) {
+                return None;
+            }
+            let printed: Vec<&str> = std::iter::once(same_line)
+                .chain(lines[1..].iter().copied())
+                .filter(|l| !l.is_empty())
+                .collect();
+            let title = (!printed.is_empty()).then(|| title_text(&printed.join(" ")));
             return Some(Known {
                 kind: kind.into(),
                 label: number.to_owned(),
                 slug: format!("{kind}-{value}"),
                 title,
+                title_on_heading_line: !same_line.is_empty(),
             });
         }
     }
@@ -1064,6 +1091,7 @@ fn known_heading(text: &str) -> Option<Known> {
         "INDEX",
     ];
     let word = first.trim_end_matches('.');
+    let word = word.strip_prefix("THE ").unwrap_or(word);
     (lines.len() == 1).then_some(())?;
     words.iter().find(|w| word == **w).map(|w| {
         let lower = w.to_lowercase();
@@ -1072,6 +1100,7 @@ fn known_heading(text: &str) -> Option<Known> {
             label: title_case(w),
             slug: lower,
             title: None,
+            title_on_heading_line: false,
         }
     })
 }
@@ -1146,6 +1175,33 @@ fn looks_like_heading(text: &str) -> bool {
         && !t.chars().any(|c| c.is_ascii_lowercase())
 }
 
+/// "CONTENTS", "CONTENTS.", "TABLE OF CONTENTS", "CONTENTS OF THE CHAPTERS".
+fn is_contents_heading(text: &str) -> bool {
+    let n = normalise(text);
+    let n = n.trim_end_matches('.');
+    n == "CONTENTS" || n == "TABLE OF CONTENTS" || n.starts_with("CONTENTS OF ")
+}
+
+/// Running prose, which a contents list never contains: 20 words or more, not all capitals, not
+/// ending in a page number or "ibid.".
+fn is_prose(text: &str) -> bool {
+    let words: Vec<&str> = text.split_whitespace().collect();
+    let last = words.last().map_or("", |w| w.trim_end_matches('.'));
+    words.len() >= 20
+        && text.chars().any(|c| c.is_lowercase())
+        && !last.eq_ignore_ascii_case("ibid")
+        && last.parse::<u32>().is_err()
+}
+
+/// The rest of a wrapped title: up to three short lines, in capitals.
+fn is_title_continuation(text: &str) -> bool {
+    let t = text.trim();
+    (1..=3).contains(&t.lines().count())
+        && t.lines().all(|l| l.trim().len() <= 80)
+        && t.chars().any(|c| c.is_uppercase())
+        && !t.chars().any(|c| c.is_lowercase())
+}
+
 /// "* * * * *"
 fn is_separator(text: &str) -> bool {
     let t = text.trim();
@@ -1190,7 +1246,9 @@ fn title_case(text: &str) -> String {
 /// Where a new division goes in the tree. `open` holds the open numbered divisions, outermost
 /// first. A heading of a kind already open closes back to that level and becomes its sibling
 /// (Section V after Section IV's Parts); a different kind numbered 1 nests inside the innermost
-/// open numbered division (Part I after Section IV); anything else — an unnumbered heading
+/// open numbered division (Part I after Section IV); a kind seen before inside another kind goes
+/// inside the innermost open one of that kind again (Chapter XVII after Part II: chapters are
+/// numbered through the Parts); anything else — an unnumbered heading
 /// (Introduction, Index) or a new kind not starting at 1 — starts again at the top level, unless
 /// it comes straight after a heading with no text of its own: then it opens inside that one
 /// (Smith's "SECTION II." then "INTRODUCTION.") and the numbered divisions stay open.
@@ -1213,6 +1271,18 @@ fn nest(
         open.truncate(level);
         open.last().copied()
     } else if number == Some(1) && !open.is_empty() {
+        open.last().copied()
+    } else if let Some(level) = divisions
+        .iter()
+        .rev()
+        .find(|d| d.kind == node.kind)
+        .and_then(|d| d.parent)
+        .and_then(|p| {
+            open.iter()
+                .rposition(|&o| divisions[o].kind == divisions[p].kind)
+        })
+    {
+        open.truncate(level + 1);
         open.last().copied()
     } else {
         open.clear();
