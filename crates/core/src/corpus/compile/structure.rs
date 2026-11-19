@@ -699,7 +699,26 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
             .filter_map(|h| h.lines().next().and_then(numbered_entry))
             .filter(|(kind, _)| listed.iter().any(|(k, _)| k == kind))
             .collect();
-        if after_contents != toc && (listed.is_empty() || listed != found) {
+        // A list of bare numbers ("1.", "2.", … under a "Question" column) matches when they're
+        // the numbers of one kind of division found, in order.
+        let bare: Vec<u32> = toc.iter().filter_map(|l| bare_number(l)).collect();
+        let bare_match = !bare.is_empty()
+            && heading_indices
+                .iter()
+                .filter(|&&i| contents_heading.is_some_and(|c| i > c))
+                .filter_map(|&i| known_heading(&text(&paras[i])))
+                .map(|k| k.kind)
+                .any(|kind| {
+                    let numbers: Vec<u32> = heading_indices
+                        .iter()
+                        .filter_map(|&i| match &kinds[i] {
+                            Para::Heading(d) if d.kind == kind => heading_number(&d.label),
+                            _ => None,
+                        })
+                        .collect();
+                    numbers == bare
+                });
+        if after_contents != toc && !bare_match && (listed.is_empty() || listed != found) {
             problems.push(format!(
                 "contents list {toc:?} doesn't match the headings found {after_contents:?}"
             ));
@@ -1164,16 +1183,26 @@ fn is_title_case_note(text: &str) -> bool {
 
 /// The part of a scholastic article a paragraph opens, as its Latin locator segment:
 /// "Objection 1:" / "Obj. 2:" → obj-N, "On the contrary" → sed-contra, "I answer that" →
-/// corpus, "Reply Obj. 1:" / "Reply to Objection 1:" → ad-N.
+/// corpus, "Reply Obj. 1:" / "Reply to Objection 1:" → ad-N ("Reply Obj. 2 and 3:" → ad-2-3).
 fn article_part(text: &str) -> Option<String> {
     let t = text.trim_start().trim_start_matches('_');
-    let number = |rest: &str| -> Option<u32> {
-        let digits: String = rest
-            .trim_start()
-            .chars()
-            .take_while(char::is_ascii_digit)
-            .collect();
-        digits.parse().ok()
+    // "2", or a joint reply "2 and 3" → "2-3".
+    let numbers = |rest: &str| -> Option<String> {
+        let rest = rest.trim_start();
+        let digits: String = rest.chars().take_while(char::is_ascii_digit).collect();
+        let first: u32 = digits.parse().ok()?;
+        let joint = rest[digits.len()..]
+            .strip_prefix(" and ")
+            .map(|r| {
+                r.chars()
+                    .take_while(char::is_ascii_digit)
+                    .collect::<String>()
+            })
+            .and_then(|d| d.parse::<u32>().ok());
+        Some(match joint {
+            Some(second) => format!("{first}-{second}"),
+            None => first.to_string(),
+        })
     };
     for (word, slug) in [
         ("Reply to Objection", "ad"),
@@ -1182,7 +1211,7 @@ fn article_part(text: &str) -> Option<String> {
         ("Obj.", "obj"),
     ] {
         if let Some(rest) = t.strip_prefix(word) {
-            return number(rest).map(|n| format!("{slug}-{n}"));
+            return numbers(rest).map(|n| format!("{slug}-{n}"));
         }
     }
     if t.starts_with("On the contrary") {
@@ -1201,8 +1230,17 @@ fn article_parts(sink: &mut Sink, paras: &[Range<usize>]) {
     let mut current: Option<usize> = None;
     let mut counters = HostCounters::default();
     let mut seen: Vec<String> = Vec::new();
+    // Note paragraphs before the first part (a footnote on the title) wait for it.
+    let mut waiting: Vec<Range<usize>> = Vec::new();
     for r in paras {
         let text = String::from_utf8_lossy(&sink.file[r.clone()]).into_owned();
+        if is_whole_bracket(&sink.file[r.clone()]) {
+            match current {
+                Some(host) => sink.note_paragraph(r.clone(), host, &mut counters),
+                None => waiting.push(r.clone()),
+            }
+            continue;
+        }
         match article_part(&text) {
             Some(part) => {
                 if seen.contains(&part) {
@@ -1215,6 +1253,13 @@ fn article_parts(sink: &mut Sink, paras: &[Range<usize>]) {
                 let host =
                     sink.push_passage(format!("{div_slug}/{part}"), PlannedRole::Text, r.clone());
                 sink.author_text(r.clone(), host, &mut counters);
+                for note in waiting.drain(..) {
+                    // Its marker is in the article's title, not in this part: it doesn't count
+                    // towards this part's markers-versus-note-paragraphs check.
+                    let paragraphs = counters.note_paragraphs;
+                    sink.note_paragraph(note, host, &mut counters);
+                    counters.note_paragraphs = paragraphs;
+                }
                 current = Some(host);
             }
             None => {
@@ -1233,6 +1278,10 @@ fn article_parts(sink: &mut Sink, paras: &[Range<usize>]) {
         }
     }
     sink.close_host(current, &counters);
+    if !waiting.is_empty() {
+        sink.problems
+            .push(format!("{div_slug}: a note with no part after it"));
+    }
 }
 
 /// A question's opening (its list of articles): one passage, the question's prologue.
@@ -1661,6 +1710,14 @@ fn ends_in_page_number(text: &str) -> bool {
 /// Running prose, which a contents list never contains: 20 words or more, not all capitals, not
 /// ending in a page number or "ibid.".
 fn is_prose(text: &str) -> bool {
+    // A numbered list ("1.   The Nature …"; a long entry wraps onto an indented line) is
+    // entries, not prose.
+    let mut lines = text.trim().lines();
+    if lines.next().is_some_and(|l| bare_number(l).is_some())
+        && lines.all(|l| bare_number(l).is_some() || l.starts_with([' ', '\t']))
+    {
+        return false;
+    }
     let words: Vec<&str> = text.split_whitespace().collect();
     let last = words.last().map_or("", |w| w.trim_end_matches('.'));
     words.len() >= 20
@@ -1704,6 +1761,15 @@ fn is_title_continuation(text: &str) -> bool {
         && lines.iter().all(|l| l.len() <= 80)
         && caps.iter().any(|l| l.chars().any(char::is_uppercase))
         && !caps.iter().any(|l| l.chars().any(char::is_lowercase))
+}
+
+/// "27.  The Procession of the Divine Persons" → 27: an entry numbered without a heading word.
+fn bare_number(line: &str) -> Option<u32> {
+    let t = line.trim_start();
+    let digits = t.find(|c: char| !c.is_ascii_digit())?;
+    (digits > 0 && t[digits..].starts_with('.'))
+        .then(|| t[..digits].parse().ok())
+        .flatten()
 }
 
 /// "* * * * *"

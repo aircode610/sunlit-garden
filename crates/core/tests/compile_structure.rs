@@ -1189,7 +1189,7 @@ fn summa_articles_are_cited_by_their_parts() {
     use sunlit_core::corpus::compile::structure::{
         Attribution, InsertionRule, PassageUnit, PlannedRole,
     };
-    let file = b"QUESTION 2\n\nTHE EXISTENCE OF GOD\n(In Three Articles)\n\nBecause the chief aim of sacred doctrine is to teach the knowledge of God.\n\n(1) Whether the proposition \"God exists\" is self-evident?\n\n_______________________\n\nFIRST ARTICLE [I, Q. 2, Art. 1]\n\nWhether God Exists?\n\nObjection 1: It seems that God does not exist [*Cf. Q. 16, A. 4].\n\nObj. 2: Further, it is superfluous to suppose.\n\n_On the contrary,_ It is said in the person of God: \"I am Who am.\"\n\n_I answer that,_ The existence of God can be proved in five ways.\n\nThe second way is from the nature of the efficient cause.\n\nReply Obj. 1: As Augustine says.\n\nReply Obj. 2: Since nature works for a determinate end.\n";
+    let file = b"QUESTION 2\n\nTHE EXISTENCE OF GOD\n(In Three Articles)\n\nBecause the chief aim of sacred doctrine is to teach the knowledge of God.\n\n(1) Whether the proposition \"God exists\" is self-evident?\n\n_______________________\n\nFIRST ARTICLE [I, Q. 2, Art. 1]\n\nWhether God Exists?\n\nObjection 1: It seems that God does not exist [*Cf. Q. 16, A. 4].\n\nObj. 2: Further, it is superfluous to suppose.\n\n_On the contrary,_ It is said in the person of God: \"I am Who am.\"\n\n_I answer that,_ The existence of God can be proved in five ways.\n\nThe second way is from the nature of the efficient cause.\n\nReply Obj. 1: As Augustine says.\n\nReply Obj. 2 and 3: Since nature works for a determinate end.\n";
     let options = Options {
         passages: PassageUnit::Articles,
         insertions: vec![InsertionRule {
@@ -1222,7 +1222,7 @@ fn summa_articles_are_cited_by_their_parts() {
             "question-2/article-1/sed-contra",
             "question-2/article-1/corpus",
             "question-2/article-1/ad-1",
-            "question-2/article-1/ad-2",
+            "question-2/article-1/ad-2-3",
         ]
     );
     let corpus = s
@@ -1242,5 +1242,87 @@ fn summa_articles_are_cited_by_their_parts() {
     assert_eq!(
         s.author_words(file, obj1),
         "Objection 1: It seems that God does not exist ."
+    );
+}
+
+/// A rule of underscores is its own paragraph (a separator), even with no blank line around it:
+/// the heading before it stays a heading of its own.
+#[test]
+fn an_underscore_rule_is_a_paragraph_of_its_own() {
+    use sunlit_core::corpus::compile::paragraphs::paragraphs;
+    let file = b"TREATISE ON MAN (QQ. 75-102)\n_______________________\n\nQUESTION 75\n";
+    let p: Vec<&[u8]> = paragraphs(file, 0..file.len())
+        .into_iter()
+        .map(|r| &file[r])
+        .collect();
+    assert_eq!(
+        p,
+        [
+            &b"TREATISE ON MAN (QQ. 75-102)"[..],
+            b"_______________________",
+            b"QUESTION 75"
+        ]
+    );
+}
+
+/// An editor's note paragraph before an article's first part (a footnote on its title, ST I
+/// q. 48 a. 5) is a note on the first part, never Aquinas's text.
+#[test]
+fn a_note_before_an_articles_first_part_attaches_to_it() {
+    use sunlit_core::corpus::compile::structure::{
+        Attribution, InsertionRule, PassageUnit, PlannedRole,
+    };
+    let file = b"QUESTION 48\n\nTHE DISTINCTION OF THINGS\n\n(1) Whether evil is a nature?\n\nFIRST ARTICLE [I, Q. 48, Art. 1]\n\nWhether Evil Is Adequately Divided into Pain and Fault?\n\n[*Pain here means \"penalty\".--Ed.]\n\nObjection 1: It seems that evil is not adequately divided.\n";
+    let options = Options {
+        passages: PassageUnit::Articles,
+        insertions: vec![InsertionRule {
+            prefix: "[".into(),
+            by: Attribution::Editor,
+        }],
+        ..Options::default()
+    };
+    let s = compile_plain_text(file, 0..file.len(), &options);
+    assert!(s.problems.is_empty(), "{:?}", s.problems);
+    let obj1 = s
+        .passages
+        .iter()
+        .position(|p| p.locator.ends_with("/obj-1"))
+        .unwrap();
+    let note = s
+        .passages
+        .iter()
+        .find(|p| p.role == PlannedRole::EditorNote { on: obj1 })
+        .unwrap();
+    assert!(file[note.range.clone()].starts_with(b"[*Pain"));
+}
+
+/// A contents list of bare numbers under a column header (the Summa: "Question" / "1.   The
+/// Nature and Extent of Sacred Doctrine" …) is a list, not prose, and matches when its numbers
+/// are the questions found, in order.
+#[test]
+fn a_contents_list_of_bare_numbers_matches_the_numbered_divisions() {
+    use sunlit_core::corpus::compile::structure::PassageUnit;
+    let toc = b"CONTENTS\n\nPROLOGUE\n\nQuestion\n\n1.   The Nature and Extent of Sacred Doctrine\n2.   The Existence of God, of which the many proofs are examined\n       at length here\n\n_______________________\n\nPROLOGUE\n\nBecause the Master of Catholic Truth ought to teach.\n\nQUESTION 1\n\nTHE NATURE\n\n(1) Whether it is necessary?\n\nQUESTION 2\n\nTHE EXISTENCE OF GOD\n\n(1) Whether God exists?\n";
+    let options = Options {
+        passages: PassageUnit::Articles,
+        ..Options::default()
+    };
+    let s = compile_plain_text(toc, 0..toc.len(), &options);
+    assert!(s.problems.is_empty(), "{:?}", s.problems);
+    let slugs: Vec<&str> = s
+        .compiled
+        .divisions
+        .iter()
+        .map(|d| d.slug.as_str())
+        .collect();
+    assert_eq!(slugs, ["prologue", "question-1", "question-2"]);
+
+    // A list that doesn't match the questions found is still a problem.
+    let wrong = String::from_utf8_lossy(toc).replace("2.   The Existence", "3.   The Existence");
+    let s = compile_plain_text(wrong.as_bytes(), 0..wrong.len(), &options);
+    assert!(
+        s.problems.iter().any(|p| p.contains("contents list")),
+        "{:?}",
+        s.problems
     );
 }

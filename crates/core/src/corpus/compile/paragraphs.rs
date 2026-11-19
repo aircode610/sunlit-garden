@@ -4,7 +4,8 @@
 use std::ops::Range;
 
 /// The trimmed byte ranges of every paragraph in `body`. A blank line is a line containing
-/// only whitespace (handles `\n` and `\r\n` endings).
+/// only whitespace (handles `\n` and `\r\n` endings); a rule of underscores is a paragraph of
+/// its own.
 pub fn paragraphs(file: &[u8], body: Range<usize>) -> Vec<Range<usize>> {
     let mut out = Vec::new();
     // Start of the paragraph being collected, and end of its last non-blank line.
@@ -15,6 +16,14 @@ pub fn paragraphs(file: &[u8], body: Range<usize>) -> Vec<Range<usize>> {
         let line_range = offset..offset + line.len();
         offset += line.len();
         match trimmed(file, line_range) {
+            // A rule of underscores ("_______") is a paragraph of its own, blank lines around
+            // it or not: it separates what's before from what's after.
+            Some(text) if is_rule(&file[text.clone()]) => {
+                if let Some((start, end)) = current.take() {
+                    out.push(start..end);
+                }
+                out.push(text);
+            }
             // A non-blank line: start a paragraph or extend the current one.
             Some(text) => {
                 current = Some(match current {
@@ -34,6 +43,11 @@ pub fn paragraphs(file: &[u8], body: Range<usize>) -> Vec<Range<usize>> {
         out.push(start..end);
     }
     out
+}
+
+/// A line of five or more underscores.
+fn is_rule(line: &[u8]) -> bool {
+    line.len() >= 5 && line.iter().all(|&b| b == b'_')
 }
 
 /// `range` without leading/trailing whitespace, or None if it's all whitespace.
