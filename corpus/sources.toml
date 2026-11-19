@@ -83,6 +83,13 @@ wikidata = "Q707945"
 born = 1888
 died = 1957
 
+[[thinker]]
+slug = "thomas-aquinas"
+name = "Thomas Aquinas"
+wikidata = "Q9438"
+born = 1225
+died = 1274
+
 # ------------------------------------------------------------------------------- works
 
 [[work]]
@@ -178,6 +185,15 @@ thinker = "ronald-knox"
 slug = "limerick-on-idealism"
 title = "Limerick on Idealism"
 original_language = "en"
+
+# Written 1265–1274, unfinished at Aquinas's death.
+[[work]]
+thinker = "thomas-aquinas"
+slug = "summa-theologiae"
+title = "Summa Theologiae"
+wikidata = "Q653871"
+first_year = 1274
+original_language = "la"
 
 # --------------------------------------------------------------------------- documents
 
@@ -784,4 +800,1517 @@ passages = "paragraphs"
 [document.edition.expect]
 divisions = []
 text_passages_total = 1
+
+# Aquinas, Summa Theologiae, Part I (Prima Pars): the Fathers of the English Dominican Province's
+# translation (Benziger Brothers, 1911 / 2nd ed. 1920). One file per Part on Gutenberg (I is
+# #17611); locators carry the Part (prima-pars/…) because question numbers restart in each, and
+# the articles' parts are named as scholars cite them (decision 2026-11-19).
+[[document]]
+provider = "gutenberg"
+provider_id = "17611"
+url = "https://www.gutenberg.org/cache/epub/17611/pg17611.txt"
+licence = "public-domain-us"
+media_type = "text/plain; charset=utf-8"
+sha256 = "c9443221a31768991db4bbe37e6ed035b278143a6728af64dc8ba0cf8e79154d" # reviewed 2026-11-19
+
+[[document.edition]]
+work = "thomas-aquinas/summa-theologiae"
+slug = "gutenberg-17611"
+title = "Summa Theologica, Part I (Prima Pars)"
+language = "en"
+translator = "Fathers of the English Dominican Province"
+published_year = 1920
+passages = "articles"
+
+[[document.edition.heading]]
+text = "FIRST PART [\"I,\" \"Prima Pars\"]"
+kind = "part"
+label = "I"
+slug = "prima-pars"
+
+# The edition omits the line "QUESTION 116" (a transcription slip): its title opens it.
+[[document.edition.heading]]
+text = "ON FATE (In Four Articles)"
+kind = "question"
+label = "116"
+slug = "question-116"
+
+# The translators' dedication and the transcriber's note on this electronic edition.
+[[document.edition.heading]]
+text = "DEDICATION"
+kind = "dedication"
+label = "Dedication"
+slug = "dedication"
+by = "editor"
+
+# The half-title before Part I.
+[[document.edition.heading]]
+text = "SUMMA THEOLOGICA"
+kind = "half-title"
+label = "Half-title"
+slug = "half-title"
+by = "editor"
+
+# The translators' treatise headings group questions; they're not Aquinas's divisions and not
+# part of the citation (ST I q. 27, not "treatise …/q. 27").
+[[document.edition.heading]]
+text = "TREATISE ON THE MOST HOLY TRINITY (QQ. 27-43)"
+kind = "treatise"
+label = "Treatise"
+slug = "treatise"
+by = "editor"
+
+[[document.edition.heading]]
+text = "TREATISE ON THE CREATION (QQ. 44-49)"
+kind = "treatise"
+label = "Treatise"
+slug = "treatise"
+by = "editor"
+
+[[document.edition.heading]]
+text = "TREATISE ON THE ANGELS (QQ. 50-64)"
+kind = "treatise"
+label = "Treatise"
+slug = "treatise"
+by = "editor"
+
+[[document.edition.heading]]
+text = "TREATISE ON THE WORK OF THE SIX DAYS (QQ. 65-74)"
+kind = "treatise"
+label = "Treatise"
+slug = "treatise"
+by = "editor"
+
+[[document.edition.heading]]
+text = "TREATISE ON MAN (QQ. 75-102)"
+kind = "treatise"
+label = "Treatise"
+slug = "treatise"
+by = "editor"
+
+[[document.edition.heading]]
+text = "TREATISE ON THE CONSERVATION AND GOVERNMENT OF CREATURES (QQ. 103-119)"
+kind = "treatise"
+label = "Treatise"
+slug = "treatise"
+by = "editor"
+
+# Brackets are the translators' and editors': notes ("[*Cf. Q. 16, A. 4]"), glosses ("[ex]").
+[[document.edition.insertion]]
+prefix = "["
+by = "editor"
+
+# From the printed headings (QUESTION / ORDINAL ARTICLE; q. 116 by its title); parts counted
+# independently (Python, by their printed markers) and by the compiler: equal for all 703.
+[document.edition.expect]
+divisions = [
+  "prologue",
+  "prima-pars",
+  "prima-pars/question-1",
+  "prima-pars/question-1/article-1",
+  "prima-pars/question-1/article-2",
+  "prima-pars/question-1/article-3",
+  "prima-pars/question-1/article-4",
+  "prima-pars/question-1/article-5",
+  "prima-pars/question-1/article-6",
+  "prima-pars/question-1/article-7",
+  "prima-pars/question-1/article-8",
+  "prima-pars/question-1/article-9",
+  "prima-pars/question-1/article-10",
+  "prima-pars/question-2",
+  "prima-pars/question-2/article-1",
+  "prima-pars/question-2/article-2",
+  "prima-pars/question-2/article-3",
+  "prima-pars/question-3",
+  "prima-pars/question-3/article-1",
+  "prima-pars/question-3/article-2",
+  "prima-pars/question-3/article-3",
+  "prima-pars/question-3/article-4",
+  "prima-pars/question-3/article-5",
+  "prima-pars/question-3/article-6",
+  "prima-pars/question-3/article-7",
+  "prima-pars/question-3/article-8",
+  "prima-pars/question-4",
+  "prima-pars/question-4/article-1",
+  "prima-pars/question-4/article-2",
+  "prima-pars/question-4/article-3",
+  "prima-pars/question-5",
+  "prima-pars/question-5/article-1",
+  "prima-pars/question-5/article-2",
+  "prima-pars/question-5/article-3",
+  "prima-pars/question-5/article-4",
+  "prima-pars/question-5/article-5",
+  "prima-pars/question-5/article-6",
+  "prima-pars/question-6",
+  "prima-pars/question-6/article-1",
+  "prima-pars/question-6/article-2",
+  "prima-pars/question-6/article-3",
+  "prima-pars/question-6/article-4",
+  "prima-pars/question-7",
+  "prima-pars/question-7/article-1",
+  "prima-pars/question-7/article-2",
+  "prima-pars/question-7/article-3",
+  "prima-pars/question-7/article-4",
+  "prima-pars/question-8",
+  "prima-pars/question-8/article-1",
+  "prima-pars/question-8/article-2",
+  "prima-pars/question-8/article-3",
+  "prima-pars/question-8/article-4",
+  "prima-pars/question-9",
+  "prima-pars/question-9/article-1",
+  "prima-pars/question-9/article-2",
+  "prima-pars/question-10",
+  "prima-pars/question-10/article-1",
+  "prima-pars/question-10/article-2",
+  "prima-pars/question-10/article-3",
+  "prima-pars/question-10/article-4",
+  "prima-pars/question-10/article-5",
+  "prima-pars/question-10/article-6",
+  "prima-pars/question-11",
+  "prima-pars/question-11/article-1",
+  "prima-pars/question-11/article-2",
+  "prima-pars/question-11/article-3",
+  "prima-pars/question-11/article-4",
+  "prima-pars/question-12",
+  "prima-pars/question-12/article-1",
+  "prima-pars/question-12/article-2",
+  "prima-pars/question-12/article-3",
+  "prima-pars/question-12/article-4",
+  "prima-pars/question-12/article-5",
+  "prima-pars/question-12/article-6",
+  "prima-pars/question-12/article-7",
+  "prima-pars/question-12/article-8",
+  "prima-pars/question-12/article-9",
+  "prima-pars/question-12/article-10",
+  "prima-pars/question-12/article-11",
+  "prima-pars/question-12/article-12",
+  "prima-pars/question-12/article-13",
+  "prima-pars/question-13",
+  "prima-pars/question-13/article-1",
+  "prima-pars/question-13/article-2",
+  "prima-pars/question-13/article-3",
+  "prima-pars/question-13/article-4",
+  "prima-pars/question-13/article-5",
+  "prima-pars/question-13/article-6",
+  "prima-pars/question-13/article-7",
+  "prima-pars/question-13/article-8",
+  "prima-pars/question-13/article-9",
+  "prima-pars/question-13/article-10",
+  "prima-pars/question-13/article-11",
+  "prima-pars/question-13/article-12",
+  "prima-pars/question-14",
+  "prima-pars/question-14/article-1",
+  "prima-pars/question-14/article-2",
+  "prima-pars/question-14/article-3",
+  "prima-pars/question-14/article-4",
+  "prima-pars/question-14/article-5",
+  "prima-pars/question-14/article-6",
+  "prima-pars/question-14/article-7",
+  "prima-pars/question-14/article-8",
+  "prima-pars/question-14/article-9",
+  "prima-pars/question-14/article-10",
+  "prima-pars/question-14/article-11",
+  "prima-pars/question-14/article-12",
+  "prima-pars/question-14/article-13",
+  "prima-pars/question-14/article-14",
+  "prima-pars/question-14/article-15",
+  "prima-pars/question-14/article-16",
+  "prima-pars/question-15",
+  "prima-pars/question-15/article-1",
+  "prima-pars/question-15/article-2",
+  "prima-pars/question-15/article-3",
+  "prima-pars/question-16",
+  "prima-pars/question-16/article-1",
+  "prima-pars/question-16/article-2",
+  "prima-pars/question-16/article-3",
+  "prima-pars/question-16/article-4",
+  "prima-pars/question-16/article-5",
+  "prima-pars/question-16/article-6",
+  "prima-pars/question-16/article-7",
+  "prima-pars/question-16/article-8",
+  "prima-pars/question-17",
+  "prima-pars/question-17/article-1",
+  "prima-pars/question-17/article-2",
+  "prima-pars/question-17/article-3",
+  "prima-pars/question-17/article-4",
+  "prima-pars/question-18",
+  "prima-pars/question-18/article-1",
+  "prima-pars/question-18/article-2",
+  "prima-pars/question-18/article-3",
+  "prima-pars/question-18/article-4",
+  "prima-pars/question-19",
+  "prima-pars/question-19/article-1",
+  "prima-pars/question-19/article-2",
+  "prima-pars/question-19/article-3",
+  "prima-pars/question-19/article-4",
+  "prima-pars/question-19/article-5",
+  "prima-pars/question-19/article-6",
+  "prima-pars/question-19/article-7",
+  "prima-pars/question-19/article-8",
+  "prima-pars/question-19/article-9",
+  "prima-pars/question-19/article-10",
+  "prima-pars/question-19/article-11",
+  "prima-pars/question-19/article-12",
+  "prima-pars/question-20",
+  "prima-pars/question-20/article-1",
+  "prima-pars/question-20/article-2",
+  "prima-pars/question-20/article-3",
+  "prima-pars/question-20/article-4",
+  "prima-pars/question-21",
+  "prima-pars/question-21/article-1",
+  "prima-pars/question-21/article-2",
+  "prima-pars/question-21/article-3",
+  "prima-pars/question-21/article-4",
+  "prima-pars/question-22",
+  "prima-pars/question-22/article-1",
+  "prima-pars/question-22/article-2",
+  "prima-pars/question-22/article-3",
+  "prima-pars/question-22/article-4",
+  "prima-pars/question-23",
+  "prima-pars/question-23/article-1",
+  "prima-pars/question-23/article-2",
+  "prima-pars/question-23/article-3",
+  "prima-pars/question-23/article-4",
+  "prima-pars/question-23/article-5",
+  "prima-pars/question-23/article-6",
+  "prima-pars/question-23/article-7",
+  "prima-pars/question-23/article-8",
+  "prima-pars/question-24",
+  "prima-pars/question-24/article-1",
+  "prima-pars/question-24/article-2",
+  "prima-pars/question-24/article-3",
+  "prima-pars/question-25",
+  "prima-pars/question-25/article-1",
+  "prima-pars/question-25/article-2",
+  "prima-pars/question-25/article-3",
+  "prima-pars/question-25/article-4",
+  "prima-pars/question-25/article-5",
+  "prima-pars/question-25/article-6",
+  "prima-pars/question-26",
+  "prima-pars/question-26/article-1",
+  "prima-pars/question-26/article-2",
+  "prima-pars/question-26/article-3",
+  "prima-pars/question-26/article-4",
+  "prima-pars/question-27",
+  "prima-pars/question-27/article-1",
+  "prima-pars/question-27/article-2",
+  "prima-pars/question-27/article-3",
+  "prima-pars/question-27/article-4",
+  "prima-pars/question-27/article-5",
+  "prima-pars/question-28",
+  "prima-pars/question-28/article-1",
+  "prima-pars/question-28/article-2",
+  "prima-pars/question-28/article-3",
+  "prima-pars/question-28/article-4",
+  "prima-pars/question-29",
+  "prima-pars/question-29/article-1",
+  "prima-pars/question-29/article-2",
+  "prima-pars/question-29/article-3",
+  "prima-pars/question-29/article-4",
+  "prima-pars/question-30",
+  "prima-pars/question-30/article-1",
+  "prima-pars/question-30/article-2",
+  "prima-pars/question-30/article-3",
+  "prima-pars/question-30/article-4",
+  "prima-pars/question-31",
+  "prima-pars/question-31/article-1",
+  "prima-pars/question-31/article-2",
+  "prima-pars/question-31/article-3",
+  "prima-pars/question-31/article-4",
+  "prima-pars/question-32",
+  "prima-pars/question-32/article-1",
+  "prima-pars/question-32/article-2",
+  "prima-pars/question-32/article-3",
+  "prima-pars/question-32/article-4",
+  "prima-pars/question-33",
+  "prima-pars/question-33/article-1",
+  "prima-pars/question-33/article-2",
+  "prima-pars/question-33/article-3",
+  "prima-pars/question-33/article-4",
+  "prima-pars/question-34",
+  "prima-pars/question-34/article-1",
+  "prima-pars/question-34/article-2",
+  "prima-pars/question-34/article-3",
+  "prima-pars/question-35",
+  "prima-pars/question-35/article-1",
+  "prima-pars/question-35/article-2",
+  "prima-pars/question-36",
+  "prima-pars/question-36/article-1",
+  "prima-pars/question-36/article-2",
+  "prima-pars/question-36/article-3",
+  "prima-pars/question-36/article-4",
+  "prima-pars/question-37",
+  "prima-pars/question-37/article-1",
+  "prima-pars/question-37/article-2",
+  "prima-pars/question-38",
+  "prima-pars/question-38/article-1",
+  "prima-pars/question-38/article-2",
+  "prima-pars/question-39",
+  "prima-pars/question-39/article-1",
+  "prima-pars/question-39/article-2",
+  "prima-pars/question-39/article-3",
+  "prima-pars/question-39/article-4",
+  "prima-pars/question-39/article-5",
+  "prima-pars/question-39/article-6",
+  "prima-pars/question-39/article-7",
+  "prima-pars/question-39/article-8",
+  "prima-pars/question-40",
+  "prima-pars/question-40/article-1",
+  "prima-pars/question-40/article-2",
+  "prima-pars/question-40/article-3",
+  "prima-pars/question-40/article-4",
+  "prima-pars/question-41",
+  "prima-pars/question-41/article-1",
+  "prima-pars/question-41/article-2",
+  "prima-pars/question-41/article-3",
+  "prima-pars/question-41/article-4",
+  "prima-pars/question-41/article-5",
+  "prima-pars/question-41/article-6",
+  "prima-pars/question-42",
+  "prima-pars/question-42/article-1",
+  "prima-pars/question-42/article-2",
+  "prima-pars/question-42/article-3",
+  "prima-pars/question-42/article-4",
+  "prima-pars/question-42/article-5",
+  "prima-pars/question-42/article-6",
+  "prima-pars/question-43",
+  "prima-pars/question-43/article-1",
+  "prima-pars/question-43/article-2",
+  "prima-pars/question-43/article-3",
+  "prima-pars/question-43/article-4",
+  "prima-pars/question-43/article-5",
+  "prima-pars/question-43/article-6",
+  "prima-pars/question-43/article-7",
+  "prima-pars/question-43/article-8",
+  "prima-pars/question-44",
+  "prima-pars/question-44/article-1",
+  "prima-pars/question-44/article-2",
+  "prima-pars/question-44/article-3",
+  "prima-pars/question-44/article-4",
+  "prima-pars/question-45",
+  "prima-pars/question-45/article-1",
+  "prima-pars/question-45/article-2",
+  "prima-pars/question-45/article-3",
+  "prima-pars/question-45/article-4",
+  "prima-pars/question-45/article-5",
+  "prima-pars/question-45/article-6",
+  "prima-pars/question-45/article-7",
+  "prima-pars/question-45/article-8",
+  "prima-pars/question-46",
+  "prima-pars/question-46/article-1",
+  "prima-pars/question-46/article-2",
+  "prima-pars/question-46/article-3",
+  "prima-pars/question-47",
+  "prima-pars/question-47/article-1",
+  "prima-pars/question-47/article-2",
+  "prima-pars/question-47/article-3",
+  "prima-pars/question-48",
+  "prima-pars/question-48/article-1",
+  "prima-pars/question-48/article-2",
+  "prima-pars/question-48/article-3",
+  "prima-pars/question-48/article-4",
+  "prima-pars/question-48/article-5",
+  "prima-pars/question-48/article-6",
+  "prima-pars/question-49",
+  "prima-pars/question-49/article-1",
+  "prima-pars/question-49/article-2",
+  "prima-pars/question-49/article-3",
+  "prima-pars/question-50",
+  "prima-pars/question-50/article-1",
+  "prima-pars/question-50/article-2",
+  "prima-pars/question-50/article-3",
+  "prima-pars/question-50/article-4",
+  "prima-pars/question-50/article-5",
+  "prima-pars/question-51",
+  "prima-pars/question-51/article-1",
+  "prima-pars/question-51/article-2",
+  "prima-pars/question-51/article-3",
+  "prima-pars/question-52",
+  "prima-pars/question-52/article-1",
+  "prima-pars/question-52/article-2",
+  "prima-pars/question-52/article-3",
+  "prima-pars/question-53",
+  "prima-pars/question-53/article-1",
+  "prima-pars/question-53/article-2",
+  "prima-pars/question-53/article-3",
+  "prima-pars/question-54",
+  "prima-pars/question-54/article-1",
+  "prima-pars/question-54/article-2",
+  "prima-pars/question-54/article-3",
+  "prima-pars/question-54/article-4",
+  "prima-pars/question-54/article-5",
+  "prima-pars/question-55",
+  "prima-pars/question-55/article-1",
+  "prima-pars/question-55/article-2",
+  "prima-pars/question-55/article-3",
+  "prima-pars/question-56",
+  "prima-pars/question-56/article-1",
+  "prima-pars/question-56/article-2",
+  "prima-pars/question-56/article-3",
+  "prima-pars/question-57",
+  "prima-pars/question-57/article-1",
+  "prima-pars/question-57/article-2",
+  "prima-pars/question-57/article-3",
+  "prima-pars/question-57/article-4",
+  "prima-pars/question-57/article-5",
+  "prima-pars/question-58",
+  "prima-pars/question-58/article-1",
+  "prima-pars/question-58/article-2",
+  "prima-pars/question-58/article-3",
+  "prima-pars/question-58/article-4",
+  "prima-pars/question-58/article-5",
+  "prima-pars/question-58/article-6",
+  "prima-pars/question-58/article-7",
+  "prima-pars/question-59",
+  "prima-pars/question-59/article-1",
+  "prima-pars/question-59/article-2",
+  "prima-pars/question-59/article-3",
+  "prima-pars/question-59/article-4",
+  "prima-pars/question-60",
+  "prima-pars/question-60/article-1",
+  "prima-pars/question-60/article-2",
+  "prima-pars/question-60/article-3",
+  "prima-pars/question-60/article-4",
+  "prima-pars/question-60/article-5",
+  "prima-pars/question-61",
+  "prima-pars/question-61/article-1",
+  "prima-pars/question-61/article-2",
+  "prima-pars/question-61/article-3",
+  "prima-pars/question-61/article-4",
+  "prima-pars/question-62",
+  "prima-pars/question-62/article-1",
+  "prima-pars/question-62/article-2",
+  "prima-pars/question-62/article-3",
+  "prima-pars/question-62/article-4",
+  "prima-pars/question-62/article-5",
+  "prima-pars/question-62/article-6",
+  "prima-pars/question-62/article-7",
+  "prima-pars/question-62/article-8",
+  "prima-pars/question-62/article-9",
+  "prima-pars/question-63",
+  "prima-pars/question-63/article-1",
+  "prima-pars/question-63/article-2",
+  "prima-pars/question-63/article-3",
+  "prima-pars/question-63/article-4",
+  "prima-pars/question-63/article-5",
+  "prima-pars/question-63/article-6",
+  "prima-pars/question-63/article-7",
+  "prima-pars/question-63/article-8",
+  "prima-pars/question-63/article-9",
+  "prima-pars/question-64",
+  "prima-pars/question-64/article-1",
+  "prima-pars/question-64/article-2",
+  "prima-pars/question-64/article-3",
+  "prima-pars/question-64/article-4",
+  "prima-pars/question-65",
+  "prima-pars/question-65/article-1",
+  "prima-pars/question-65/article-2",
+  "prima-pars/question-65/article-3",
+  "prima-pars/question-65/article-4",
+  "prima-pars/question-66",
+  "prima-pars/question-66/article-1",
+  "prima-pars/question-66/article-2",
+  "prima-pars/question-66/article-3",
+  "prima-pars/question-66/article-4",
+  "prima-pars/question-67",
+  "prima-pars/question-67/article-1",
+  "prima-pars/question-67/article-2",
+  "prima-pars/question-67/article-3",
+  "prima-pars/question-67/article-4",
+  "prima-pars/question-68",
+  "prima-pars/question-68/article-1",
+  "prima-pars/question-68/article-2",
+  "prima-pars/question-68/article-3",
+  "prima-pars/question-68/article-4",
+  "prima-pars/question-69",
+  "prima-pars/question-69/article-1",
+  "prima-pars/question-69/article-2",
+  "prima-pars/question-70",
+  "prima-pars/question-70/article-1",
+  "prima-pars/question-70/article-2",
+  "prima-pars/question-70/article-3",
+  "prima-pars/question-71",
+  "prima-pars/question-72",
+  "prima-pars/question-73",
+  "prima-pars/question-73/article-1",
+  "prima-pars/question-73/article-2",
+  "prima-pars/question-73/article-3",
+  "prima-pars/question-74",
+  "prima-pars/question-74/article-1",
+  "prima-pars/question-74/article-2",
+  "prima-pars/question-74/article-3",
+  "prima-pars/question-75",
+  "prima-pars/question-75/article-1",
+  "prima-pars/question-75/article-2",
+  "prima-pars/question-75/article-3",
+  "prima-pars/question-75/article-4",
+  "prima-pars/question-75/article-5",
+  "prima-pars/question-75/article-6",
+  "prima-pars/question-75/article-7",
+  "prima-pars/question-76",
+  "prima-pars/question-76/article-1",
+  "prima-pars/question-76/article-2",
+  "prima-pars/question-76/article-3",
+  "prima-pars/question-76/article-4",
+  "prima-pars/question-76/article-5",
+  "prima-pars/question-76/article-6",
+  "prima-pars/question-76/article-7",
+  "prima-pars/question-76/article-8",
+  "prima-pars/question-77",
+  "prima-pars/question-77/article-1",
+  "prima-pars/question-77/article-2",
+  "prima-pars/question-77/article-3",
+  "prima-pars/question-77/article-4",
+  "prima-pars/question-77/article-5",
+  "prima-pars/question-77/article-6",
+  "prima-pars/question-77/article-7",
+  "prima-pars/question-77/article-8",
+  "prima-pars/question-78",
+  "prima-pars/question-78/article-1",
+  "prima-pars/question-78/article-2",
+  "prima-pars/question-78/article-3",
+  "prima-pars/question-78/article-4",
+  "prima-pars/question-79",
+  "prima-pars/question-79/article-1",
+  "prima-pars/question-79/article-2",
+  "prima-pars/question-79/article-3",
+  "prima-pars/question-79/article-4",
+  "prima-pars/question-79/article-5",
+  "prima-pars/question-79/article-6",
+  "prima-pars/question-79/article-7",
+  "prima-pars/question-79/article-8",
+  "prima-pars/question-79/article-9",
+  "prima-pars/question-79/article-10",
+  "prima-pars/question-79/article-11",
+  "prima-pars/question-79/article-12",
+  "prima-pars/question-79/article-13",
+  "prima-pars/question-80",
+  "prima-pars/question-80/article-1",
+  "prima-pars/question-80/article-2",
+  "prima-pars/question-81",
+  "prima-pars/question-81/article-1",
+  "prima-pars/question-81/article-2",
+  "prima-pars/question-81/article-3",
+  "prima-pars/question-82",
+  "prima-pars/question-82/article-1",
+  "prima-pars/question-82/article-2",
+  "prima-pars/question-82/article-3",
+  "prima-pars/question-82/article-4",
+  "prima-pars/question-82/article-5",
+  "prima-pars/question-83",
+  "prima-pars/question-83/article-1",
+  "prima-pars/question-83/article-2",
+  "prima-pars/question-83/article-3",
+  "prima-pars/question-83/article-4",
+  "prima-pars/question-84",
+  "prima-pars/question-84/article-1",
+  "prima-pars/question-84/article-2",
+  "prima-pars/question-84/article-3",
+  "prima-pars/question-84/article-4",
+  "prima-pars/question-84/article-5",
+  "prima-pars/question-84/article-6",
+  "prima-pars/question-84/article-7",
+  "prima-pars/question-84/article-8",
+  "prima-pars/question-85",
+  "prima-pars/question-85/article-1",
+  "prima-pars/question-85/article-2",
+  "prima-pars/question-85/article-3",
+  "prima-pars/question-85/article-4",
+  "prima-pars/question-85/article-5",
+  "prima-pars/question-85/article-6",
+  "prima-pars/question-85/article-7",
+  "prima-pars/question-85/article-8",
+  "prima-pars/question-86",
+  "prima-pars/question-86/article-1",
+  "prima-pars/question-86/article-2",
+  "prima-pars/question-86/article-3",
+  "prima-pars/question-86/article-4",
+  "prima-pars/question-87",
+  "prima-pars/question-87/article-1",
+  "prima-pars/question-87/article-2",
+  "prima-pars/question-87/article-3",
+  "prima-pars/question-87/article-4",
+  "prima-pars/question-88",
+  "prima-pars/question-88/article-1",
+  "prima-pars/question-88/article-2",
+  "prima-pars/question-88/article-3",
+  "prima-pars/question-89",
+  "prima-pars/question-89/article-1",
+  "prima-pars/question-89/article-2",
+  "prima-pars/question-89/article-3",
+  "prima-pars/question-89/article-4",
+  "prima-pars/question-89/article-5",
+  "prima-pars/question-89/article-6",
+  "prima-pars/question-89/article-7",
+  "prima-pars/question-89/article-8",
+  "prima-pars/question-90",
+  "prima-pars/question-90/article-1",
+  "prima-pars/question-90/article-2",
+  "prima-pars/question-90/article-3",
+  "prima-pars/question-90/article-4",
+  "prima-pars/question-91",
+  "prima-pars/question-91/article-1",
+  "prima-pars/question-91/article-2",
+  "prima-pars/question-91/article-3",
+  "prima-pars/question-91/article-4",
+  "prima-pars/question-92",
+  "prima-pars/question-92/article-1",
+  "prima-pars/question-92/article-2",
+  "prima-pars/question-92/article-3",
+  "prima-pars/question-92/article-4",
+  "prima-pars/question-93",
+  "prima-pars/question-93/article-1",
+  "prima-pars/question-93/article-2",
+  "prima-pars/question-93/article-3",
+  "prima-pars/question-93/article-4",
+  "prima-pars/question-93/article-5",
+  "prima-pars/question-93/article-6",
+  "prima-pars/question-93/article-7",
+  "prima-pars/question-93/article-8",
+  "prima-pars/question-93/article-9",
+  "prima-pars/question-94",
+  "prima-pars/question-94/article-1",
+  "prima-pars/question-94/article-2",
+  "prima-pars/question-94/article-3",
+  "prima-pars/question-94/article-4",
+  "prima-pars/question-95",
+  "prima-pars/question-95/article-1",
+  "prima-pars/question-95/article-2",
+  "prima-pars/question-95/article-3",
+  "prima-pars/question-95/article-4",
+  "prima-pars/question-96",
+  "prima-pars/question-96/article-1",
+  "prima-pars/question-96/article-2",
+  "prima-pars/question-96/article-3",
+  "prima-pars/question-96/article-4",
+  "prima-pars/question-97",
+  "prima-pars/question-97/article-1",
+  "prima-pars/question-97/article-2",
+  "prima-pars/question-97/article-3",
+  "prima-pars/question-97/article-4",
+  "prima-pars/question-98",
+  "prima-pars/question-98/article-1",
+  "prima-pars/question-98/article-2",
+  "prima-pars/question-99",
+  "prima-pars/question-99/article-1",
+  "prima-pars/question-99/article-2",
+  "prima-pars/question-100",
+  "prima-pars/question-100/article-1",
+  "prima-pars/question-100/article-2",
+  "prima-pars/question-101",
+  "prima-pars/question-101/article-1",
+  "prima-pars/question-101/article-2",
+  "prima-pars/question-102",
+  "prima-pars/question-102/article-1",
+  "prima-pars/question-102/article-2",
+  "prima-pars/question-102/article-3",
+  "prima-pars/question-102/article-4",
+  "prima-pars/question-103",
+  "prima-pars/question-103/article-1",
+  "prima-pars/question-103/article-2",
+  "prima-pars/question-103/article-3",
+  "prima-pars/question-103/article-4",
+  "prima-pars/question-103/article-5",
+  "prima-pars/question-103/article-6",
+  "prima-pars/question-103/article-7",
+  "prima-pars/question-103/article-8",
+  "prima-pars/question-104",
+  "prima-pars/question-104/article-1",
+  "prima-pars/question-104/article-2",
+  "prima-pars/question-104/article-3",
+  "prima-pars/question-104/article-4",
+  "prima-pars/question-105",
+  "prima-pars/question-105/article-1",
+  "prima-pars/question-105/article-2",
+  "prima-pars/question-105/article-3",
+  "prima-pars/question-105/article-4",
+  "prima-pars/question-105/article-5",
+  "prima-pars/question-105/article-6",
+  "prima-pars/question-105/article-7",
+  "prima-pars/question-105/article-8",
+  "prima-pars/question-106",
+  "prima-pars/question-106/article-1",
+  "prima-pars/question-106/article-2",
+  "prima-pars/question-106/article-3",
+  "prima-pars/question-106/article-4",
+  "prima-pars/question-107",
+  "prima-pars/question-107/article-1",
+  "prima-pars/question-107/article-2",
+  "prima-pars/question-107/article-3",
+  "prima-pars/question-107/article-4",
+  "prima-pars/question-107/article-5",
+  "prima-pars/question-108",
+  "prima-pars/question-108/article-1",
+  "prima-pars/question-108/article-2",
+  "prima-pars/question-108/article-3",
+  "prima-pars/question-108/article-4",
+  "prima-pars/question-108/article-5",
+  "prima-pars/question-108/article-6",
+  "prima-pars/question-108/article-7",
+  "prima-pars/question-108/article-8",
+  "prima-pars/question-109",
+  "prima-pars/question-109/article-1",
+  "prima-pars/question-109/article-2",
+  "prima-pars/question-109/article-3",
+  "prima-pars/question-109/article-4",
+  "prima-pars/question-110",
+  "prima-pars/question-110/article-1",
+  "prima-pars/question-110/article-2",
+  "prima-pars/question-110/article-3",
+  "prima-pars/question-110/article-4",
+  "prima-pars/question-111",
+  "prima-pars/question-111/article-1",
+  "prima-pars/question-111/article-2",
+  "prima-pars/question-111/article-3",
+  "prima-pars/question-111/article-4",
+  "prima-pars/question-112",
+  "prima-pars/question-112/article-1",
+  "prima-pars/question-112/article-2",
+  "prima-pars/question-112/article-3",
+  "prima-pars/question-112/article-4",
+  "prima-pars/question-113",
+  "prima-pars/question-113/article-1",
+  "prima-pars/question-113/article-2",
+  "prima-pars/question-113/article-3",
+  "prima-pars/question-113/article-4",
+  "prima-pars/question-113/article-5",
+  "prima-pars/question-113/article-6",
+  "prima-pars/question-113/article-7",
+  "prima-pars/question-113/article-8",
+  "prima-pars/question-114",
+  "prima-pars/question-114/article-1",
+  "prima-pars/question-114/article-2",
+  "prima-pars/question-114/article-3",
+  "prima-pars/question-114/article-4",
+  "prima-pars/question-114/article-5",
+  "prima-pars/question-115",
+  "prima-pars/question-115/article-1",
+  "prima-pars/question-115/article-2",
+  "prima-pars/question-115/article-3",
+  "prima-pars/question-115/article-4",
+  "prima-pars/question-115/article-5",
+  "prima-pars/question-115/article-6",
+  "prima-pars/question-116",
+  "prima-pars/question-116/article-1",
+  "prima-pars/question-116/article-2",
+  "prima-pars/question-116/article-3",
+  "prima-pars/question-116/article-4",
+  "prima-pars/question-117",
+  "prima-pars/question-117/article-1",
+  "prima-pars/question-117/article-2",
+  "prima-pars/question-117/article-3",
+  "prima-pars/question-117/article-4",
+  "prima-pars/question-118",
+  "prima-pars/question-118/article-1",
+  "prima-pars/question-118/article-2",
+  "prima-pars/question-118/article-3",
+  "prima-pars/question-119",
+  "prima-pars/question-119/article-1",
+  "prima-pars/question-119/article-2",
+]
+text_passages_total = 5066
+
+[document.edition.expect.text_passages]
+"prologue" = 2
+"prima-pars/question-1" = 1
+"prima-pars/question-1/article-1" = 6
+"prima-pars/question-1/article-2" = 6
+"prima-pars/question-1/article-3" = 6
+"prima-pars/question-1/article-4" = 4
+"prima-pars/question-1/article-5" = 6
+"prima-pars/question-1/article-6" = 8
+"prima-pars/question-1/article-7" = 6
+"prima-pars/question-1/article-8" = 6
+"prima-pars/question-1/article-9" = 8
+"prima-pars/question-1/article-10" = 8
+"prima-pars/question-2" = 1
+"prima-pars/question-2/article-1" = 8
+"prima-pars/question-2/article-2" = 8
+"prima-pars/question-2/article-3" = 6
+"prima-pars/question-3" = 1
+"prima-pars/question-3/article-1" = 12
+"prima-pars/question-3/article-2" = 8
+"prima-pars/question-3/article-3" = 6
+"prima-pars/question-3/article-4" = 6
+"prima-pars/question-3/article-5" = 6
+"prima-pars/question-3/article-6" = 6
+"prima-pars/question-3/article-7" = 6
+"prima-pars/question-3/article-8" = 8
+"prima-pars/question-4" = 1
+"prima-pars/question-4/article-1" = 8
+"prima-pars/question-4/article-2" = 7
+"prima-pars/question-4/article-3" = 10
+"prima-pars/question-5" = 1
+"prima-pars/question-5/article-1" = 8
+"prima-pars/question-5/article-2" = 10
+"prima-pars/question-5/article-3" = 10
+"prima-pars/question-5/article-4" = 8
+"prima-pars/question-5/article-5" = 12
+"prima-pars/question-5/article-6" = 8
+"prima-pars/question-6" = 1
+"prima-pars/question-6/article-1" = 6
+"prima-pars/question-6/article-2" = 8
+"prima-pars/question-6/article-3" = 8
+"prima-pars/question-6/article-4" = 4
+"prima-pars/question-7" = 1
+"prima-pars/question-7/article-1" = 7
+"prima-pars/question-7/article-2" = 8
+"prima-pars/question-7/article-3" = 10
+"prima-pars/question-7/article-4" = 8
+"prima-pars/question-8" = 1
+"prima-pars/question-8/article-1" = 10
+"prima-pars/question-8/article-2" = 8
+"prima-pars/question-8/article-3" = 10
+"prima-pars/question-8/article-4" = 14
+"prima-pars/question-9" = 1
+"prima-pars/question-9/article-1" = 8
+"prima-pars/question-9/article-2" = 8
+"prima-pars/question-10" = 1
+"prima-pars/question-10/article-1" = 13
+"prima-pars/question-10/article-2" = 10
+"prima-pars/question-10/article-3" = 8
+"prima-pars/question-10/article-4" = 8
+"prima-pars/question-10/article-5" = 10
+"prima-pars/question-10/article-6" = 10
+"prima-pars/question-11" = 1
+"prima-pars/question-11/article-1" = 8
+"prima-pars/question-11/article-2" = 10
+"prima-pars/question-11/article-3" = 6
+"prima-pars/question-11/article-4" = 8
+"prima-pars/question-12" = 1
+"prima-pars/question-12/article-1" = 10
+"prima-pars/question-12/article-2" = 8
+"prima-pars/question-12/article-3" = 8
+"prima-pars/question-12/article-4" = 8
+"prima-pars/question-12/article-5" = 8
+"prima-pars/question-12/article-6" = 7
+"prima-pars/question-12/article-7" = 8
+"prima-pars/question-12/article-8" = 10
+"prima-pars/question-12/article-9" = 6
+"prima-pars/question-12/article-10" = 6
+"prima-pars/question-12/article-11" = 10
+"prima-pars/question-12/article-12" = 8
+"prima-pars/question-12/article-13" = 8
+"prima-pars/question-13" = 1
+"prima-pars/question-13/article-1" = 8
+"prima-pars/question-13/article-2" = 8
+"prima-pars/question-13/article-3" = 8
+"prima-pars/question-13/article-4" = 7
+"prima-pars/question-13/article-5" = 8
+"prima-pars/question-13/article-6" = 8
+"prima-pars/question-13/article-7" = 14
+"prima-pars/question-13/article-8" = 6
+"prima-pars/question-13/article-9" = 8
+"prima-pars/question-13/article-10" = 8
+"prima-pars/question-13/article-11" = 8
+"prima-pars/question-13/article-12" = 8
+"prima-pars/question-14" = 1
+"prima-pars/question-14/article-1" = 8
+"prima-pars/question-14/article-2" = 8
+"prima-pars/question-14/article-3" = 6
+"prima-pars/question-14/article-4" = 7
+"prima-pars/question-14/article-5" = 8
+"prima-pars/question-14/article-6" = 8
+"prima-pars/question-14/article-7" = 8
+"prima-pars/question-14/article-8" = 8
+"prima-pars/question-14/article-9" = 8
+"prima-pars/question-14/article-10" = 10
+"prima-pars/question-14/article-11" = 8
+"prima-pars/question-14/article-12" = 8
+"prima-pars/question-14/article-13" = 8
+"prima-pars/question-14/article-14" = 6
+"prima-pars/question-14/article-15" = 8
+"prima-pars/question-14/article-16" = 6
+"prima-pars/question-15" = 1
+"prima-pars/question-15/article-1" = 8
+"prima-pars/question-15/article-2" = 10
+"prima-pars/question-15/article-3" = 10
+"prima-pars/question-16" = 1
+"prima-pars/question-16/article-1" = 8
+"prima-pars/question-16/article-2" = 4
+"prima-pars/question-16/article-3" = 8
+"prima-pars/question-16/article-4" = 8
+"prima-pars/question-16/article-5" = 8
+"prima-pars/question-16/article-6" = 6
+"prima-pars/question-16/article-7" = 10
+"prima-pars/question-16/article-8" = 10
+"prima-pars/question-17" = 1
+"prima-pars/question-17/article-1" = 8
+"prima-pars/question-17/article-2" = 8
+"prima-pars/question-17/article-3" = 6
+"prima-pars/question-17/article-4" = 8
+"prima-pars/question-18" = 1
+"prima-pars/question-18/article-1" = 8
+"prima-pars/question-18/article-2" = 7
+"prima-pars/question-18/article-3" = 8
+"prima-pars/question-18/article-4" = 10
+"prima-pars/question-19" = 1
+"prima-pars/question-19/article-1" = 8
+"prima-pars/question-19/article-2" = 10
+"prima-pars/question-19/article-3" = 14
+"prima-pars/question-19/article-4" = 10
+"prima-pars/question-19/article-5" = 8
+"prima-pars/question-19/article-6" = 8
+"prima-pars/question-19/article-7" = 10
+"prima-pars/question-19/article-8" = 8
+"prima-pars/question-19/article-9" = 8
+"prima-pars/question-19/article-10" = 6
+"prima-pars/question-19/article-11" = 6
+"prima-pars/question-19/article-12" = 9
+"prima-pars/question-20" = 1
+"prima-pars/question-20/article-1" = 8
+"prima-pars/question-20/article-2" = 10
+"prima-pars/question-20/article-3" = 8
+"prima-pars/question-20/article-4" = 12
+"prima-pars/question-21" = 1
+"prima-pars/question-21/article-1" = 10
+"prima-pars/question-21/article-2" = 6
+"prima-pars/question-21/article-3" = 6
+"prima-pars/question-21/article-4" = 10
+"prima-pars/question-22" = 1
+"prima-pars/question-22/article-1" = 8
+"prima-pars/question-22/article-2" = 12
+"prima-pars/question-22/article-3" = 8
+"prima-pars/question-22/article-4" = 8
+"prima-pars/question-23" = 1
+"prima-pars/question-23/article-1" = 10
+"prima-pars/question-23/article-2" = 10
+"prima-pars/question-23/article-3" = 8
+"prima-pars/question-23/article-4" = 8
+"prima-pars/question-23/article-5" = 8
+"prima-pars/question-23/article-6" = 8
+"prima-pars/question-23/article-7" = 8
+"prima-pars/question-23/article-8" = 8
+"prima-pars/question-24" = 1
+"prima-pars/question-24/article-1" = 8
+"prima-pars/question-24/article-2" = 7
+"prima-pars/question-24/article-3" = 8
+"prima-pars/question-25" = 1
+"prima-pars/question-25/article-1" = 10
+"prima-pars/question-25/article-2" = 8
+"prima-pars/question-25/article-3" = 10
+"prima-pars/question-25/article-4" = 8
+"prima-pars/question-25/article-5" = 8
+"prima-pars/question-25/article-6" = 10
+"prima-pars/question-26" = 1
+"prima-pars/question-26/article-1" = 6
+"prima-pars/question-26/article-2" = 6
+"prima-pars/question-26/article-3" = 6
+"prima-pars/question-26/article-4" = 6
+"prima-pars/question-27" = 1
+"prima-pars/question-27/article-1" = 8
+"prima-pars/question-27/article-2" = 8
+"prima-pars/question-27/article-3" = 8
+"prima-pars/question-27/article-4" = 8
+"prima-pars/question-27/article-5" = 8
+"prima-pars/question-28" = 1
+"prima-pars/question-28/article-1" = 10
+"prima-pars/question-28/article-2" = 8
+"prima-pars/question-28/article-3" = 8
+"prima-pars/question-28/article-4" = 11
+"prima-pars/question-29" = 1
+"prima-pars/question-29/article-1" = 11
+"prima-pars/question-29/article-2" = 11
+"prima-pars/question-29/article-3" = 10
+"prima-pars/question-29/article-4" = 10
+"prima-pars/question-30" = 1
+"prima-pars/question-30/article-1" = 10
+"prima-pars/question-30/article-2" = 12
+"prima-pars/question-30/article-3" = 8
+"prima-pars/question-30/article-4" = 8
+"prima-pars/question-31" = 1
+"prima-pars/question-31/article-1" = 12
+"prima-pars/question-31/article-2" = 10
+"prima-pars/question-31/article-3" = 8
+"prima-pars/question-31/article-4" = 9
+"prima-pars/question-32" = 1
+"prima-pars/question-32/article-1" = 8
+"prima-pars/question-32/article-2" = 8
+"prima-pars/question-32/article-3" = 11
+"prima-pars/question-32/article-4" = 4
+"prima-pars/question-33" = 1
+"prima-pars/question-33/article-1" = 8
+"prima-pars/question-33/article-2" = 10
+"prima-pars/question-33/article-3" = 7
+"prima-pars/question-33/article-4" = 12
+"prima-pars/question-34" = 1
+"prima-pars/question-34/article-1" = 10
+"prima-pars/question-34/article-2" = 12
+"prima-pars/question-34/article-3" = 12
+"prima-pars/question-35" = 1
+"prima-pars/question-35/article-1" = 8
+"prima-pars/question-35/article-2" = 8
+"prima-pars/question-36" = 1
+"prima-pars/question-36/article-1" = 8
+"prima-pars/question-36/article-2" = 16
+"prima-pars/question-36/article-3" = 10
+"prima-pars/question-36/article-4" = 16
+"prima-pars/question-37" = 1
+"prima-pars/question-37/article-1" = 10
+"prima-pars/question-37/article-2" = 8
+"prima-pars/question-38" = 1
+"prima-pars/question-38/article-1" = 10
+"prima-pars/question-38/article-2" = 8
+"prima-pars/question-39" = 1
+"prima-pars/question-39/article-1" = 8
+"prima-pars/question-39/article-2" = 14
+"prima-pars/question-39/article-3" = 10
+"prima-pars/question-39/article-4" = 12
+"prima-pars/question-39/article-5" = 14
+"prima-pars/question-39/article-6" = 6
+"prima-pars/question-39/article-7" = 8
+"prima-pars/question-39/article-8" = 6
+"prima-pars/question-40" = 1
+"prima-pars/question-40/article-1" = 8
+"prima-pars/question-40/article-2" = 10
+"prima-pars/question-40/article-3" = 8
+"prima-pars/question-40/article-4" = 8
+"prima-pars/question-41" = 1
+"prima-pars/question-41/article-1" = 8
+"prima-pars/question-41/article-2" = 12
+"prima-pars/question-41/article-3" = 10
+"prima-pars/question-41/article-4" = 8
+"prima-pars/question-41/article-5" = 8
+"prima-pars/question-41/article-6" = 8
+"prima-pars/question-42" = 1
+"prima-pars/question-42/article-1" = 10
+"prima-pars/question-42/article-2" = 10
+"prima-pars/question-42/article-3" = 10
+"prima-pars/question-42/article-4" = 8
+"prima-pars/question-42/article-5" = 8
+"prima-pars/question-42/article-6" = 8
+"prima-pars/question-43" = 1
+"prima-pars/question-43/article-1" = 8
+"prima-pars/question-43/article-2" = 8
+"prima-pars/question-43/article-3" = 10
+"prima-pars/question-43/article-4" = 8
+"prima-pars/question-43/article-5" = 8
+"prima-pars/question-43/article-6" = 10
+"prima-pars/question-43/article-7" = 14
+"prima-pars/question-43/article-8" = 5
+"prima-pars/question-44" = 1
+"prima-pars/question-44/article-1" = 8
+"prima-pars/question-44/article-2" = 8
+"prima-pars/question-44/article-3" = 10
+"prima-pars/question-44/article-4" = 10
+"prima-pars/question-45" = 1
+"prima-pars/question-45/article-1" = 8
+"prima-pars/question-45/article-2" = 10
+"prima-pars/question-45/article-3" = 8
+"prima-pars/question-45/article-4" = 8
+"prima-pars/question-45/article-5" = 8
+"prima-pars/question-45/article-6" = 8
+"prima-pars/question-45/article-7" = 8
+"prima-pars/question-45/article-8" = 10
+"prima-pars/question-46" = 1
+"prima-pars/question-46/article-1" = 22
+"prima-pars/question-46/article-2" = 18
+"prima-pars/question-46/article-3" = 8
+"prima-pars/question-47" = 1
+"prima-pars/question-47/article-1" = 8
+"prima-pars/question-47/article-2" = 8
+"prima-pars/question-47/article-3" = 8
+"prima-pars/question-48" = 1
+"prima-pars/question-48/article-1" = 12
+"prima-pars/question-48/article-2" = 8
+"prima-pars/question-48/article-3" = 10
+"prima-pars/question-48/article-4" = 8
+"prima-pars/question-48/article-5" = 9
+"prima-pars/question-48/article-6" = 8
+"prima-pars/question-49" = 1
+"prima-pars/question-49/article-1" = 10
+"prima-pars/question-49/article-2" = 8
+"prima-pars/question-49/article-3" = 14
+"prima-pars/question-50" = 1
+"prima-pars/question-50/article-1" = 8
+"prima-pars/question-50/article-2" = 10
+"prima-pars/question-50/article-3" = 10
+"prima-pars/question-50/article-4" = 10
+"prima-pars/question-50/article-5" = 8
+"prima-pars/question-51" = 1
+"prima-pars/question-51/article-1" = 8
+"prima-pars/question-51/article-2" = 8
+"prima-pars/question-51/article-3" = 14
+"prima-pars/question-52" = 1
+"prima-pars/question-52/article-1" = 5
+"prima-pars/question-52/article-2" = 5
+"prima-pars/question-52/article-3" = 8
+"prima-pars/question-53" = 1
+"prima-pars/question-53/article-1" = 8
+"prima-pars/question-53/article-2" = 7
+"prima-pars/question-53/article-3" = 8
+"prima-pars/question-54" = 1
+"prima-pars/question-54/article-1" = 8
+"prima-pars/question-54/article-2" = 6
+"prima-pars/question-54/article-3" = 8
+"prima-pars/question-54/article-4" = 6
+"prima-pars/question-54/article-5" = 5
+"prima-pars/question-55" = 1
+"prima-pars/question-55/article-1" = 8
+"prima-pars/question-55/article-2" = 8
+"prima-pars/question-55/article-3" = 8
+"prima-pars/question-56" = 1
+"prima-pars/question-56/article-1" = 8
+"prima-pars/question-56/article-2" = 10
+"prima-pars/question-56/article-3" = 8
+"prima-pars/question-57" = 1
+"prima-pars/question-57/article-1" = 8
+"prima-pars/question-57/article-2" = 8
+"prima-pars/question-57/article-3" = 10
+"prima-pars/question-57/article-4" = 8
+"prima-pars/question-57/article-5" = 8
+"prima-pars/question-58" = 1
+"prima-pars/question-58/article-1" = 8
+"prima-pars/question-58/article-2" = 7
+"prima-pars/question-58/article-3" = 8
+"prima-pars/question-58/article-4" = 8
+"prima-pars/question-58/article-5" = 5
+"prima-pars/question-58/article-6" = 8
+"prima-pars/question-58/article-7" = 8
+"prima-pars/question-59" = 1
+"prima-pars/question-59/article-1" = 8
+"prima-pars/question-59/article-2" = 8
+"prima-pars/question-59/article-3" = 8
+"prima-pars/question-59/article-4" = 8
+"prima-pars/question-60" = 1
+"prima-pars/question-60/article-1" = 8
+"prima-pars/question-60/article-2" = 5
+"prima-pars/question-60/article-3" = 8
+"prima-pars/question-60/article-4" = 8
+"prima-pars/question-60/article-5" = 12
+"prima-pars/question-61" = 1
+"prima-pars/question-61/article-1" = 7
+"prima-pars/question-61/article-2" = 8
+"prima-pars/question-61/article-3" = 8
+"prima-pars/question-61/article-4" = 8
+"prima-pars/question-62" = 1
+"prima-pars/question-62/article-1" = 8
+"prima-pars/question-62/article-2" = 8
+"prima-pars/question-62/article-3" = 8
+"prima-pars/question-62/article-4" = 7
+"prima-pars/question-62/article-5" = 8
+"prima-pars/question-62/article-6" = 8
+"prima-pars/question-62/article-7" = 8
+"prima-pars/question-62/article-8" = 8
+"prima-pars/question-62/article-9" = 8
+"prima-pars/question-63" = 1
+"prima-pars/question-63/article-1" = 10
+"prima-pars/question-63/article-2" = 8
+"prima-pars/question-63/article-3" = 5
+"prima-pars/question-63/article-4" = 8
+"prima-pars/question-63/article-5" = 10
+"prima-pars/question-63/article-6" = 10
+"prima-pars/question-63/article-7" = 8
+"prima-pars/question-63/article-8" = 8
+"prima-pars/question-63/article-9" = 7
+"prima-pars/question-64" = 1
+"prima-pars/question-64/article-1" = 12
+"prima-pars/question-64/article-2" = 12
+"prima-pars/question-64/article-3" = 8
+"prima-pars/question-64/article-4" = 8
+"prima-pars/question-65" = 1
+"prima-pars/question-65/article-1" = 8
+"prima-pars/question-65/article-2" = 8
+"prima-pars/question-65/article-3" = 8
+"prima-pars/question-65/article-4" = 8
+"prima-pars/question-66" = 1
+"prima-pars/question-66/article-1" = 8
+"prima-pars/question-66/article-2" = 10
+"prima-pars/question-66/article-3" = 10
+"prima-pars/question-66/article-4" = 12
+"prima-pars/question-67" = 1
+"prima-pars/question-67/article-1" = 5
+"prima-pars/question-67/article-2" = 8
+"prima-pars/question-67/article-3" = 8
+"prima-pars/question-67/article-4" = 10
+"prima-pars/question-68" = 1
+"prima-pars/question-68/article-1" = 6
+"prima-pars/question-68/article-2" = 7
+"prima-pars/question-68/article-3" = 8
+"prima-pars/question-68/article-4" = 8
+"prima-pars/question-69" = 1
+"prima-pars/question-69/article-1" = 12
+"prima-pars/question-69/article-2" = 8
+"prima-pars/question-70" = 1
+"prima-pars/question-70/article-1" = 12
+"prima-pars/question-70/article-2" = 12
+"prima-pars/question-70/article-3" = 12
+"prima-pars/question-71" = 1
+"prima-pars/question-72" = 1
+"prima-pars/question-73" = 1
+"prima-pars/question-73/article-1" = 8
+"prima-pars/question-73/article-2" = 8
+"prima-pars/question-73/article-3" = 8
+"prima-pars/question-74" = 1
+"prima-pars/question-74/article-1" = 11
+"prima-pars/question-74/article-2" = 11
+"prima-pars/question-74/article-3" = 14
+"prima-pars/question-75" = 1
+"prima-pars/question-75/article-1" = 8
+"prima-pars/question-75/article-2" = 8
+"prima-pars/question-75/article-3" = 8
+"prima-pars/question-75/article-4" = 6
+"prima-pars/question-75/article-5" = 10
+"prima-pars/question-75/article-6" = 8
+"prima-pars/question-75/article-7" = 8
+"prima-pars/question-76" = 1
+"prima-pars/question-76/article-1" = 12
+"prima-pars/question-76/article-2" = 14
+"prima-pars/question-76/article-3" = 9
+"prima-pars/question-76/article-4" = 10
+"prima-pars/question-76/article-5" = 10
+"prima-pars/question-76/article-6" = 8
+"prima-pars/question-76/article-7" = 8
+"prima-pars/question-76/article-8" = 12
+"prima-pars/question-77" = 1
+"prima-pars/question-77/article-1" = 16
+"prima-pars/question-77/article-2" = 8
+"prima-pars/question-77/article-3" = 10
+"prima-pars/question-77/article-4" = 8
+"prima-pars/question-77/article-5" = 8
+"prima-pars/question-77/article-6" = 8
+"prima-pars/question-77/article-7" = 8
+"prima-pars/question-77/article-8" = 14
+"prima-pars/question-78" = 1
+"prima-pars/question-78/article-1" = 8
+"prima-pars/question-78/article-2" = 10
+"prima-pars/question-78/article-3" = 10
+"prima-pars/question-78/article-4" = 14
+"prima-pars/question-79" = 1
+"prima-pars/question-79/article-1" = 10
+"prima-pars/question-79/article-2" = 8
+"prima-pars/question-79/article-3" = 8
+"prima-pars/question-79/article-4" = 12
+"prima-pars/question-79/article-5" = 8
+"prima-pars/question-79/article-6" = 8
+"prima-pars/question-79/article-7" = 8
+"prima-pars/question-79/article-8" = 8
+"prima-pars/question-79/article-9" = 10
+"prima-pars/question-79/article-10" = 8
+"prima-pars/question-79/article-11" = 8
+"prima-pars/question-79/article-12" = 8
+"prima-pars/question-79/article-13" = 8
+"prima-pars/question-80" = 1
+"prima-pars/question-80/article-1" = 8
+"prima-pars/question-80/article-2" = 7
+"prima-pars/question-81" = 1
+"prima-pars/question-81/article-1" = 8
+"prima-pars/question-81/article-2" = 8
+"prima-pars/question-81/article-3" = 8
+"prima-pars/question-82" = 1
+"prima-pars/question-82/article-1" = 8
+"prima-pars/question-82/article-2" = 8
+"prima-pars/question-82/article-3" = 8
+"prima-pars/question-82/article-4" = 8
+"prima-pars/question-82/article-5" = 7
+"prima-pars/question-83" = 1
+"prima-pars/question-83/article-1" = 12
+"prima-pars/question-83/article-2" = 8
+"prima-pars/question-83/article-3" = 8
+"prima-pars/question-83/article-4" = 8
+"prima-pars/question-84" = 1
+"prima-pars/question-84/article-1" = 8
+"prima-pars/question-84/article-2" = 8
+"prima-pars/question-84/article-3" = 8
+"prima-pars/question-84/article-4" = 8
+"prima-pars/question-84/article-5" = 5
+"prima-pars/question-84/article-6" = 8
+"prima-pars/question-84/article-7" = 8
+"prima-pars/question-84/article-8" = 6
+"prima-pars/question-85" = 1
+"prima-pars/question-85/article-1" = 12
+"prima-pars/question-85/article-2" = 8
+"prima-pars/question-85/article-3" = 10
+"prima-pars/question-85/article-4" = 10
+"prima-pars/question-85/article-5" = 8
+"prima-pars/question-85/article-6" = 6
+"prima-pars/question-85/article-7" = 6
+"prima-pars/question-85/article-8" = 8
+"prima-pars/question-86" = 1
+"prima-pars/question-86/article-1" = 9
+"prima-pars/question-86/article-2" = 10
+"prima-pars/question-86/article-3" = 4
+"prima-pars/question-86/article-4" = 8
+"prima-pars/question-87" = 1
+"prima-pars/question-87/article-1" = 8
+"prima-pars/question-87/article-2" = 8
+"prima-pars/question-87/article-3" = 8
+"prima-pars/question-87/article-4" = 8
+"prima-pars/question-88" = 1
+"prima-pars/question-88/article-1" = 12
+"prima-pars/question-88/article-2" = 10
+"prima-pars/question-88/article-3" = 8
+"prima-pars/question-89" = 1
+"prima-pars/question-89/article-1" = 7
+"prima-pars/question-89/article-2" = 8
+"prima-pars/question-89/article-3" = 8
+"prima-pars/question-89/article-4" = 8
+"prima-pars/question-89/article-5" = 10
+"prima-pars/question-89/article-6" = 8
+"prima-pars/question-89/article-7" = 8
+"prima-pars/question-89/article-8" = 8
+"prima-pars/question-90" = 1
+"prima-pars/question-90/article-1" = 8
+"prima-pars/question-90/article-2" = 8
+"prima-pars/question-90/article-3" = 5
+"prima-pars/question-90/article-4" = 8
+"prima-pars/question-91" = 1
+"prima-pars/question-91/article-1" = 10
+"prima-pars/question-91/article-2" = 10
+"prima-pars/question-91/article-3" = 8
+"prima-pars/question-91/article-4" = 11
+"prima-pars/question-92" = 1
+"prima-pars/question-92/article-1" = 8
+"prima-pars/question-92/article-2" = 8
+"prima-pars/question-92/article-3" = 7
+"prima-pars/question-92/article-4" = 8
+"prima-pars/question-93" = 1
+"prima-pars/question-93/article-1" = 8
+"prima-pars/question-93/article-2" = 10
+"prima-pars/question-93/article-3" = 8
+"prima-pars/question-93/article-4" = 7
+"prima-pars/question-93/article-5" = 8
+"prima-pars/question-93/article-6" = 10
+"prima-pars/question-93/article-7" = 10
+"prima-pars/question-93/article-8" = 10
+"prima-pars/question-93/article-9" = 10
+"prima-pars/question-94" = 1
+"prima-pars/question-94/article-1" = 8
+"prima-pars/question-94/article-2" = 7
+"prima-pars/question-94/article-3" = 8
+"prima-pars/question-94/article-4" = 12
+"prima-pars/question-95" = 1
+"prima-pars/question-95/article-1" = 14
+"prima-pars/question-95/article-2" = 8
+"prima-pars/question-95/article-3" = 12
+"prima-pars/question-95/article-4" = 8
+"prima-pars/question-96" = 1
+"prima-pars/question-96/article-1" = 10
+"prima-pars/question-96/article-2" = 5
+"prima-pars/question-96/article-3" = 8
+"prima-pars/question-96/article-4" = 5
+"prima-pars/question-97" = 1
+"prima-pars/question-97/article-1" = 9
+"prima-pars/question-97/article-2" = 8
+"prima-pars/question-97/article-3" = 10
+"prima-pars/question-97/article-4" = 5
+"prima-pars/question-98" = 1
+"prima-pars/question-98/article-1" = 8
+"prima-pars/question-98/article-2" = 10
+"prima-pars/question-99" = 1
+"prima-pars/question-99/article-1" = 10
+"prima-pars/question-99/article-2" = 8
+"prima-pars/question-100" = 1
+"prima-pars/question-100/article-1" = 7
+"prima-pars/question-100/article-2" = 10
+"prima-pars/question-101" = 1
+"prima-pars/question-101/article-1" = 8
+"prima-pars/question-101/article-2" = 6
+"prima-pars/question-102" = 1
+"prima-pars/question-102/article-1" = 12
+"prima-pars/question-102/article-2" = 10
+"prima-pars/question-102/article-3" = 5
+"prima-pars/question-102/article-4" = 7
+"prima-pars/question-103" = 1
+"prima-pars/question-103/article-1" = 8
+"prima-pars/question-103/article-2" = 8
+"prima-pars/question-103/article-3" = 8
+"prima-pars/question-103/article-4" = 6
+"prima-pars/question-103/article-5" = 8
+"prima-pars/question-103/article-6" = 8
+"prima-pars/question-103/article-7" = 8
+"prima-pars/question-103/article-8" = 8
+"prima-pars/question-104" = 1
+"prima-pars/question-104/article-1" = 10
+"prima-pars/question-104/article-2" = 8
+"prima-pars/question-104/article-3" = 8
+"prima-pars/question-104/article-4" = 8
+"prima-pars/question-105" = 1
+"prima-pars/question-105/article-1" = 8
+"prima-pars/question-105/article-2" = 8
+"prima-pars/question-105/article-3" = 8
+"prima-pars/question-105/article-4" = 8
+"prima-pars/question-105/article-5" = 8
+"prima-pars/question-105/article-6" = 8
+"prima-pars/question-105/article-7" = 8
+"prima-pars/question-105/article-8" = 4
+"prima-pars/question-106" = 1
+"prima-pars/question-106/article-1" = 8
+"prima-pars/question-106/article-2" = 8
+"prima-pars/question-106/article-3" = 8
+"prima-pars/question-106/article-4" = 8
+"prima-pars/question-107" = 1
+"prima-pars/question-107/article-1" = 8
+"prima-pars/question-107/article-2" = 6
+"prima-pars/question-107/article-3" = 6
+"prima-pars/question-107/article-4" = 6
+"prima-pars/question-107/article-5" = 6
+"prima-pars/question-108" = 1
+"prima-pars/question-108/article-1" = 8
+"prima-pars/question-108/article-2" = 8
+"prima-pars/question-108/article-3" = 8
+"prima-pars/question-108/article-4" = 5
+"prima-pars/question-108/article-5" = 14
+"prima-pars/question-108/article-6" = 10
+"prima-pars/question-108/article-7" = 8
+"prima-pars/question-108/article-8" = 7
+"prima-pars/question-109" = 1
+"prima-pars/question-109/article-1" = 8
+"prima-pars/question-109/article-2" = 8
+"prima-pars/question-109/article-3" = 6
+"prima-pars/question-109/article-4" = 8
+"prima-pars/question-110" = 1
+"prima-pars/question-110/article-1" = 8
+"prima-pars/question-110/article-2" = 8
+"prima-pars/question-110/article-3" = 8
+"prima-pars/question-110/article-4" = 10
+"prima-pars/question-111" = 1
+"prima-pars/question-111/article-1" = 8
+"prima-pars/question-111/article-2" = 8
+"prima-pars/question-111/article-3" = 10
+"prima-pars/question-111/article-4" = 8
+"prima-pars/question-112" = 1
+"prima-pars/question-112/article-1" = 10
+"prima-pars/question-112/article-2" = 9
+"prima-pars/question-112/article-3" = 8
+"prima-pars/question-112/article-4" = 6
+"prima-pars/question-113" = 1
+"prima-pars/question-113/article-1" = 8
+"prima-pars/question-113/article-2" = 8
+"prima-pars/question-113/article-3" = 8
+"prima-pars/question-113/article-4" = 8
+"prima-pars/question-113/article-5" = 8
+"prima-pars/question-113/article-6" = 6
+"prima-pars/question-113/article-7" = 9
+"prima-pars/question-113/article-8" = 5
+"prima-pars/question-114" = 1
+"prima-pars/question-114/article-1" = 8
+"prima-pars/question-114/article-2" = 7
+"prima-pars/question-114/article-3" = 7
+"prima-pars/question-114/article-4" = 8
+"prima-pars/question-114/article-5" = 4
+"prima-pars/question-115" = 1
+"prima-pars/question-115/article-1" = 11
+"prima-pars/question-115/article-2" = 10
+"prima-pars/question-115/article-3" = 10
+"prima-pars/question-115/article-4" = 8
+"prima-pars/question-115/article-5" = 8
+"prima-pars/question-115/article-6" = 8
+"prima-pars/question-116" = 1
+"prima-pars/question-116/article-1" = 5
+"prima-pars/question-116/article-2" = 8
+"prima-pars/question-116/article-3" = 5
+"prima-pars/question-116/article-4" = 8
+"prima-pars/question-117" = 1
+"prima-pars/question-117/article-1" = 10
+"prima-pars/question-117/article-2" = 8
+"prima-pars/question-117/article-3" = 8
+"prima-pars/question-117/article-4" = 6
+"prima-pars/question-118" = 1
+"prima-pars/question-118/article-1" = 10
+"prima-pars/question-118/article-2" = 12
+"prima-pars/question-118/article-3" = 8
+"prima-pars/question-119" = 1
+"prima-pars/question-119/article-1" = 12
+"prima-pars/question-119/article-2" = 9
 
