@@ -109,6 +109,9 @@ pub enum PassageUnit {
     Auto,
     Paragraphs,
     NumberedSections,
+    /// Scholastic articles (Aquinas): a question's opening is its prologue; an article's parts
+    /// are passages named as scholars cite them (obj-1, sed-contra, corpus, ad-1).
+    Articles,
 }
 
 /// Whose words a planned passage is.
@@ -556,6 +559,23 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
             });
             content_ranges.clear();
         }
+        // A scholastic article's title: its first paragraph, if it opens no part ("Whether God
+        // Exists?").
+        if options.passages == PassageUnit::Articles
+            && node.kind == "article"
+            && node.title.is_none()
+            && let Some(first) = content_ranges.first().cloned()
+            && article_part(&text(&first)).is_none()
+            && text(&first).trim().lines().count() <= 3
+        {
+            node.title = Some(title_text(&text(&first)));
+            divisions[d].title = node.title.clone();
+            units.push(Unit {
+                kind: UnitKind::DivisionHeading,
+                range: first,
+            });
+            content_ranges.remove(0);
+        }
         // A numbered division's title: its first paragraph, up to three short lines in capitals.
         let mut title_markers = Vec::new();
         if node.title.is_none()
@@ -593,10 +613,14 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
             };
             let numbered = match options.passages {
                 PassageUnit::Auto => is_numbered(file, &content_ranges),
-                PassageUnit::Paragraphs => false,
+                PassageUnit::Paragraphs | PassageUnit::Articles => false,
                 PassageUnit::NumberedSections => true,
             };
-            if numbered {
+            if options.passages == PassageUnit::Articles && node.kind == "question" {
+                question_prologue(&mut sink, &content_ranges);
+            } else if options.passages == PassageUnit::Articles && node.kind == "article" {
+                article_parts(&mut sink, &content_ranges);
+            } else if numbered {
                 numbered_sections(&mut sink, &content_ranges);
             } else {
                 plain_paragraphs(&mut sink, &content_ranges);
@@ -633,8 +657,12 @@ pub fn compile_plain_text(file: &[u8], body: Range<usize>, options: &Options) ->
             warnings: &mut warnings,
         };
         match options.passages {
-            PassageUnit::Paragraphs => plain_paragraphs(&mut sink, &content),
-            _ => numbered_sections(&mut sink, &content),
+            PassageUnit::Paragraphs | PassageUnit::Articles => {
+                plain_paragraphs(&mut sink, &content)
+            }
+            PassageUnit::Auto | PassageUnit::NumberedSections => {
+                numbered_sections(&mut sink, &content)
+            }
         }
     }
 
@@ -1134,6 +1162,96 @@ fn is_title_case_note(text: &str) -> bool {
         && t.chars().any(char::is_lowercase)
 }
 
+/// The part of a scholastic article a paragraph opens, as its Latin locator segment:
+/// "Objection 1:" / "Obj. 2:" → obj-N, "On the contrary" → sed-contra, "I answer that" →
+/// corpus, "Reply Obj. 1:" / "Reply to Objection 1:" → ad-N.
+fn article_part(text: &str) -> Option<String> {
+    let t = text.trim_start().trim_start_matches('_');
+    let number = |rest: &str| -> Option<u32> {
+        let digits: String = rest
+            .trim_start()
+            .chars()
+            .take_while(char::is_ascii_digit)
+            .collect();
+        digits.parse().ok()
+    };
+    for (word, slug) in [
+        ("Reply to Objection", "ad"),
+        ("Reply Obj.", "ad"),
+        ("Objection", "obj"),
+        ("Obj.", "obj"),
+    ] {
+        if let Some(rest) = t.strip_prefix(word) {
+            return number(rest).map(|n| format!("{slug}-{n}"));
+        }
+    }
+    if t.starts_with("On the contrary") {
+        Some("sed-contra".into())
+    } else if t.starts_with("I answer that") {
+        Some("corpus".into())
+    } else {
+        None
+    }
+}
+
+/// An article's parts (declared `passages = "articles"`): a paragraph opening a part starts
+/// it; others continue the part before them (the corpus often runs over several paragraphs).
+fn article_parts(sink: &mut Sink, paras: &[Range<usize>]) {
+    let div_slug = sink.div_slug.to_owned();
+    let mut current: Option<usize> = None;
+    let mut counters = HostCounters::default();
+    let mut seen: Vec<String> = Vec::new();
+    for r in paras {
+        let text = String::from_utf8_lossy(&sink.file[r.clone()]).into_owned();
+        match article_part(&text) {
+            Some(part) => {
+                if seen.contains(&part) {
+                    sink.problems
+                        .push(format!("{div_slug}/{part}: this part appears twice"));
+                }
+                seen.push(part.clone());
+                sink.close_host(current, &counters);
+                counters = HostCounters::default();
+                let host =
+                    sink.push_passage(format!("{div_slug}/{part}"), PlannedRole::Text, r.clone());
+                sink.author_text(r.clone(), host, &mut counters);
+                current = Some(host);
+            }
+            None => {
+                let Some(host) = current else {
+                    sink.problems
+                        .push(format!("{div_slug}: text before the article's first part"));
+                    sink.units.push(Unit {
+                        kind: UnitKind::Text,
+                        range: r.clone(),
+                    });
+                    continue;
+                };
+                sink.passages[host].range.end = r.end;
+                sink.author_text(r.clone(), host, &mut counters);
+            }
+        }
+    }
+    sink.close_host(current, &counters);
+}
+
+/// A question's opening (its list of articles): one passage, the question's prologue.
+fn question_prologue(sink: &mut Sink, paras: &[Range<usize>]) {
+    let (Some(first), Some(last)) = (paras.first(), paras.last()) else {
+        return;
+    };
+    let mut counters = HostCounters::default();
+    let host = sink.push_passage(
+        format!("{}/prologue", sink.div_slug),
+        PlannedRole::Text,
+        first.start..last.end,
+    );
+    for r in paras {
+        sink.author_text(r.clone(), host, &mut counters);
+    }
+    sink.close_host(Some(host), &counters);
+}
+
 /// The numbers of bracketed footnote markers in a text ("OF PROBABILITY[9]." → [9]).
 fn bracket_numbers(bytes: &[u8]) -> Vec<u32> {
     let mut out = Vec::new();
@@ -1324,13 +1442,38 @@ fn without_brackets(bytes: &[u8]) -> Vec<u8> {
 /// `PART 4`, `PART IV`, `BOOK II`, `CHAPTER IX`, `SECTION 3`, or a standalone known heading word.
 /// Returns (kind, label, slug).
 /// Heading words and the division kind each one opens.
-const HEADING_WORDS: [(&str, &str); 6] = [
+const HEADING_WORDS: [(&str, &str); 7] = [
     ("PART", "part"),
     ("BOOK", "book"),
     ("CHAPTER", "chapter"),
     ("CHAP.", "chapter"),
     ("SECTION", "section"),
     ("SECT.", "section"),
+    ("QUESTION", "question"),
+];
+
+/// Ordinal words, FIRST = 1.
+const ORDINALS: [&str; 20] = [
+    "FIRST",
+    "SECOND",
+    "THIRD",
+    "FOURTH",
+    "FIFTH",
+    "SIXTH",
+    "SEVENTH",
+    "EIGHTH",
+    "NINTH",
+    "TENTH",
+    "ELEVENTH",
+    "TWELFTH",
+    "THIRTEENTH",
+    "FOURTEENTH",
+    "FIFTEENTH",
+    "SIXTEENTH",
+    "SEVENTEENTH",
+    "EIGHTEENTH",
+    "NINETEENTH",
+    "TWENTIETH",
 ];
 
 /// A line that starts with a heading word and a number, in any case and whatever follows
@@ -1369,6 +1512,20 @@ fn known_heading(text: &str) -> Option<Known> {
         return None;
     }
     let first = normalise(lines[0]);
+    // "FIRST ARTICLE [I, Q. 1, Art. 1]": an ordinal, ARTICLE, and the editor's reference.
+    let bare = first.split(" [").next().unwrap_or(&first);
+    if let Some(ordinal) = bare.strip_suffix(" ARTICLE")
+        && let Some(n) = ORDINALS.iter().position(|o| *o == ordinal)
+    {
+        let title = (lines.len() > 1).then(|| title_text(&lines[1..].join(" ")));
+        return Some(Known {
+            kind: "article".into(),
+            label: (n + 1).to_string(),
+            slug: format!("article-{}", n + 1),
+            title,
+            title_on_heading_line: false,
+        });
+    }
     for (word, kind) in HEADING_WORDS {
         if let Some(rest) = first.strip_prefix(word).and_then(|r| r.strip_prefix(' ')) {
             let (number, same_line) = rest.split_once(' ').unwrap_or((rest, ""));
@@ -1535,16 +1692,26 @@ fn is_end_mark(text: &str) -> bool {
 /// The rest of a wrapped title: up to three short lines, in capitals.
 fn is_title_continuation(text: &str) -> bool {
     let t = text.trim();
-    (1..=3).contains(&t.lines().count())
-        && t.lines().all(|l| l.trim().len() <= 80)
-        && t.chars().any(|c| c.is_uppercase())
-        && !t.chars().any(|c| c.is_lowercase())
+    // A last line wholly in parentheses ("(In Three Articles)") is part of the title.
+    let lines: Vec<&str> = t.lines().map(str::trim).collect();
+    let caps = match lines.split_last() {
+        Some((last, rest)) if !rest.is_empty() && last.starts_with('(') && last.ends_with(')') => {
+            rest
+        }
+        _ => &lines[..],
+    };
+    (1..=3).contains(&lines.len())
+        && lines.iter().all(|l| l.len() <= 80)
+        && caps.iter().any(|l| l.chars().any(char::is_uppercase))
+        && !caps.iter().any(|l| l.chars().any(char::is_lowercase))
 }
 
 /// "* * * * *"
 fn is_separator(text: &str) -> bool {
     let t = text.trim();
-    !t.is_empty() && t.chars().all(|c| c == '*' || c == ' ') && t.contains('*')
+    !t.is_empty()
+        && ((t.chars().all(|c| c == '*' || c == ' ') && t.contains('*'))
+            || (t.len() >= 5 && t.chars().all(|c| c == '_')))
 }
 
 /// Uppercase, whitespace collapsed: for comparing heading lines.

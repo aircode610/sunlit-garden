@@ -1180,3 +1180,67 @@ fn an_undivided_wikitext_in_numbered_sections() {
         1
     );
 }
+
+/// The Summa as Gutenberg #17611 prints it. Declared `passages = "articles"`: a question's
+/// opening is its prologue; an article's parts are passages with the scholarly Latin names
+/// (obj-N, sed-contra, corpus, ad-N), the corpus running over several paragraphs.
+#[test]
+fn summa_articles_are_cited_by_their_parts() {
+    use sunlit_core::corpus::compile::structure::{
+        Attribution, InsertionRule, PassageUnit, PlannedRole,
+    };
+    let file = b"QUESTION 2\n\nTHE EXISTENCE OF GOD\n(In Three Articles)\n\nBecause the chief aim of sacred doctrine is to teach the knowledge of God.\n\n(1) Whether the proposition \"God exists\" is self-evident?\n\n_______________________\n\nFIRST ARTICLE [I, Q. 2, Art. 1]\n\nWhether God Exists?\n\nObjection 1: It seems that God does not exist [*Cf. Q. 16, A. 4].\n\nObj. 2: Further, it is superfluous to suppose.\n\n_On the contrary,_ It is said in the person of God: \"I am Who am.\"\n\n_I answer that,_ The existence of God can be proved in five ways.\n\nThe second way is from the nature of the efficient cause.\n\nReply Obj. 1: As Augustine says.\n\nReply Obj. 2: Since nature works for a determinate end.\n";
+    let options = Options {
+        passages: PassageUnit::Articles,
+        insertions: vec![InsertionRule {
+            prefix: "[".into(),
+            by: Attribution::Editor,
+        }],
+        ..Options::default()
+    };
+    let s = compile_plain_text(file, 0..file.len(), &options);
+    assert!(s.problems.is_empty(), "{:?}", s.problems);
+    let d = &s.compiled.divisions;
+    assert_eq!(
+        d[0].title.as_deref(),
+        Some("THE EXISTENCE OF GOD (In Three Articles)")
+    );
+    assert_eq!((d[1].slug.as_str(), d[1].parent), ("article-1", Some(0)));
+    assert_eq!(d[1].title.as_deref(), Some("Whether God Exists?"));
+    let locators: Vec<&str> = s
+        .passages
+        .iter()
+        .filter(|p| p.role == PlannedRole::Text)
+        .map(|p| p.locator.as_str())
+        .collect();
+    assert_eq!(
+        locators,
+        [
+            "question-2/prologue",
+            "question-2/article-1/obj-1",
+            "question-2/article-1/obj-2",
+            "question-2/article-1/sed-contra",
+            "question-2/article-1/corpus",
+            "question-2/article-1/ad-1",
+            "question-2/article-1/ad-2",
+        ]
+    );
+    let corpus = s
+        .passages
+        .iter()
+        .position(|p| p.locator.ends_with("/corpus"))
+        .unwrap();
+    assert!(
+        s.author_words(file, corpus)
+            .ends_with("nature of the efficient cause.")
+    );
+    let obj1 = s
+        .passages
+        .iter()
+        .position(|p| p.locator.ends_with("/obj-1"))
+        .unwrap();
+    assert_eq!(
+        s.author_words(file, obj1),
+        "Objection 1: It seems that God does not exist ."
+    );
+}
