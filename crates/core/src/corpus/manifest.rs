@@ -219,7 +219,8 @@ struct RawEdition {
     translator: Option<String>,
     published_year: Option<i16>,
     range: Option<RawRange>,
-    /// `passages = "paragraphs"` / `"numbered-sections"`; default: decided from the text.
+    /// `passages = "paragraphs"` / `"numbered-sections"` / `"articles"`; default: decided from
+    /// the text.
     #[serde(default)]
     passages: RawPassages,
     /// `margin_notes = "title-case"` if the edition prints the author's marginal notes as
@@ -280,6 +281,7 @@ enum RawPassages {
     Auto,
     Paragraphs,
     NumberedSections,
+    Articles,
 }
 
 /// `by = "editor"` or `by = "author"`; anything else fails to parse.
@@ -464,6 +466,7 @@ fn validate(raw: RawManifest) -> Result<Manifest, ManifestError> {
                     RawPassages::Auto => PassageUnit::Auto,
                     RawPassages::Paragraphs => PassageUnit::Paragraphs,
                     RawPassages::NumberedSections => PassageUnit::NumberedSections,
+                    RawPassages::Articles => PassageUnit::Articles,
                 },
                 headings: e
                     .heading
